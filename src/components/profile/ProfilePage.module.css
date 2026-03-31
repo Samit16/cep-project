@@ -151,6 +151,12 @@
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-xl);
   padding: var(--space-8);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition-base);
+}
+
+.infoCard:hover {
+  box-shadow: var(--shadow-md);
 }
 
 .sectionHeader {
@@ -256,6 +262,12 @@
   border-radius: var(--radius-xl);
   padding: var(--space-8);
   margin-bottom: var(--space-8);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition-base);
+}
+
+.contactCard:hover {
+  box-shadow: var(--shadow-md);
 }
 
 .contactRow {
@@ -327,10 +339,18 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border-light);
+  background: var(--color-status-verified-bg);
+  border: 1px solid rgba(5, 150, 105, 0.2);
   border-radius: var(--radius-xl);
   padding: var(--space-8);
+  box-shadow: var(--shadow-sm);
+}
+
+.visibilityIcon {
+  color: var(--color-status-verified);
+  background: #fff;
+  border-radius: 50%;
+  padding: 4px;
 }
 
 .visibilityTitle {

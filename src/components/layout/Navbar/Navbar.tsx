@@ -1,4 +1,5 @@
 import React from 'react';
+import { Search } from 'lucide-react';
 import styles from './Navbar.module.css';
 
 interface NavbarProps {
@@ -15,7 +16,7 @@ export default function Navbar({
   const links = [
     { label: 'Directory', href: '/directory' },
     { label: 'About', href: '/about' },
-    { label: 'Achievements', href: '/achievements' },
+    { label: 'Achievements', href: '/#achievements' },
   ];
 
   return (
@@ -44,17 +45,17 @@ export default function Navbar({
       <div className={styles.navActions}>
         {showSearch && (
           <div className={styles.searchBar}>
-            <span className={styles.searchIcon}>🔍</span>
+            <Search size={16} className={styles.searchIcon} />
             <input type="text" placeholder="Search members..." />
           </div>
         )}
 
-        <button className={styles.memberLoginBtn}>
+        <a href="/login" className={styles.memberLoginBtn}>
           Member Login
-        </button>
-        <button className={styles.joinBtn}>
+        </a>
+        <a href="/login?tab=committee" className={styles.joinBtn}>
           Join Us
-        </button>
+        </a>
       </div>
     </nav>
   );

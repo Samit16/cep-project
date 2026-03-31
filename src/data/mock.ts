@@ -168,6 +168,7 @@ export const mockEvents: Event[] = [
     location: 'Convention Hall, Mumbai',
     address: 'Convention Hall, Andheri East, Mumbai',
     description: 'Annual meeting to discuss community progress, finances, and upcoming initiatives.',
+    imageUrl: '/images/events/event2.png',
     committeeContacts: [
       { name: 'Viren Shah', phone: '+91 99887 76655' },
     ],

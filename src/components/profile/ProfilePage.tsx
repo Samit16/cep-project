@@ -1,4 +1,7 @@
+'use client';
+
 import React from 'react';
+import { Pencil, Eye, ShieldCheck, Mail, Phone, MapPin, CheckCircle2 } from 'lucide-react';
 import styles from './ProfilePage.module.css';
 import { mockMembers } from '@/data/mock';
 
@@ -18,7 +21,7 @@ export default function ProfilePage({ memberId = '1' }: ProfilePageProps) {
       <div className={styles.profileHero}>
         <div className={styles.profilePhoto}>
           {member.photoUrl ? (
-            <img src="/images/members/member1.png" alt={member.name} />
+            <img src={`/images/members/member${member.id}.jpg`} alt={member.name} />
           ) : (
             <div className={styles.profilePhotoInitials}>
               {member.name.split(' ').map(n => n[0]).join('')}
@@ -38,10 +41,10 @@ export default function ProfilePage({ memberId = '1' }: ProfilePageProps) {
           </p>
           <div className={styles.profileActions}>
             <button className={styles.editProfileBtn}>
-              ✏️ Edit Profile
+              <Pencil size={16} /> Edit Profile
             </button>
             <button className={styles.privacyBtn}>
-              👁 View Privacy Settings
+              <Eye size={16} /> View Privacy Settings
             </button>
           </div>
         </div>
@@ -66,7 +69,7 @@ export default function ProfilePage({ memberId = '1' }: ProfilePageProps) {
           <div className={styles.sectionHeader}>
             <span className={styles.sectionDash} />
             <span className={styles.sectionTitle}>Professional Standing</span>
-            <span className={styles.verifiedIcon}>✅</span>
+            <CheckCircle2 size={16} className={styles.verifiedIcon} />
           </div>
           <div className={styles.infoLabel}>Current Occupation</div>
           <div className={`${styles.infoValue} ${styles.infoValueLarge}`}>
@@ -77,7 +80,7 @@ export default function ProfilePage({ memberId = '1' }: ProfilePageProps) {
           <div className={styles.infoValue}>{member.company || 'Kothari Textiles & Logistics Pvt Ltd.'}</div>
           
           <div className={styles.officePhoto}>
-            <img src="/images/office.png" alt="Office headquarters" />
+            <img src="/images/office1.jpg" alt="Office headquarters" />
             <div className={styles.officeBadge}>
               <div className={styles.officeBadgeLabel}>Office Headquarters</div>
               <div className={styles.officeBadgeValue}>{member.officeLocation || 'Bandra-Kurla Complex, Mumbai'}</div>
@@ -93,21 +96,21 @@ export default function ProfilePage({ memberId = '1' }: ProfilePageProps) {
           <span className={styles.sectionTitle}>Contact</span>
         </div>
         <div className={styles.contactRow}>
-          <span className={styles.contactIcon}>📧</span>
+          <Mail size={18} className={styles.contactIcon} />
           <div>
             <div className={styles.contactLabel}>Email Address</div>
             <div className={styles.contactValue}>{member.email}</div>
           </div>
         </div>
         <div className={styles.contactRow}>
-          <span className={styles.contactIcon}>📞</span>
+          <Phone size={18} className={styles.contactIcon} />
           <div>
             <div className={styles.contactLabel}>Phone Number</div>
             <div className={styles.contactValue}>{member.phone || '+91 98200 12345'}</div>
           </div>
         </div>
         <div className={styles.contactRow}>
-          <span className={styles.contactIcon}>📍</span>
+          <MapPin size={18} className={styles.contactIcon} />
           <div>
             <div className={styles.contactLabel}>Residential Address</div>
             <div className={styles.contactValue}>{member.address || '402, Heritage Residency, Marine Drive, Mumbai, 400020'}</div>
@@ -127,6 +130,7 @@ export default function ProfilePage({ memberId = '1' }: ProfilePageProps) {
 
       {/* Visibility Banner */}
       <div className={styles.visibilityBanner}>
+        <ShieldCheck size={24} className={styles.visibilityIcon} />
         <div>
           <h3 className={styles.visibilityTitle}>Member Directory Visibility</h3>
           <p className={styles.visibilityText}>

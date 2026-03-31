@@ -1,12 +1,16 @@
+'use client';
+
 import React from 'react';
+import { ArrowRight } from 'lucide-react';
+import { useToast } from '@/components/ui/Toast/ToastProvider';
 import styles from './LandingPage.module.css';
 
 export function HeroSection() {
   return (
     <section className={styles.hero}>
-      <div className={styles.heroContent}>
+      <div className={`${styles.heroContent} ${styles.animateFadeUp}`}>
         <span className={styles.heroLabel}>Established Since 1921</span>
-        <h1 className={styles.heroTitle}>
+        <h1 className={`${styles.heroTitle} ${styles.animateFadeUp} ${styles.delay1}`}>
           Connecting Our{' '}
           <span className={styles.heroTitleHighlight}>
             Heritage
@@ -14,27 +18,16 @@ export function HeroSection() {
           ,{' '}
           <span className={styles.heroTitleItalic}>Building<br />Our Future</span>
         </h1>
-        <p className={styles.heroSubtitle}>
+        <p className={`${styles.heroSubtitle} ${styles.animateFadeUp} ${styles.delay2}`}>
           A vibrant tapestry of culture, commerce, and community. We stand as
           the custodians of the Kutchi Jain Oswal legacy, empowering
           generations through unity.
         </p>
-        <div className={styles.heroCta}>
-          <a href="/login" className={styles.registerBtn} style={{ padding: '12px 28px', fontSize: '0.875rem' }}>
+        <div className={`${styles.heroCta} ${styles.animateFadeUp} ${styles.delay3}`}>
+          <a href="/login" className={styles.ctaBtnPrimary}>
             Become a Member
           </a>
-          <a href="/directory" style={{
-            padding: '12px 28px',
-            border: '1.5px solid var(--color-text-primary)',
-            color: 'var(--color-text-primary)',
-            background: 'transparent',
-            borderRadius: 'var(--radius-md)',
-            fontWeight: 600,
-            fontSize: '0.875rem',
-            textDecoration: 'none',
-            display: 'inline-flex',
-            alignItems: 'center',
-          }}>
+          <a href="/directory" className={styles.ctaBtnOutlinedHero}>
             Explore Directory
           </a>
         </div>
@@ -49,7 +42,7 @@ export function HeroSection() {
 export function HistoryMissionSection() {
   return (
     <section className={styles.historySection}>
-      <div className={styles.historySectionInner}>
+      <div className={styles.historySectionInner} id="history">
         <div className={styles.historyImage}>
           <img src="/images/history.png" alt="Historical photograph of community founders" />
         </div>
@@ -89,7 +82,7 @@ export function HistoryMissionSection() {
 
 export function AchievementsSection() {
   return (
-    <section className={styles.achievementsSection}>
+    <section id="achievements" className={styles.achievementsSection}>
       <div className={styles.achievementsSectionInner}>
         <h2 className={styles.achievementsTitle}>Celebrating Excellence</h2>
         <p className={styles.achievementsSubtitle}>
@@ -105,7 +98,9 @@ export function AchievementsSection() {
               Recognising 41 scholars and outstanding Samaj members who have made extraordinary
               contributions to education.
             </p>
-            <a href="#" className={styles.bentoCardLink}>Learn More →</a>
+            <a href="#history" className={styles.bentoCardLink}>
+              Learn More <ArrowRight size={14} />
+            </a>
           </div>
           {/* Card 2 - Bottom Left */}
           <div className={styles.bentoCard}>
@@ -115,7 +110,9 @@ export function AchievementsSection() {
               A showcase of those in our community who are building businesses, creating employment,
               and strengthening our legacy.
             </p>
-            <a href="#" className={styles.bentoCardLink}>View Stories →</a>
+            <a href="#" className={styles.bentoCardLink}>
+              View Stories <ArrowRight size={14} />
+            </a>
           </div>
           {/* Banner - Right column spanning both rows */}
           <div className={styles.bentoBanner}>
@@ -129,7 +126,7 @@ export function AchievementsSection() {
                 Connecting business leaders and cultural experts from
                 across 6 continents to discuss our future.
               </p>
-              <a href="#" className={styles.registerBtn} style={{ display: 'inline-block', textDecoration: 'none' }}>
+              <a href="/events" className={styles.registerBtn} style={{ display: 'inline-block', textDecoration: 'none' }}>
                 View Event Figures
               </a>
             </div>
@@ -141,6 +138,7 @@ export function AchievementsSection() {
 }
 
 export function EventsSection() {
+  const { toast } = useToast();
   const eventDate = new Date('2024-04-15');
   
   return (
@@ -153,7 +151,9 @@ export function EventsSection() {
               Join our community gatherings and celebrate your heritage together.
             </p>
           </div>
-          <a href="/events" className={styles.eventsLink}>See All Events →</a>
+          <a href="/events" className={styles.eventsLink}>
+            See All Events <ArrowRight size={14} />
+          </a>
         </div>
         
         <div className={styles.eventCard}>
@@ -171,7 +171,9 @@ export function EventsSection() {
               <div className={styles.eventDateDay}>15</div>
               <div className={styles.eventDateMonth}>Apr</div>
             </div>
-            <button className={styles.registerBtn}>Register</button>
+            <button className={styles.registerBtn} onClick={() => toast('Registration successful! You will receive a confirmation SMS.', 'success')}>
+              Register
+            </button>
           </div>
         </div>
       </div>
@@ -188,8 +190,12 @@ export function CTABanner() {
         to our community&apos;s lasting legacy.
       </p>
       <div className={styles.ctaActions}>
-        <button className={styles.ctaBtnOutlined}>Join the Community</button>
-        <button className={styles.ctaBtnOutlined}>Member Login</button>
+        <a href="/login" className={styles.ctaBtnOutlined} style={{ textDecoration: 'none' }}>
+          Join the Community
+        </a>
+        <a href="/login" className={styles.ctaBtnOutlined} style={{ textDecoration: 'none' }}>
+          Member Login
+        </a>
       </div>
     </section>
   );

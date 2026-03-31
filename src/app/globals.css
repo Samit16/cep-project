@@ -4,49 +4,52 @@
 
 :root {
   /* --- Colors --- */
-  --color-primary: #8B1A1A;
+  --color-primary: #8B1A1A; /* Heritage Red */
   --color-primary-dark: #6B1414;
   --color-primary-light: #B44A4A;
-  --color-primary-lightest: rgba(139, 26, 26, 0.08);
+  --color-primary-lightest: rgba(139, 26, 26, 0.06);
   --color-accent-gold: #C8956C;
-  --color-accent-gold-light: #D4A97D;
+  --color-accent-gold-light: #E2BA9A;
+  
+  /* Focus Rings */
+  --color-focus-ring: rgba(139, 26, 26, 0.35);
 
   /* Backgrounds */
-  --color-bg-page: #F5EDE4;
-  --color-bg-warm: #FAF5EF;
+  --color-bg-page: #FAFAF8; /* Softer, highly neutral warm grey */
+  --color-bg-warm: #FDFBF8; /* Off-white for section blocks */
   --color-bg-card: #FFFFFF;
-  --color-bg-section-alt: #F0E8DF;
+  --color-bg-section-alt: #F3F1EC;
   --color-bg-sidebar: #FFFFFF;
   --color-bg-sidebar-active: #8B1A1A;
-  --color-bg-input: #F9F5F0;
+  --color-bg-input: #FFFFFF;
   --color-bg-cta: #8B1A1A;
 
-  /* Text */
-  --color-text-primary: #1A1A1A;
-  --color-text-secondary: #6B7280;
-  --color-text-muted: #9CA3AF;
+  /* Text - Moving away from absolute blacks to deep slate/charcoal */
+  --color-text-primary: #1E293B; /* Slate 800 */
+  --color-text-secondary: #475569; /* Slate 600 */
+  --color-text-muted: #94A3B8; /* Slate 400 */
   --color-text-on-primary: #FFFFFF;
   --color-text-on-cta: #FFFFFF;
 
   /* Borders */
-  --color-border: #E5E0DA;
-  --color-border-light: #EDE8E1;
-  --color-border-input: #D9D0C7;
+  --color-border: #E2E8F0; /* Slate 200 */
+  --color-border-light: #F1F5F9; /* Slate 100 */
+  --color-border-input: #CBD5E1; /* Slate 300 */
 
   /* Status */
-  --color-status-verified: #16A34A;
-  --color-status-verified-bg: rgba(22, 163, 74, 0.1);
+  --color-status-verified: #059669; /* Emerald 600 */
+  --color-status-verified-bg: rgba(5, 150, 105, 0.08);
   --color-status-pending: #EA580C;
-  --color-status-pending-bg: rgba(234, 88, 12, 0.1);
-  --color-status-inactive: #6B7280;
+  --color-status-pending-bg: rgba(234, 88, 12, 0.08);
+  --color-status-inactive: #64748B;
 
   /* Links */
   --color-link: #8B1A1A;
-  --color-link-hover: #6B1414;
+  --color-link-hover: #B44A4A;
 
   /* Tags */
-  --color-tag-bg: #F5EDE4;
-  --color-tag-border: #C8B8A8;
+  --color-tag-bg: #F8FAFC;
+  --color-tag-border: #E2E8F0;
 
   /* --- Typography --- */
   --font-serif: 'Playfair Display', Georgia, serif;
@@ -147,6 +150,7 @@ body {
   line-height: var(--leading-relaxed);
   color: var(--color-text-primary);
   background-color: var(--color-bg-page);
+  overflow-x: hidden;
 }
 
 a {
@@ -169,11 +173,23 @@ button {
   cursor: pointer;
   border: none;
   background: none;
+  transition: transform var(--transition-fast), background-color var(--transition-base), box-shadow var(--transition-base);
+}
+
+button:active {
+  transform: scale(0.97); /* The squeeze effect */
 }
 
 input, select, textarea {
   font-family: inherit;
   font-size: inherit;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
 }
 
 h1, h2, h3, h4, h5, h6 {

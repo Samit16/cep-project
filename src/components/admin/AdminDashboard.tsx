@@ -1,15 +1,76 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import { 
+  LayoutDashboard, Users, Calendar, Wallet, Settings, HelpCircle, LogOut, 
+  Search, FileText, Download, UserPlus, TrendingUp, ClipboardList, 
+  ShieldCheck, Pencil, MoreVertical, User, ChevronDown
+} from 'lucide-react';
 import styles from './AdminDashboard.module.css';
 import Pagination from '@/components/ui/Pagination/Pagination';
 import Footer from '@/components/layout/Footer/Footer';
-import { mockMembers, mockStats } from '@/data/mock';
+import MemberFormModal from './MemberFormModal';
+import EmptyState from '@/components/ui/EmptyState/EmptyState';
+import { useToast } from '@/components/ui/Toast/ToastProvider';
+import { mockMembers as initialMembers, mockStats } from '@/data/mock';
 
 const avatarColors = ['#8B1A1A', '#C8956C', '#2D5F8B', '#4A7C59', '#7B5EA7'];
 
 export default function AdminDashboard() {
-  const tableMembers = mockMembers.slice(6, 9); // VS, MP, RK from mock data
+  const [members, setMembers] = useState(initialMembers);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const handleLogout = () => {
+    if (confirm('Are you sure you want to log out?')) {
+      router.push('/login');
+    }
+  };
+
+  const handleExportCSV = () => {
+    const headers = ['ID', 'Name', 'Email', 'Profession', 'Join Date', 'Status'];
+    const csvData = members.map(m => [m.idNumber, m.name, m.email, m.profession, m.joinDate, m.status].join(',')).join('\n');
+    const blob = new Blob([[headers.join(','), csvData].join('\n')], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `kjo_samaj_members_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+    toast('Exporting Directory Data... Successfully downloaded.', 'success');
+  };
+
+  const handleBulkUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      toast(`Processing ${file.name}... Success! 12 new members pending verification.`, 'success');
+    }
+  };
+
+  const handleAddMember = (newMember: any) => {
+    const id = (members.length + 1).toString();
+    const fullMember = {
+      ...newMember,
+      id,
+      idNumber: `KJO-2024-${Math.floor(1000 + Math.random() * 9000)}`,
+      joinDate: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+      status: 'pending',
+    };
+    setMembers([fullMember, ...members]);
+    toast('Member record created successfully.', 'success');
+  };
+
+  const filteredMembers = members.filter(m => 
+    m.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    m.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    m.profession.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const tableMembers = filteredMembers.slice(0, 5);
 
   return (
     <div className={styles.adminLayout}>
@@ -22,7 +83,7 @@ export default function AdminDashboard() {
 
         <div className={styles.sidebarProfile}>
           <div className={styles.sidebarAvatar}>
-            <span style={{ fontSize: '1.2rem' }}>👤</span>
+            <User size={20} color="var(--color-primary)" />
           </div>
           <div>
             <div className={styles.sidebarProfileName}>Admin Panel</div>
@@ -32,35 +93,37 @@ export default function AdminDashboard() {
 
         <nav className={styles.sidebarNav}>
           <button className={`${styles.sidebarItem} ${styles.sidebarItemActive}`}>
-            <span className={styles.sidebarItemIcon}>📊</span>
+            <LayoutDashboard size={18} className={styles.sidebarItemIcon} />
             Dashboard
           </button>
           <a href="/members" className={styles.sidebarItem}>
-            <span className={styles.sidebarItemIcon}>👥</span>
+            <Users size={18} className={styles.sidebarItemIcon} />
             Member Requests
           </a>
           <a href="/events" className={styles.sidebarItem}>
-            <span className={styles.sidebarItemIcon}>📅</span>
+            <Calendar size={18} className={styles.sidebarItemIcon} />
             Events
           </a>
           <button className={`${styles.sidebarItem} ${styles.sidebarItemDisabled}`} disabled>
-            <span className={styles.sidebarItemIcon}>💰</span>
+            <Wallet size={18} className={styles.sidebarItemIcon} />
             Finance
             <span className={styles.comingSoonBadge}>Soon</span>
           </button>
           <a href="/settings" className={styles.sidebarItem}>
-            <span className={styles.sidebarItemIcon}>⚙️</span>
+            <Settings size={18} className={styles.sidebarItemIcon} />
             Settings
           </a>
         </nav>
 
         <div className={styles.sidebarFooter}>
-          <button className={styles.broadcastBtn}>Broadcast Message</button>
-          <button className={styles.sidebarLink}>
-            <span>❓</span> Help Center
+          <button className={styles.broadcastBtn} onClick={() => toast('Message broadcasted to 14,802 members successfully.', 'success')}>
+            Broadcast Message
           </button>
-          <button className={styles.sidebarLink}>
-            <span>🚪</span> Logout
+          <button className={styles.sidebarLink} onClick={() => toast('Opening Help Center... Please call +91 98200 54321 for urgent support.', 'info')}>
+            <HelpCircle size={16} /> Help Center
+          </button>
+          <button className={styles.sidebarLink} onClick={handleLogout}>
+            <LogOut size={16} /> Logout
           </button>
         </div>
       </aside>
@@ -87,7 +150,7 @@ export default function AdminDashboard() {
               borderRadius: 'var(--radius-md)',
               padding: '6px 12px',
             }}>
-              <span style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>🔍</span>
+              <Search size={16} color="var(--color-text-muted)" />
               <input
                 type="text"
                 placeholder="Search members..."
@@ -112,7 +175,7 @@ export default function AdminDashboard() {
               fontWeight: 600,
               fontSize: '0.8125rem',
               cursor: 'pointer',
-            }}>
+            }} onClick={() => router.push('/login')}>
               Member Login
             </button>
             <button style={{
@@ -124,7 +187,7 @@ export default function AdminDashboard() {
               fontWeight: 600,
               fontSize: '0.8125rem',
               cursor: 'pointer',
-            }}>
+            }} onClick={() => router.push('/login')}>
               Join Us
             </button>
           </div>
@@ -137,7 +200,7 @@ export default function AdminDashboard() {
             <div className={styles.pageHeaderTop}>
               <div>
                 <p className={styles.pageLabel}>
-                  <span className={styles.pageLabelIcon}>📋</span>
+                  <ClipboardList size={14} className={styles.pageLabelIcon} />
                   Samaj Repository
                 </p>
                 <h1 className={styles.pageTitle}>Member Directory</h1>
@@ -148,16 +211,26 @@ export default function AdminDashboard() {
                 </p>
               </div>
               <div className={styles.pageActions}>
-                <button className={styles.actionBtn}>
-                  📄 Bulk Upload (CSV)
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleBulkUpload}
+                  style={{ display: 'none' }}
+                  accept=".csv"
+                />
+                <button className={styles.actionBtn} onClick={() => fileInputRef.current?.click()}>
+                  <FileText size={16} /> Bulk Upload (CSV)
                 </button>
-                <button className={styles.actionBtn}>
-                  📥 Export Data
+                <button className={styles.actionBtn} onClick={handleExportCSV}>
+                  <Download size={16} /> Export Data
                 </button>
               </div>
             </div>
-            <button className={`${styles.actionBtn} ${styles.actionBtnPrimary}`}>
-              ➕ Add New Member
+            <button 
+              className={`${styles.actionBtn} ${styles.actionBtnPrimary}`}
+              onClick={() => setIsModalOpen(true)}
+            >
+              <UserPlus size={16} /> Add New Member
             </button>
           </div>
 
@@ -166,7 +239,9 @@ export default function AdminDashboard() {
             <div className={styles.statsCard}>
               <div className={styles.statsCardLabel}>Total Members</div>
               <div className={styles.statsCardValue}>{mockStats.totalMembers.toLocaleString()}</div>
-              <div className={styles.statsCardTrend}>📈 +12% vs last month</div>
+              <div className={styles.statsCardTrend}>
+                <TrendingUp size={14} /> +12% vs last month
+              </div>
             </div>
             <div className={styles.statsCard}>
               <div className={styles.statsCardLabel}>Verified Professionals</div>
@@ -188,8 +263,13 @@ export default function AdminDashboard() {
           {/* Filter Bar */}
           <div className={styles.filterBar}>
             <div className={styles.filterInput}>
-              <span className={styles.filterIcon}>⚙️</span>
-              <input type="text" placeholder="Filter members..." />
+              <Search size={18} className={styles.filterIcon} />
+              <input 
+                type="text" 
+                placeholder="Search member repository..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
             <select className={styles.filterSelect}>
               <option>All Professions</option>
@@ -209,45 +289,66 @@ export default function AdminDashboard() {
               <div className={styles.tableHeaderCell}>Status</div>
               <div className={styles.tableHeaderCell}>Actions</div>
             </div>
-            {tableMembers.map((member, index) => (
-              <div key={member.id} className={styles.tableRow}>
-                <div className={styles.memberCell}>
-                  <div
-                    className={styles.memberAvatar}
-                    style={{ backgroundColor: avatarColors[index % avatarColors.length] }}
-                  >
-                    {member.name.split(' ').map(n => n[0]).join('')}
+            {tableMembers.length > 0 ? (
+              tableMembers.map((member, index) => (
+                <div key={member.id} className={styles.tableRow}>
+                  <div className={styles.memberCell}>
+                    <div
+                      className={styles.memberAvatar}
+                      style={{ backgroundColor: avatarColors[index % avatarColors.length] }}
+                    >
+                      {member.name.split(' ').map(n => n[0]).join('')}
+                    </div>
+                    <div>
+                      <div className={styles.memberCellName}>{member.name}</div>
+                      <div className={styles.memberCellEmail}>{member.email}</div>
+                    </div>
+                  </div>
+                  <div className={styles.cellText}>{member.idNumber}</div>
+                  <div>
+                    <span className={styles.professionBadge}>{member.profession}</span>
+                  </div>
+                  <div className={styles.cellText}>{member.joinDate}</div>
+                  <div>
+                    <span className={`${styles.statusBadge} ${member.status === 'verified' ? styles.statusVerified : styles.statusPending}`}>
+                      <span className={styles.statusDot} />
+                      {member.status.toUpperCase()}
+                    </span>
                   </div>
                   <div>
-                    <div className={styles.memberCellName}>{member.name}</div>
-                    <div className={styles.memberCellEmail}>{member.email}</div>
+                    <button className={styles.actionsBtn} aria-label="More actions">
+                      <MoreVertical size={16} />
+                    </button>
                   </div>
                 </div>
-                <div className={styles.cellText}>{member.idNumber}</div>
-                <div>
-                  <span className={styles.professionBadge}>{member.profession}</span>
-                </div>
-                <div className={styles.cellText}>{member.joinDate}</div>
-                <div>
-                  <span className={`${styles.statusBadge} ${member.status === 'verified' ? styles.statusVerified : styles.statusPending}`}>
-                    <span className={styles.statusDot} />
-                    {member.status.toUpperCase()}
-                  </span>
-                </div>
-                <div>
-                  <button className={styles.actionsBtn} aria-label="More actions">⋮</button>
-                </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <EmptyState 
+                icon={Users}
+                title="No accounts found"
+                description="Your search criteria did not match any members in the repository."
+                action={
+                  <button className={styles.actionBtnPrimary} onClick={() => setSearchQuery('')}>
+                    Clear Search
+                  </button>
+                }
+              />
+            )}
           </div>
 
           {/* Table Footer */}
           <div className={styles.tableFooter}>
             <span className={styles.showingText}>
-              Showing <span className={styles.showingBold}>1-3</span> of <span className={styles.showingBold}>14,802</span> members
+              Showing <span className={styles.showingBold}>1-{tableMembers.length}</span> of <span className={styles.showingBold}>{filteredMembers.length}</span> members
             </span>
-            <Pagination currentPage={1} totalPages={12} />
+            <Pagination currentPage={1} totalPages={Math.ceil(filteredMembers.length / 5)} />
           </div>
+
+          <MemberFormModal 
+            isOpen={isModalOpen} 
+            onClose={() => setIsModalOpen(false)} 
+            onSave={handleAddMember}
+          />
 
           {/* Bottom Grid: Access Control + Heritage Card */}
           <div className={styles.bottomGrid}>
@@ -258,12 +359,12 @@ export default function AdminDashboard() {
                 administrative privileges.
               </p>
               <div className={styles.accessRow}>
-                <span className={styles.accessRowIcon}>🛡️</span>
+                <ShieldCheck size={18} className={styles.accessRowIcon} />
                 <span className={styles.accessRowLabel}>Full Admin Access</span>
                 <span className={styles.accessRowBadge}>05 Seats</span>
               </div>
               <div className={styles.accessRow}>
-                <span className={styles.accessRowIcon}>✏️</span>
+                <Pencil size={18} className={styles.accessRowIcon} />
                 <span className={styles.accessRowLabel}>Editor / Verifier</span>
                 <span className={styles.accessRowBadge}>12 Seats</span>
               </div>
