@@ -1,10 +1,22 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { User, Lock, Shield, Landmark } from 'lucide-react';
 import styles from './LoginPage.module.css';
 
 export default function LoginPage() {
   const [activeTab, setActiveTab] = useState<'member' | 'committee'>('member');
+  const router = useRouter();
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (activeTab === 'committee') {
+      router.push('/dashboard');
+    } else {
+      router.push('/directory');
+    }
+  };
 
   return (
     <div className={styles.loginPage}>
@@ -39,13 +51,13 @@ export default function LoginPage() {
         </div>
 
         {/* Form */}
-        <form onSubmit={(e) => e.preventDefault()}>
+        <form onSubmit={handleLogin}>
           <div className={styles.formGroup}>
             <label className={styles.formLabel}>
               Mobile Number or Email
             </label>
             <div className={styles.inputWrapper}>
-              <span className={styles.inputIcon}>👤</span>
+              <User size={18} className={styles.inputIcon} />
               <input
                 type="text"
                 className={styles.inputField}
@@ -60,7 +72,7 @@ export default function LoginPage() {
               <a href="#" className={styles.forgotLink}>Forgot Password?</a>
             </label>
             <div className={styles.inputWrapper}>
-              <span className={styles.inputIcon}>🔒</span>
+              <Lock size={18} className={styles.inputIcon} />
               <input
                 type="password"
                 className={styles.inputField}
@@ -82,15 +94,15 @@ export default function LoginPage() {
       {/* Trust Badges */}
       <div className={styles.trustBadges}>
         <div className={styles.trustBadge}>
-          <span className={styles.trustIcon}>🛡️</span>
+          <Shield size={18} className={styles.trustIcon} />
           Secure Access
         </div>
         <div className={styles.trustBadge}>
-          <span className={styles.trustIcon}>🔒</span>
+          <Lock size={18} className={styles.trustIcon} />
           Privacy First
         </div>
         <div className={styles.trustBadge}>
-          <span className={styles.trustIcon}>🏛️</span>
+          <Landmark size={18} className={styles.trustIcon} />
           Official Portal
         </div>
       </div>

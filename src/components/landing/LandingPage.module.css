@@ -54,6 +54,48 @@
 .heroCta {
   display: flex;
   gap: var(--space-4);
+  align-items: center;
+}
+
+.ctaBtnPrimary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 28px;
+  background-color: var(--color-primary);
+  color: #fff !important;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-decoration: none;
+  transition: background-color var(--transition-fast);
+  border: 1.5px solid var(--color-primary);
+}
+
+.ctaBtnPrimary:hover {
+  background-color: var(--color-primary-dark);
+  border-color: var(--color-primary-dark);
+}
+
+.ctaBtnOutlinedHero {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 28px;
+  border: 1.5px solid var(--color-text-primary);
+  color: var(--color-text-primary) !important;
+  background: transparent;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-decoration: none;
+  transition: all var(--transition-fast);
+}
+
+.ctaBtnOutlinedHero:hover {
+  background-color: var(--color-primary-lightest);
+  border-color: var(--color-primary);
+  color: var(--color-primary) !important;
 }
 
 .heroImage {
@@ -230,6 +272,13 @@
   font-size: var(--text-sm);
   font-weight: var(--weight-semibold);
   color: var(--color-primary);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.bentoCardLink:hover {
   text-decoration: underline;
 }
 
@@ -309,6 +358,14 @@
   color: var(--color-primary);
   text-transform: uppercase;
   letter-spacing: var(--tracking-wide);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  text-decoration: none;
+}
+
+.eventsLink:hover {
+  opacity: 0.8;
 }
 
 .eventsSubtitle {

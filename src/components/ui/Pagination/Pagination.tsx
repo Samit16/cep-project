@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react';
 import styles from './Pagination.module.css';
 
 interface PaginationProps {
@@ -33,11 +34,13 @@ export default function Pagination({ currentPage, totalPages, onPageChange }: Pa
         disabled={currentPage === 1}
         aria-label="Previous page"
       >
-        ‹
+        <ChevronLeft size={16} />
       </button>
       {getVisiblePages().map((page, i) =>
         page === '...' ? (
-          <span key={`ellipsis-${i}`} className={styles.ellipsis}>…</span>
+          <span key={`ellipsis-${i}`} className={styles.ellipsis}>
+            <MoreHorizontal size={14} />
+          </span>
         ) : (
           <button
             key={page}
@@ -55,7 +58,7 @@ export default function Pagination({ currentPage, totalPages, onPageChange }: Pa
         disabled={currentPage === totalPages}
         aria-label="Next page"
       >
-        ›
+        <ChevronRight size={16} />
       </button>
     </nav>
   );
