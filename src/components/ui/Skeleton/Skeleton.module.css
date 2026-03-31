@@ -1,0 +1,43 @@
+.skeleton {
+  background-color: var(--color-border-light);
+  border-radius: var(--radius-sm);
+  animation: pulse 1.5s ease-in-out 0.5s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.text {
+  height: 1rem;
+  width: 100%;
+  margin-bottom: 0.5rem;
+  border-radius: var(--radius-sm);
+}
+
+.title {
+  height: 1.5rem;
+  width: 70%;
+  margin-bottom: 1rem;
+  border-radius: var(--radius-md);
+}
+
+.avatar {
+  border-radius: var(--radius-full);
+  width: 48px;
+  height: 48px;
+}
+
+.rectangle {
+  height: 120px;
+  width: 100%;
+  border-radius: var(--radius-md);
+}

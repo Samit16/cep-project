@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Search, LayoutGrid, List, ShieldCheck, MapPin, Settings } from 'lucide-react';
+import { Search, LayoutGrid, List, ShieldCheck, MapPin, Settings, Users } from 'lucide-react';
 import styles from './DirectoryPage.module.css';
 import { OverlayBadge } from '@/components/ui/Badge/Badge';
 import Pagination from '@/components/ui/Pagination/Pagination';
+import EmptyState from '@/components/ui/EmptyState/EmptyState';
 import { mockMembers } from '@/data/mock';
 
 export default function DirectoryPage() {
@@ -95,44 +96,63 @@ export default function DirectoryPage() {
         Privacy-First: Sensitive contact information is hidden for security. Use &apos;Request Contact&apos; inside profiles for inquiries.
       </div>
 
-      {/* Member Grid */}
-      <div className={styles.memberGrid}>
-        {members.map((member) => (
-          <div key={member.id} className={styles.memberCard}>
-            <div className={styles.memberCardImage}>
-              {member.photoUrl ? (
-                <img src={`/images/members/member${member.id}.jpg`} alt={member.name} />
-              ) : (
-                <div className={styles.memberCardInitials}>
-                  {member.name.split(' ').map(n => n[0]).join('')}
+      {/* Member Grid or Empty State */}
+      {members.length > 0 ? (
+        <>
+          <div className={styles.memberGrid}>
+            {members.map((member) => (
+              <div key={member.id} className={styles.memberCard}>
+                <div className={styles.memberCardImage}>
+                  {member.photoUrl ? (
+                    <img src={`/images/members/member${member.id}.jpg`} alt={member.name} />
+                  ) : (
+                    <div className={styles.memberCardInitials}>
+                      {member.name.split(' ').map(n => n[0]).join('')}
+                    </div>
+                  )}
+                  {member.status === 'verified' && member.role === 'member' && (
+                    <OverlayBadge type="verified">Verified</OverlayBadge>
+                  )}
+                  {member.role === 'committee' && (
+                    <OverlayBadge type="committee">Committee</OverlayBadge>
+                  )}
                 </div>
-              )}
-              {member.status === 'verified' && member.role === 'member' && (
-                <OverlayBadge type="verified">Verified</OverlayBadge>
-              )}
-              {member.role === 'committee' && (
-                <OverlayBadge type="committee">Committee</OverlayBadge>
-              )}
-            </div>
-            <div className={styles.memberCardBody}>
-              <h3 className={styles.memberCardName}>{member.name}</h3>
-              <p className={styles.memberCardProfession}>{member.profession}</p>
-              <p className={styles.memberCardLocation}>
-                <MapPin size={14} className={styles.locationIcon} />
-                {member.city}{member.state ? `, ${member.state}` : ''}{member.country && member.country !== 'India' ? `, ${member.country}` : ''}
-              </p>
-              <a href={`/directory/${member.id}`} className={styles.viewProfileBtn}>
-                View Basic Profile
-              </a>
-            </div>
+                <div className={styles.memberCardBody}>
+                  <h3 className={styles.memberCardName}>{member.name}</h3>
+                  <p className={styles.memberCardProfession}>{member.profession}</p>
+                  <p className={styles.memberCardLocation}>
+                    <MapPin size={14} className={styles.locationIcon} />
+                    {member.city}{member.state ? `, ${member.state}` : ''}{member.country && member.country !== 'India' ? `, ${member.country}` : ''}
+                  </p>
+                  <a href={`/directory/${member.id}`} className={styles.viewProfileBtn}>
+                    View Basic Profile
+                  </a>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      {/* Pagination */}
-      <div className={styles.paginationWrapper}>
-        <Pagination currentPage={1} totalPages={12} />
-      </div>
+          {/* Pagination */}
+          <div className={styles.paginationWrapper}>
+            <Pagination currentPage={1} totalPages={Math.ceil(filteredMembers.length / 8)} />
+          </div>
+        </>
+      ) : (
+        <EmptyState 
+          icon={Users}
+          title="No members found"
+          description="We couldn't find any members matching your current filters and search criteria. Try adjusting them."
+          action={
+            <button 
+              className="ctaBtnOutlinedHero" 
+              style={{ padding: '8px 16px', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)' }}
+              onClick={() => { setSearchQuery(''); setProfessionFilter('All Professions'); setLocationFilter('All Locations'); }}
+            >
+              Clear Filters
+            </button>
+          }
+        />
+      )}
     </div>
   );
 }

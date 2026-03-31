@@ -2,14 +2,15 @@
 
 import React from 'react';
 import { ArrowRight } from 'lucide-react';
+import { useToast } from '@/components/ui/Toast/ToastProvider';
 import styles from './LandingPage.module.css';
 
 export function HeroSection() {
   return (
     <section className={styles.hero}>
-      <div className={styles.heroContent}>
+      <div className={`${styles.heroContent} ${styles.animateFadeUp}`}>
         <span className={styles.heroLabel}>Established Since 1921</span>
-        <h1 className={styles.heroTitle}>
+        <h1 className={`${styles.heroTitle} ${styles.animateFadeUp} ${styles.delay1}`}>
           Connecting Our{' '}
           <span className={styles.heroTitleHighlight}>
             Heritage
@@ -17,12 +18,12 @@ export function HeroSection() {
           ,{' '}
           <span className={styles.heroTitleItalic}>Building<br />Our Future</span>
         </h1>
-        <p className={styles.heroSubtitle}>
+        <p className={`${styles.heroSubtitle} ${styles.animateFadeUp} ${styles.delay2}`}>
           A vibrant tapestry of culture, commerce, and community. We stand as
           the custodians of the Kutchi Jain Oswal legacy, empowering
           generations through unity.
         </p>
-        <div className={styles.heroCta}>
+        <div className={`${styles.heroCta} ${styles.animateFadeUp} ${styles.delay3}`}>
           <a href="/login" className={styles.ctaBtnPrimary}>
             Become a Member
           </a>
@@ -137,6 +138,7 @@ export function AchievementsSection() {
 }
 
 export function EventsSection() {
+  const { toast } = useToast();
   const eventDate = new Date('2024-04-15');
   
   return (
@@ -169,7 +171,7 @@ export function EventsSection() {
               <div className={styles.eventDateDay}>15</div>
               <div className={styles.eventDateMonth}>Apr</div>
             </div>
-            <button className={styles.registerBtn} onClick={() => alert('Registration successful! You will receive a confirmation SMS.')}>
+            <button className={styles.registerBtn} onClick={() => toast('Registration successful! You will receive a confirmation SMS.', 'success')}>
               Register
             </button>
           </div>

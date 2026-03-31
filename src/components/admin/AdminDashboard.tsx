@@ -11,6 +11,8 @@ import styles from './AdminDashboard.module.css';
 import Pagination from '@/components/ui/Pagination/Pagination';
 import Footer from '@/components/layout/Footer/Footer';
 import MemberFormModal from './MemberFormModal';
+import EmptyState from '@/components/ui/EmptyState/EmptyState';
+import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { mockMembers as initialMembers, mockStats } from '@/data/mock';
 
 const avatarColors = ['#8B1A1A', '#C8956C', '#2D5F8B', '#4A7C59', '#7B5EA7'];
@@ -21,6 +23,7 @@ export default function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+  const { toast } = useToast();
 
   const handleLogout = () => {
     if (confirm('Are you sure you want to log out?')) {
@@ -38,13 +41,13 @@ export default function AdminDashboard() {
     a.download = `kjo_samaj_members_${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
-    alert('Exporting Directory Data... Successfully downloaded.');
+    toast('Exporting Directory Data... Successfully downloaded.', 'success');
   };
 
   const handleBulkUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      alert(`Processing ${file.name}... Success! 12 new members pending verification.`);
+      toast(`Processing ${file.name}... Success! 12 new members pending verification.`, 'success');
     }
   };
 
@@ -58,7 +61,7 @@ export default function AdminDashboard() {
       status: 'pending',
     };
     setMembers([fullMember, ...members]);
-    alert('Member record created successfully.');
+    toast('Member record created successfully.', 'success');
   };
 
   const filteredMembers = members.filter(m => 
@@ -113,10 +116,10 @@ export default function AdminDashboard() {
         </nav>
 
         <div className={styles.sidebarFooter}>
-          <button className={styles.broadcastBtn} onClick={() => alert('Message broadcasted to 14,802 members successfully.')}>
+          <button className={styles.broadcastBtn} onClick={() => toast('Message broadcasted to 14,802 members successfully.', 'success')}>
             Broadcast Message
           </button>
-          <button className={styles.sidebarLink} onClick={() => alert('Opening Help Center... Please call +91 98200 54321 for urgent support.')}>
+          <button className={styles.sidebarLink} onClick={() => toast('Opening Help Center... Please call +91 98200 54321 for urgent support.', 'info')}>
             <HelpCircle size={16} /> Help Center
           </button>
           <button className={styles.sidebarLink} onClick={handleLogout}>
@@ -286,38 +289,51 @@ export default function AdminDashboard() {
               <div className={styles.tableHeaderCell}>Status</div>
               <div className={styles.tableHeaderCell}>Actions</div>
             </div>
-            {tableMembers.map((member, index) => (
-              <div key={member.id} className={styles.tableRow}>
-                <div className={styles.memberCell}>
-                  <div
-                    className={styles.memberAvatar}
-                    style={{ backgroundColor: avatarColors[index % avatarColors.length] }}
-                  >
-                    {member.name.split(' ').map(n => n[0]).join('')}
+            {tableMembers.length > 0 ? (
+              tableMembers.map((member, index) => (
+                <div key={member.id} className={styles.tableRow}>
+                  <div className={styles.memberCell}>
+                    <div
+                      className={styles.memberAvatar}
+                      style={{ backgroundColor: avatarColors[index % avatarColors.length] }}
+                    >
+                      {member.name.split(' ').map(n => n[0]).join('')}
+                    </div>
+                    <div>
+                      <div className={styles.memberCellName}>{member.name}</div>
+                      <div className={styles.memberCellEmail}>{member.email}</div>
+                    </div>
+                  </div>
+                  <div className={styles.cellText}>{member.idNumber}</div>
+                  <div>
+                    <span className={styles.professionBadge}>{member.profession}</span>
+                  </div>
+                  <div className={styles.cellText}>{member.joinDate}</div>
+                  <div>
+                    <span className={`${styles.statusBadge} ${member.status === 'verified' ? styles.statusVerified : styles.statusPending}`}>
+                      <span className={styles.statusDot} />
+                      {member.status.toUpperCase()}
+                    </span>
                   </div>
                   <div>
-                    <div className={styles.memberCellName}>{member.name}</div>
-                    <div className={styles.memberCellEmail}>{member.email}</div>
+                    <button className={styles.actionsBtn} aria-label="More actions">
+                      <MoreVertical size={16} />
+                    </button>
                   </div>
                 </div>
-                <div className={styles.cellText}>{member.idNumber}</div>
-                <div>
-                  <span className={styles.professionBadge}>{member.profession}</span>
-                </div>
-                <div className={styles.cellText}>{member.joinDate}</div>
-                <div>
-                  <span className={`${styles.statusBadge} ${member.status === 'verified' ? styles.statusVerified : styles.statusPending}`}>
-                    <span className={styles.statusDot} />
-                    {member.status.toUpperCase()}
-                  </span>
-                </div>
-                <div>
-                  <button className={styles.actionsBtn} aria-label="More actions">
-                    <MoreVertical size={16} />
+              ))
+            ) : (
+              <EmptyState 
+                icon={Users}
+                title="No accounts found"
+                description="Your search criteria did not match any members in the repository."
+                action={
+                  <button className={styles.actionBtnPrimary} onClick={() => setSearchQuery('')}>
+                    Clear Search
                   </button>
-                </div>
-              </div>
-            ))}
+                }
+              />
+            )}
           </div>
 
           {/* Table Footer */}
