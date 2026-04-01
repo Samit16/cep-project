@@ -1,0 +1,86 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-medium);
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
+.sm {
+  font-size: 0.6875rem;
+  padding: 2px 8px;
+}
+
+.md {
+  font-size: 0.75rem;
+  padding: 4px 12px;
+}
+
+/* Status variants */
+.verified {
+  color: var(--color-status-verified);
+  background-color: var(--color-status-verified-bg);
+}
+
+.verified .dot {
+  background-color: var(--color-status-verified);
+}
+
+.pending {
+  color: var(--color-status-pending);
+  background-color: var(--color-status-pending-bg);
+}
+
+.pending .dot {
+  background-color: var(--color-status-pending);
+}
+
+.inactive {
+  color: var(--color-status-inactive);
+  background: rgba(107, 114, 128, 0.1);
+}
+
+.committee {
+  color: #fff;
+  background-color: var(--color-primary);
+}
+
+.profession {
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-section-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 0.75rem;
+  padding: 4px 12px;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+/* Overlay badge (on images) */
+.overlay {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 0.625rem;
+  font-weight: var(--weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.overlayVerified {
+  background-color: var(--color-status-verified);
+  color: #fff;
+}
+
+.overlayCommittee {
+  background-color: var(--color-primary);
+  color: #fff;
+}
