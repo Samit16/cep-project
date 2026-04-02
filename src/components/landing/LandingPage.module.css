@@ -268,6 +268,13 @@
   padding: var(--space-6);
   border: 1px solid var(--color-border-light);
   overflow: hidden;
+  transition: transform var(--transition-medium), box-shadow var(--transition-medium), border-color var(--transition-medium);
+}
+
+.bentoCard:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-primary-light);
 }
 
 .bentoCardImage {
@@ -416,6 +423,12 @@
   overflow: hidden;
   gap: var(--space-6);
   padding-right: var(--space-6);
+  transition: transform var(--transition-medium), box-shadow var(--transition-medium);
+}
+
+.eventCard:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
 }
 
 .eventCardImage {
@@ -533,4 +546,6 @@
 
 .ctaBtnOutlined:hover {
   background-color: rgba(255,255,255,0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
 }

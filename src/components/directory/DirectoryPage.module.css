@@ -183,14 +183,15 @@
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-lg);
   overflow: hidden;
-  transition: box-shadow var(--transition-base), transform var(--transition-base);
+  transition: box-shadow var(--transition-medium), transform var(--transition-medium), border-color var(--transition-medium);
   display: flex;
   flex-direction: column;
 }
 
 .memberCard:hover {
-  box-shadow: var(--shadow-lg);
-  transform: translateY(-2px);
+  box-shadow: var(--shadow-xl);
+  transform: translateY(-6px);
+  border-color: var(--color-primary-light);
 }
 
 .memberCardImage {
@@ -216,8 +217,13 @@
   font-family: var(--font-serif);
   font-size: var(--text-4xl);
   font-weight: var(--weight-bold);
-  color: var(--color-primary);
+  color: #fff;
   background-color: var(--color-bg-section-alt);
+  transition: transform var(--transition-medium);
+}
+
+.memberCard:hover .memberCardInitials {
+  transform: scale(1.05);
 }
 
 .memberCardBody {
@@ -267,9 +273,10 @@
 }
 
 .viewProfileBtn:hover {
-  background-color: var(--color-border-light);
-  color: var(--color-primary);
-  border-color: var(--color-primary-lightest);
+  background-color: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+  box-shadow: 0 2px 8px rgba(139, 26, 26, 0.2);
 }
 
 /* Pagination container */

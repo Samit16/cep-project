@@ -5,6 +5,16 @@ import { Pencil, Eye, ShieldCheck, Mail, Phone, MapPin, CheckCircle2 } from 'luc
 import styles from './ProfilePage.module.css';
 import { mockMembers } from '@/data/mock';
 
+const AVATAR_COLORS = ['#8B1A1A', '#C8956C', '#2D5F8B', '#4A7C59', '#7B5EA7', '#D4763C', '#3B8686', '#9B5DE5', '#E07A5F'];
+
+function getAvatarColor(name: string) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
 interface ProfilePageProps {
   memberId?: string;
 }
@@ -14,19 +24,16 @@ export default function ProfilePage({ memberId = '1' }: ProfilePageProps) {
   const nameParts = member.name.split(' ');
   const firstName = nameParts[0];
   const lastName = nameParts.slice(1).join(' ');
+  const initials = member.name.split(' ').map(n => n[0]).join('');
 
   return (
     <div className={styles.profileContent}>
       {/* Profile Hero */}
       <div className={styles.profileHero}>
         <div className={styles.profilePhoto}>
-          {member.photoUrl ? (
-            <img src={`/images/members/member${member.id}.jpg`} alt={member.name} />
-          ) : (
-            <div className={styles.profilePhotoInitials}>
-              {member.name.split(' ').map(n => n[0]).join('')}
-            </div>
-          )}
+          <div className={styles.profilePhotoInitials} style={{ backgroundColor: getAvatarColor(member.name) }}>
+            {initials}
+          </div>
         </div>
         <div className={styles.profileHeroInfo}>
           <p className={styles.verifiedLabel}>
@@ -37,7 +44,7 @@ export default function ProfilePage({ memberId = '1' }: ProfilePageProps) {
             <span className={styles.profileNameItalic}>{lastName}</span>
           </h1>
           <p className={styles.profileBio}>
-            {member.bio || 'Preserving the traditions of our community while innovating for the future of the Kutchi Jain Oswal Samaj.'}
+            {member.bio || 'A valued member of the Kutchi Jain Oswal Samaj community.'}
           </p>
           <div className={styles.profileActions}>
             <button className={styles.editProfileBtn}>
@@ -59,9 +66,9 @@ export default function ProfilePage({ memberId = '1' }: ProfilePageProps) {
             <span className={styles.sectionTitle}>Personal</span>
           </div>
           <div className={styles.infoLabel}>Date of Birth</div>
-          <div className={styles.infoValue}>{member.dateOfBirth || '14th September, 1978'}</div>
+          <div className={styles.infoValue}>{member.dateOfBirth || 'Not specified'}</div>
           <div className={styles.infoLabel}>Education</div>
-          <div className={styles.infoValue}>{member.education || 'MBA, Finance\nUniversity of Mumbai'}</div>
+          <div className={styles.infoValue}>{member.education || 'Not specified'}</div>
         </div>
 
         {/* Professional Standing */}
@@ -77,15 +84,16 @@ export default function ProfilePage({ memberId = '1' }: ProfilePageProps) {
           </div>
           <div className={styles.separator} />
           <div className={styles.infoLabel}>Company</div>
-          <div className={styles.infoValue}>{member.company || 'Kothari Textiles & Logistics Pvt Ltd.'}</div>
+          <div className={styles.infoValue}>{member.company || 'Not specified'}</div>
           
-          <div className={styles.officePhoto}>
-            <img src="/images/office1.jpg" alt="Office headquarters" />
-            <div className={styles.officeBadge}>
-              <div className={styles.officeBadgeLabel}>Office Headquarters</div>
-              <div className={styles.officeBadgeValue}>{member.officeLocation || 'Bandra-Kurla Complex, Mumbai'}</div>
+          {member.officeLocation && (
+            <div className={styles.officePhoto}>
+              <div className={styles.officeBadge}>
+                <div className={styles.officeBadgeLabel}>Office Headquarters</div>
+                <div className={styles.officeBadgeValue}>{member.officeLocation}</div>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
@@ -106,14 +114,14 @@ export default function ProfilePage({ memberId = '1' }: ProfilePageProps) {
           <Phone size={18} className={styles.contactIcon} />
           <div>
             <div className={styles.contactLabel}>Phone Number</div>
-            <div className={styles.contactValue}>{member.phone || '+91 98200 12345'}</div>
+            <div className={styles.contactValue}>{member.phone || 'Not available'}</div>
           </div>
         </div>
         <div className={styles.contactRow}>
           <MapPin size={18} className={styles.contactIcon} />
           <div>
             <div className={styles.contactLabel}>Residential Address</div>
-            <div className={styles.contactValue}>{member.address || '402, Heritage Residency, Marine Drive, Mumbai, 400020'}</div>
+            <div className={styles.contactValue}>{member.address || 'Not available'}</div>
           </div>
         </div>
       </div>
@@ -122,7 +130,7 @@ export default function ProfilePage({ memberId = '1' }: ProfilePageProps) {
       <div className={styles.expertiseSection}>
         <h3 className={styles.expertiseTitle}>Expertise &amp; Contributions</h3>
         <div className={styles.expertiseTags}>
-          {(member.expertise || ['Strategic Planning', 'Philanthropy', 'Supply Chain', 'Legacy Textiles']).map((tag) => (
+          {(member.expertise || ['Community Member']).map((tag) => (
             <span key={tag} className={styles.tag}>{tag}</span>
           ))}
         </div>

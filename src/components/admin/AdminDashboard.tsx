@@ -35,6 +35,7 @@ export default function AdminDashboard() {
 
   const handleLogout = () => {
     localStorage.removeItem('kjo_simulated_auth');
+    window.dispatchEvent(new Event('kjo_auth_change'));
     router.push('/login');
   };
 

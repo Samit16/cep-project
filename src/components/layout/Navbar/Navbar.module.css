@@ -36,8 +36,24 @@
   position: relative;
 }
 
+.navLink::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background-color: var(--color-primary);
+  border-radius: 1px;
+  transition: width var(--transition-medium);
+}
+
 .navLink:hover {
   color: var(--color-primary);
+}
+
+.navLink:hover::after {
+  width: 100%;
 }
 
 .navLinkActive {
@@ -50,6 +66,7 @@
   bottom: -4px;
   left: 0;
   right: 0;
+  width: 100%;
   height: 2px;
   background-color: var(--color-primary);
   border-radius: 1px;
