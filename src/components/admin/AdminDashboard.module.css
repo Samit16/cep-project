@@ -16,12 +16,8 @@
   left: 0;
   bottom: 0;
   z-index: 50;
-  transition: width var(--transition-slow);
-  overflow: hidden;
-}
-
-.sidebarCollapsed {
-  width: var(--sidebar-collapsed-width);
+  transition: all var(--transition-base);
+  box-shadow: 4px 0 24px rgba(0,0,0,0.02);
 }
 
 .sidebarHeader {
@@ -199,9 +195,13 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 var(--space-8);
-  height: var(--navbar-height);
+  height: 72px;
   border-bottom: 1px solid var(--color-border-light);
-  background-color: var(--color-bg-warm);
+  background-color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  position: sticky;
+  top: 0;
+  z-index: 40;
 }
 
 .topBarLeft {
@@ -254,7 +254,39 @@
 .topBarRight {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
+}
+
+.adminBadge {
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-status-verified);
+  background-color: var(--color-status-verified-bg);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(5, 150, 105, 0.2);
+}
+
+.logoutBtnSmall {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-light);
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.logoutBtnSmall:hover {
+  background-color: var(--color-bg-section-alt);
+  color: var(--color-primary);
+  border-color: var(--color-primary-lightest);
 }
 
 /* Dashboard Content */
@@ -344,25 +376,31 @@
 .statsGrid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-5);
-  margin-bottom: var(--space-8);
+  gap: var(--space-6);
+  margin-bottom: var(--space-10);
 }
 
 .statsCard {
   background: var(--color-bg-card);
   border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-lg);
-  padding: var(--space-5);
-  border-left: 3px solid var(--color-primary);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  transition: transform var(--transition-base), box-shadow var(--transition-base);
+  box-shadow: var(--shadow-sm);
+}
+
+.statsCard:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
 }
 
 .statsCardLabel {
   font-size: var(--text-xs);
-  font-weight: var(--weight-medium);
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: var(--tracking-wide);
+  letter-spacing: 0.05em;
   color: var(--color-text-secondary);
-  margin-bottom: var(--space-2);
+  margin-bottom: var(--space-4);
 }
 
 .statsCardValue {
@@ -457,31 +495,32 @@
   width: 100%;
   background: var(--color-bg-card);
   border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   overflow: hidden;
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--space-6);
+  box-shadow: var(--shadow-sm);
 }
 
 .tableHeader {
   display: grid;
   grid-template-columns: 2fr 1.2fr 1.2fr 1fr 1fr 0.5fr;
-  padding: var(--space-3) var(--space-5);
-  border-bottom: 1px solid var(--color-border);
-  background-color: var(--color-bg-warm);
+  padding: var(--space-5) var(--space-6);
+  border-bottom: 1px solid var(--color-border-light);
+  background-color: var(--color-bg-section-alt);
 }
 
 .tableHeaderCell {
-  font-size: 0.6875rem;
-  font-weight: var(--weight-semibold);
+  font-size: var(--text-xs);
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: var(--tracking-wider);
-  color: var(--color-primary);
+  letter-spacing: 0.05em;
+  color: var(--color-text-secondary);
 }
 
 .tableRow {
   display: grid;
   grid-template-columns: 2fr 1.2fr 1.2fr 1fr 1fr 0.5fr;
-  padding: var(--space-4) var(--space-5);
+  padding: var(--space-5) var(--space-6);
   border-bottom: 1px solid var(--color-border-light);
   align-items: center;
   transition: background-color var(--transition-fast);
@@ -603,102 +642,4 @@
   color: var(--color-text-primary);
 }
 
-/* Bottom Grid */
-.bottomGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-6);
-  margin-top: var(--space-8);
-}
-
-.accessCard {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-xl);
-  padding: var(--space-8);
-}
-
-.accessTitle {
-  font-family: var(--font-serif);
-  font-size: var(--text-xl);
-  font-weight: var(--weight-bold);
-  margin-bottom: var(--space-2);
-}
-
-.accessDescription {
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-  margin-bottom: var(--space-6);
-  line-height: var(--leading-relaxed);
-}
-
-.accessRow {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  border-left: 3px solid var(--color-primary);
-  margin-bottom: var(--space-3);
-  background-color: var(--color-bg-warm);
-  border-radius: 0 var(--radius-md) var(--radius-md) 0;
-}
-
-.accessRowIcon {
-  font-size: 1rem;
-  color: var(--color-primary);
-}
-
-.accessRowLabel {
-  flex: 1;
-  font-size: 0.875rem;
-  font-weight: var(--weight-semibold);
-}
-
-.accessRowBadge {
-  font-size: 0.75rem;
-  padding: 2px 10px;
-  background-color: var(--color-primary);
-  color: #fff;
-  border-radius: var(--radius-full);
-  font-weight: var(--weight-semibold);
-}
-
-/* Heritage Card */
-.heritageCard {
-  position: relative;
-  border-radius: var(--radius-xl);
-  overflow: hidden;
-  min-height: 260px;
-}
-
-.heritageCard img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  position: absolute;
-  inset: 0;
-}
-
-.heritageOverlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  padding: var(--space-8);
-}
-
-.heritageTitle {
-  font-family: var(--font-serif);
-  font-size: var(--text-xl);
-  font-weight: var(--weight-bold);
-  color: #fff;
-  margin-bottom: var(--space-2);
-}
-
-.heritageText {
-  font-size: var(--text-sm);
-  color: rgba(255,255,255,0.85);
-  line-height: var(--leading-relaxed);
-}
+/* Removed Bottom Grid & Heritage Card styles as they are unnecessary for the professional core dashboard */

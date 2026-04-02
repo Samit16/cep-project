@@ -15,6 +15,7 @@ export default function Navbar({
 }: NavbarProps) {
   const links = [
     { label: 'Directory', href: '/directory' },
+    { label: 'Dashboard', href: '/dashboard', isAdmin: true },
     { label: 'About', href: '/about' },
     { label: 'Achievements', href: '/#achievements' },
   ];
@@ -26,20 +27,18 @@ export default function Navbar({
       </a>
 
       <div className={styles.navLinks}>
-        {variant === 'admin' && (
-          <span style={{ color: 'var(--color-accent-gold)', fontFamily: 'var(--font-serif)', fontWeight: 600, fontSize: '0.9375rem', marginRight: 'var(--space-4)' }}>
-            Committee<br />Overview
-          </span>
-        )}
-        {links.map((link) => (
-          <a
-            key={link.href}
-            href={link.href}
-            className={`${styles.navLink} ${activeLink === link.label.toLowerCase() ? styles.navLinkActive : ''}`}
-          >
-            {link.label}
-          </a>
-        ))}
+        {links.map((link) => {
+          if (link.isAdmin && variant !== 'admin') return null;
+          return (
+            <a
+              key={link.href}
+              href={link.href}
+              className={`${styles.navLink} ${activeLink === link.label.toLowerCase() ? styles.navLinkActive : ''}`}
+            >
+              {link.label}
+            </a>
+          );
+        })}
       </div>
 
       <div className={styles.navActions}>
@@ -50,11 +49,17 @@ export default function Navbar({
           </div>
         )}
 
+        {variant !== 'admin' && (
+          <a href="/dashboard" className={styles.dashboardBtn}>
+            Dashboard
+          </a>
+        )}
+
         <a href="/login" className={styles.memberLoginBtn}>
-          Member Login
+          {variant === 'admin' ? 'Member Portal' : 'Login'}
         </a>
         <a href="/login?tab=committee" className={styles.joinBtn}>
-          Join Us
+          {variant === 'admin' ? 'New Request' : 'Join Us'}
         </a>
       </div>
     </nav>

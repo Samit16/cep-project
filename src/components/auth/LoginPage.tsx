@@ -3,17 +3,21 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { User, Lock, Shield, Landmark } from 'lucide-react';
+import { useToast } from '@/components/ui/Toast/ToastProvider';
 import styles from './LoginPage.module.css';
 
 export default function LoginPage() {
   const [activeTab, setActiveTab] = useState<'member' | 'committee'>('member');
   const router = useRouter();
+  const { toast } = useToast();
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (activeTab === 'committee') {
+      toast('Login Successful: Welcome back to the Committee Dashboard', 'success');
       router.push('/dashboard');
     } else {
+      toast('Login Successful: Welcome to Member Portal', 'success');
       router.push('/directory');
     }
   };
