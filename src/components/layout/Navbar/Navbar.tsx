@@ -1,4 +1,6 @@
-import React from 'react';
+'use client';
+
+import React, { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
 import styles from './Navbar.module.css';
 
@@ -13,6 +15,35 @@ export default function Navbar({
   activeLink = '',
   showSearch = false,
 }: NavbarProps) {
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkAuth = () => {
+      const authSession = localStorage.getItem('kjo_simulated_auth');
+      setIsAdmin(authSession === 'committee');
+    };
+
+    checkAuth();
+
+    // Listen for cross-tab changes
+    window.addEventListener('storage', checkAuth);
+
+    // Listen for same-tab changes (custom event)
+    window.addEventListener('kjo_auth_change', checkAuth);
+
+    return () => {
+      window.removeEventListener('storage', checkAuth);
+      window.removeEventListener('kjo_auth_change', checkAuth);
+    };
+  }, []);
+
+  const handleLogout = (e: React.MouseEvent) => {
+    e.preventDefault();
+    localStorage.removeItem('kjo_simulated_auth');
+    window.dispatchEvent(new Event('kjo_auth_change'));
+    window.location.href = '/login';
+  };
+
   const links = [
     { label: 'Directory', href: '/directory' },
     { label: 'About', href: '/about' },
@@ -26,11 +57,6 @@ export default function Navbar({
       </a>
 
       <div className={styles.navLinks}>
-        {variant === 'admin' && (
-          <span style={{ color: 'var(--color-accent-gold)', fontFamily: 'var(--font-serif)', fontWeight: 600, fontSize: '0.9375rem', marginRight: 'var(--space-4)' }}>
-            Committee<br />Overview
-          </span>
-        )}
         {links.map((link) => (
           <a
             key={link.href}
@@ -50,12 +76,26 @@ export default function Navbar({
           </div>
         )}
 
-        <a href="/login" className={styles.memberLoginBtn}>
-          Member Login
-        </a>
-        <a href="/login?tab=committee" className={styles.joinBtn}>
-          Join Us
-        </a>
+        {isAdmin && variant !== 'admin' && (
+          <a href="/dashboard" className={styles.dashboardBtn}>
+            Dashboard
+          </a>
+        )}
+
+        {isAdmin ? (
+          <a href="/login" className={styles.joinBtn} onClick={handleLogout}>
+            Logout
+          </a>
+        ) : (
+          <>
+            <a href="/login" className={styles.memberLoginBtn}>
+              Login
+            </a>
+            <a href="/login?tab=committee" className={styles.joinBtn}>
+              Join Us
+            </a>
+          </>
+        )}
       </div>
     </nav>
   );

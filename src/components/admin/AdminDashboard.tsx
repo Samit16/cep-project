@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   LayoutDashboard, Users, Calendar, Wallet, Settings, HelpCircle, LogOut, 
@@ -25,10 +25,18 @@ export default function AdminDashboard() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const handleLogout = () => {
-    if (confirm('Are you sure you want to log out?')) {
+  useEffect(() => {
+    // Simulated Auth Guard
+    const authSession = localStorage.getItem('kjo_simulated_auth');
+    if (authSession !== 'committee') {
       router.push('/login');
     }
+  }, [router]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('kjo_simulated_auth');
+    window.dispatchEvent(new Event('kjo_auth_change'));
+    router.push('/login');
   };
 
   const handleExportCSV = () => {
@@ -104,24 +112,9 @@ export default function AdminDashboard() {
             <Calendar size={18} className={styles.sidebarItemIcon} />
             Events
           </a>
-          <button className={`${styles.sidebarItem} ${styles.sidebarItemDisabled}`} disabled>
-            <Wallet size={18} className={styles.sidebarItemIcon} />
-            Finance
-            <span className={styles.comingSoonBadge}>Soon</span>
-          </button>
-          <a href="/settings" className={styles.sidebarItem}>
-            <Settings size={18} className={styles.sidebarItemIcon} />
-            Settings
-          </a>
         </nav>
 
         <div className={styles.sidebarFooter}>
-          <button className={styles.broadcastBtn} onClick={() => toast('Message broadcasted to 14,802 members successfully.', 'success')}>
-            Broadcast Message
-          </button>
-          <button className={styles.sidebarLink} onClick={() => toast('Opening Help Center... Please call +91 98200 54321 for urgent support.', 'info')}>
-            <HelpCircle size={16} /> Help Center
-          </button>
           <button className={styles.sidebarLink} onClick={handleLogout}>
             <LogOut size={16} /> Logout
           </button>
@@ -137,9 +130,9 @@ export default function AdminDashboard() {
               Committee<br />Overview
             </div>
             <nav className={styles.topBarNav}>
-              <a href="#" className={`${styles.topBarLink} ${styles.topBarLinkActive}`}>Directory</a>
-              <a href="#" className={styles.topBarLink}>About</a>
-              <a href="#" className={styles.topBarLink}>Achievements</a>
+              <a href="/dashboard" className={`${styles.topBarLink} ${styles.topBarLinkActive}`}>Overview</a>
+              <a href="/directory" className={styles.topBarLink}>Directory</a>
+              <a href="/about" className={styles.topBarLink}>About</a>
             </nav>
             <div style={{
               display: 'flex',
@@ -166,29 +159,9 @@ export default function AdminDashboard() {
             </div>
           </div>
           <div className={styles.topBarRight}>
-            <button style={{
-              padding: '8px 16px',
-              border: '1.5px solid var(--color-primary)',
-              color: 'var(--color-primary)',
-              background: 'transparent',
-              borderRadius: 'var(--radius-md)',
-              fontWeight: 600,
-              fontSize: '0.8125rem',
-              cursor: 'pointer',
-            }} onClick={() => router.push('/login')}>
-              Member Login
-            </button>
-            <button style={{
-              padding: '8px 16px',
-              background: 'var(--color-primary)',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 'var(--radius-md)',
-              fontWeight: 600,
-              fontSize: '0.8125rem',
-              cursor: 'pointer',
-            }} onClick={() => router.push('/login')}>
-              Join Us
+            <div className={styles.adminBadge}>Admin Session</div>
+            <button className={styles.logoutBtnSmall} onClick={handleLogout}>
+              <LogOut size={16} />
             </button>
           </div>
         </div>
@@ -349,38 +322,6 @@ export default function AdminDashboard() {
             onClose={() => setIsModalOpen(false)} 
             onSave={handleAddMember}
           />
-
-          {/* Bottom Grid: Access Control + Heritage Card */}
-          <div className={styles.bottomGrid}>
-            <div className={styles.accessCard}>
-              <h3 className={styles.accessTitle}>Access Control Summary</h3>
-              <p className={styles.accessDescription}>
-                Review the current distribution of committee roles and
-                administrative privileges.
-              </p>
-              <div className={styles.accessRow}>
-                <ShieldCheck size={18} className={styles.accessRowIcon} />
-                <span className={styles.accessRowLabel}>Full Admin Access</span>
-                <span className={styles.accessRowBadge}>05 Seats</span>
-              </div>
-              <div className={styles.accessRow}>
-                <Pencil size={18} className={styles.accessRowIcon} />
-                <span className={styles.accessRowLabel}>Editor / Verifier</span>
-                <span className={styles.accessRowBadge}>12 Seats</span>
-              </div>
-            </div>
-
-            <div className={styles.heritageCard}>
-              <img src="/images/heritage.png" alt="Preserving Heritage" />
-              <div className={styles.heritageOverlay}>
-                <h3 className={styles.heritageTitle}>Preserving Heritage</h3>
-                <p className={styles.heritageText}>
-                  Every record entered strengthens our community&apos;s digital
-                  foundation for the next generation.
-                </p>
-              </div>
-            </div>
-          </div>
         </div>
 
         <Footer />

@@ -8,6 +8,16 @@ import Pagination from '@/components/ui/Pagination/Pagination';
 import EmptyState from '@/components/ui/EmptyState/EmptyState';
 import { mockMembers } from '@/data/mock';
 
+const AVATAR_COLORS = ['#8B1A1A', '#C8956C', '#2D5F8B', '#4A7C59', '#7B5EA7', '#D4763C', '#3B8686', '#9B5DE5', '#E07A5F'];
+
+function getAvatarColor(name: string) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
 export default function DirectoryPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
@@ -30,7 +40,7 @@ export default function DirectoryPage() {
   const professions = ['All Professions', ...Array.from(new Set(mockMembers.map(m => m.profession)))];
   const locations = ['All Locations', ...Array.from(new Set(mockMembers.map(m => m.city + (m.state ? `, ${m.state}` : ''))))];
 
-  const members = filteredMembers.slice(0, 8); // Show up to 8 for the grid demo
+  const members = filteredMembers.slice(0, 8);
 
   return (
     <div className={styles.directoryContent}>
@@ -103,13 +113,12 @@ export default function DirectoryPage() {
             {members.map((member) => (
               <div key={member.id} className={styles.memberCard}>
                 <div className={styles.memberCardImage}>
-                  {member.photoUrl ? (
-                    <img src={`/images/members/member${member.id}.jpg`} alt={member.name} />
-                  ) : (
-                    <div className={styles.memberCardInitials}>
-                      {member.name.split(' ').map(n => n[0]).join('')}
-                    </div>
-                  )}
+                  <div 
+                    className={styles.memberCardInitials} 
+                    style={{ backgroundColor: getAvatarColor(member.name) }}
+                  >
+                    {member.name.split(' ').map(n => n[0]).join('')}
+                  </div>
                   {member.status === 'verified' && member.role === 'member' && (
                     <OverlayBadge type="verified">Verified</OverlayBadge>
                   )}

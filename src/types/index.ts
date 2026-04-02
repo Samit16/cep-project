@@ -1,4 +1,4 @@
-// Types for the KJO Samaj platform
+
 
 export interface Member {
   id: string;
