@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   LayoutDashboard, Users, Calendar, Wallet, Settings, HelpCircle, LogOut, 
@@ -25,10 +25,17 @@ export default function AdminDashboard() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const handleLogout = () => {
-    if (confirm('Are you sure you want to log out?')) {
+  useEffect(() => {
+    // Simulated Auth Guard
+    const authSession = localStorage.getItem('kjo_simulated_auth');
+    if (authSession !== 'committee') {
       router.push('/login');
     }
+  }, [router]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('kjo_simulated_auth');
+    router.push('/login');
   };
 
   const handleExportCSV = () => {

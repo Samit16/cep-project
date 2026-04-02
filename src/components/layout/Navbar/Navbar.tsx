@@ -1,4 +1,6 @@
-import React from 'react';
+'use client';
+
+import React, { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
 import styles from './Navbar.module.css';
 
@@ -13,6 +15,19 @@ export default function Navbar({
   activeLink = '',
   showSearch = false,
 }: NavbarProps) {
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkAuth = () => {
+      const authSession = localStorage.getItem('kjo_simulated_auth');
+      setIsAdmin(authSession === 'committee');
+    };
+
+    checkAuth();
+    window.addEventListener('storage', checkAuth);
+    return () => window.removeEventListener('storage', checkAuth);
+  }, []);
+
   const links = [
     { label: 'Directory', href: '/directory' },
     { label: 'Dashboard', href: '/dashboard', isAdmin: true },
@@ -49,17 +64,17 @@ export default function Navbar({
           </div>
         )}
 
-        {variant !== 'admin' && (
+        {isAdmin && variant !== 'admin' && (
           <a href="/dashboard" className={styles.dashboardBtn}>
             Dashboard
           </a>
         )}
 
         <a href="/login" className={styles.memberLoginBtn}>
-          {variant === 'admin' ? 'Member Portal' : 'Login'}
+          {variant === 'admin' ? 'Member Portal' : (isAdmin ? 'Admin' : 'Login')}
         </a>
         <a href="/login?tab=committee" className={styles.joinBtn}>
-          {variant === 'admin' ? 'New Request' : 'Join Us'}
+          {variant === 'admin' ? 'New Request' : (isAdmin ? 'Logout' : 'Join Us')}
         </a>
       </div>
     </nav>

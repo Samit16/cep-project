@@ -14,9 +14,11 @@ export default function LoginPage() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (activeTab === 'committee') {
+      localStorage.setItem('kjo_simulated_auth', 'committee');
       toast('Login Successful: Welcome back to the Committee Dashboard', 'success');
       router.push('/dashboard');
     } else {
+      localStorage.setItem('kjo_simulated_auth', 'member');
       toast('Login Successful: Welcome to Member Portal', 'success');
       router.push('/directory');
     }
