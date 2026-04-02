@@ -23,6 +23,8 @@ export default function DirectoryPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [professionFilter, setProfessionFilter] = useState('All Professions');
   const [locationFilter, setLocationFilter] = useState('All Locations');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
 
   const filteredMembers = useMemo(() => {
     return mockMembers.filter((member) => {
@@ -40,7 +42,20 @@ export default function DirectoryPage() {
   const professions = ['All Professions', ...Array.from(new Set(mockMembers.map(m => m.profession)))];
   const locations = ['All Locations', ...Array.from(new Set(mockMembers.map(m => m.city + (m.state ? `, ${m.state}` : ''))))];
 
-  const members = filteredMembers.slice(0, 8);
+  const members = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredMembers.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredMembers, currentPage, itemsPerPage]);
+
+  const handleFilterChange = (setter: React.Dispatch<React.SetStateAction<string>>) => (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setter(e.target.value);
+    setCurrentPage(1);
+  };
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+    setCurrentPage(1);
+  };
 
   return (
     <div className={styles.directoryContent}>
@@ -78,20 +93,20 @@ export default function DirectoryPage() {
             type="text" 
             placeholder="Search by name or keyword..." 
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={handleSearchChange}
           />
         </div>
         <select 
           className={styles.filterSelect}
           value={professionFilter}
-          onChange={(e) => setProfessionFilter(e.target.value)}
+          onChange={handleFilterChange(setProfessionFilter)}
         >
           {professions.map(p => <option key={p} value={p}>{p}</option>)}
         </select>
         <select 
           className={styles.filterSelect}
           value={locationFilter}
-          onChange={(e) => setLocationFilter(e.target.value)}
+          onChange={handleFilterChange(setLocationFilter)}
         >
           {locations.map(l => <option key={l} value={l}>{l}</option>)}
         </select>
@@ -143,7 +158,11 @@ export default function DirectoryPage() {
 
           {/* Pagination */}
           <div className={styles.paginationWrapper}>
-            <Pagination currentPage={1} totalPages={Math.ceil(filteredMembers.length / 8)} />
+            <Pagination 
+              currentPage={currentPage} 
+              totalPages={Math.ceil(filteredMembers.length / itemsPerPage)} 
+              onPageChange={(page) => setCurrentPage(page)}
+            />
           </div>
         </>
       ) : (

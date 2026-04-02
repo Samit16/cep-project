@@ -3,12 +3,16 @@
 import React from 'react';
 import { ArrowRight } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
+import { useParallax, useScrollReveal } from '@/hooks/useParallax';
 import styles from './LandingPage.module.css';
 
 export function HeroSection() {
+  const heroImageRef = useParallax<HTMLDivElement>({ speed: 0.15 });
+  const heroContentRef = useParallax<HTMLDivElement>({ speed: -0.08 });
+
   return (
     <section className={styles.hero}>
-      <div className={`${styles.heroContent} ${styles.animateFadeUp}`}>
+      <div ref={heroContentRef} className={`${styles.heroContent} ${styles.parallaxContent} ${styles.animateFadeUp}`}>
         <span className={styles.heroLabel}>Established Since 1921</span>
         <h1 className={`${styles.heroTitle} ${styles.animateFadeUp} ${styles.delay1}`}>
           Connecting Our{' '}
@@ -32,7 +36,7 @@ export function HeroSection() {
           </a>
         </div>
       </div>
-      <div className={styles.heroImage}>
+      <div ref={heroImageRef} className={`${styles.heroImage} ${styles.parallaxImage}`}>
         <img src="/images/hero.png" alt="Heritage architecture of the Kutchi Jain Oswal community" />
       </div>
     </section>
@@ -40,13 +44,16 @@ export function HeroSection() {
 }
 
 export function HistoryMissionSection() {
+  const imageRef = useParallax<HTMLDivElement>({ speed: 0.2 });
+  const contentRef = useScrollReveal<HTMLDivElement>();
+
   return (
     <section className={styles.historySection}>
       <div className={styles.historySectionInner} id="history">
-        <div className={styles.historyImage}>
-          <img src="/images/history.png" alt="Historical photograph of community founders" />
+        <div ref={imageRef} className={`${styles.historyImage} ${styles.parallaxImageContainer}`}>
+          <img src="/images/history.png" alt="Historical photograph of community founders" className={styles.parallaxInnerImage} />
         </div>
-        <div className={styles.historyContent}>
+        <div ref={contentRef} className={`${styles.historyContent} ${styles.scrollReveal}`}>
           <p className={styles.historyLabel}>The Heritage Realm</p>
           <h2 className={styles.historyTitle}>History &amp; Mission</h2>
           <p className={styles.historyText}>
@@ -81,9 +88,12 @@ export function HistoryMissionSection() {
 }
 
 export function AchievementsSection() {
+  const titleRef = useScrollReveal<HTMLDivElement>();
+  const bannerRef = useParallax<HTMLDivElement>({ speed: 0.12 });
+
   return (
     <section id="achievements" className={styles.achievementsSection}>
-      <div className={styles.achievementsSectionInner}>
+      <div ref={titleRef} className={`${styles.achievementsSectionInner} ${styles.scrollReveal}`}>
         <h2 className={styles.achievementsTitle}>Celebrating Excellence</h2>
         <p className={styles.achievementsSubtitle}>
           Honouring those whose contributions and impact inspire the future of the Samaj.
@@ -115,7 +125,7 @@ export function AchievementsSection() {
             </a>
           </div>
           {/* Banner - Right column spanning both rows */}
-          <div className={styles.bentoBanner}>
+          <div ref={bannerRef} className={`${styles.bentoBanner} ${styles.parallaxBanner}`}>
             <div className={styles.bentoBannerBg}>
               <img src="/images/history.png" alt="" />
             </div>
@@ -139,10 +149,10 @@ export function AchievementsSection() {
 
 export function EventsSection() {
   const { toast } = useToast();
-  const eventDate = new Date('2024-04-15');
+  const sectionRef = useScrollReveal<HTMLElement>();
   
   return (
-    <section className={styles.eventsSection}>
+    <section ref={sectionRef} className={`${styles.eventsSection} ${styles.scrollReveal}`}>
       <div className={styles.eventsSectionInner}>
         <div className={styles.eventsHeader}>
           <div>
@@ -182,8 +192,10 @@ export function EventsSection() {
 }
 
 export function CTABanner() {
+  const ctaRef = useScrollReveal<HTMLElement>();
+
   return (
-    <section className={styles.ctaBanner}>
+    <section ref={ctaRef} className={`${styles.ctaBanner} ${styles.scrollReveal}`}>
       <h2 className={styles.ctaTitle}>Ready to Shape Our Tomorrow?</h2>
       <p className={styles.ctaSubtitle}>
         Join the KJO Samaj today. Gain access to a worldwide network and contribute

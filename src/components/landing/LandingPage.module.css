@@ -110,9 +110,10 @@
 .heroImage::after {
   content: '';
   position: absolute;
-  inset: 0;
-  background: linear-gradient(to right, var(--color-bg-warm) 0%, transparent 40%);
+  inset: -1px; /* Slightly larger to prevent sub-pixel gaps */
+  background: linear-gradient(to right, var(--color-bg-warm) 0%, var(--color-bg-warm) 5%, transparent 40%);
   pointer-events: none;
+  z-index: 2;
 }
 
 .heroImage img {
@@ -120,6 +121,8 @@
   height: 100%;
   object-fit: cover;
   object-position: center 20%;
+  position: relative;
+  z-index: 1;
 }
 
 @keyframes fadeUp {
@@ -548,4 +551,84 @@
   background-color: rgba(255,255,255,0.15);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
+}
+
+/* ============================================
+   Parallax & Scroll Reveal System
+   ============================================ */
+
+/* Parallax transforms — read from CSS custom property set by useParallax hook */
+.parallaxContent {
+  --parallax-offset: 0px;
+  transform: translate3d(0, var(--parallax-offset), 0);
+  will-change: transform;
+}
+
+.parallaxImage {
+  --parallax-offset: 0px;
+  will-change: transform;
+}
+
+.parallaxImage img {
+  transform: translate3d(0, var(--parallax-offset), 0) scale(1.15);
+  will-change: transform;
+  transition: none; /* Prevent janky transitions on scroll */
+}
+
+.parallaxImageContainer {
+  --parallax-offset: 0px;
+  overflow: hidden;
+}
+
+.parallaxInnerImage {
+  transform: translate3d(0, var(--parallax-offset), 0) scale(1.1);
+  will-change: transform;
+  transition: none;
+}
+
+.parallaxBanner {
+  --parallax-offset: 0px;
+}
+
+.parallaxBanner .bentoBannerBg img {
+  transform: translate3d(0, var(--parallax-offset), 0) scale(1.15);
+  will-change: transform;
+  transition: none;
+}
+
+/* Scroll Reveal: elements start invisible and animate in */
+.scrollReveal {
+  opacity: 0;
+  transform: translateY(32px);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.scrollReveal:global(.scroll-revealed) {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ============================================
+   Accessibility: Reduced Motion
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  .parallaxContent,
+  .parallaxImage img,
+  .parallaxInnerImage,
+  .parallaxBanner .bentoBannerBg img {
+    transform: none !important;
+    will-change: auto;
+  }
+
+  .scrollReveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .animateFadeUp {
+    animation: none;
+    opacity: 1;
+  }
 }
