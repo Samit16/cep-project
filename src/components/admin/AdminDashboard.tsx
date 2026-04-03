@@ -130,6 +130,7 @@ export default function AdminDashboard() {
               Committee<br />Overview
             </div>
             <nav className={styles.topBarNav}>
+              <a href="/" className={styles.topBarLink}>Home</a>
               <a href="/dashboard" className={`${styles.topBarLink} ${styles.topBarLinkActive}`}>Overview</a>
               <a href="/directory" className={styles.topBarLink}>Directory</a>
               <a href="/about" className={styles.topBarLink}>About</a>

@@ -4,15 +4,18 @@
   min-height: 520px;
   background-color: var(--color-bg-warm);
   overflow: hidden;
+  position: relative;
 }
 
 .heroContent {
-  flex: 1;
+  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   justify-content: center;
   padding: var(--space-16) var(--space-10) var(--space-16) var(--space-10);
   max-width: 560px;
+  position: relative;
+  z-index: 3;
 }
 
 .heroLabel {
@@ -102,16 +105,20 @@
 }
 
 .heroImage {
-  flex: 1;
-  position: relative;
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 75%;
   min-height: 520px;
+  overflow: hidden;
 }
 
 .heroImage::after {
   content: '';
   position: absolute;
-  inset: -1px; /* Slightly larger to prevent sub-pixel gaps */
-  background: linear-gradient(to right, var(--color-bg-warm) 0%, var(--color-bg-warm) 5%, transparent 40%);
+  inset: 0;
+  background: linear-gradient(to right, var(--color-bg-warm) 0%, var(--color-bg-warm) 15%, transparent 55%);
   pointer-events: none;
   z-index: 2;
 }
