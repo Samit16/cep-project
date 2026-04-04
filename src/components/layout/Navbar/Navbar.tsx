@@ -1,8 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Search } from 'lucide-react';
+import React from 'react';
+import { Search, User } from 'lucide-react';
 import styles from './Navbar.module.css';
+import { useAuth } from '@/lib/auth-context';
+import Link from 'next/link';
 
 interface NavbarProps {
   variant?: 'public' | 'admin';
@@ -15,33 +17,11 @@ export default function Navbar({
   activeLink = '',
   showSearch = false,
 }: NavbarProps) {
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(() => {
-    const checkAuth = () => {
-      const authSession = localStorage.getItem('kjo_simulated_auth');
-      setIsAdmin(authSession === 'committee');
-    };
-
-    checkAuth();
-
-    // Listen for cross-tab changes
-    window.addEventListener('storage', checkAuth);
-
-    // Listen for same-tab changes (custom event)
-    window.addEventListener('kjo_auth_change', checkAuth);
-
-    return () => {
-      window.removeEventListener('storage', checkAuth);
-      window.removeEventListener('kjo_auth_change', checkAuth);
-    };
-  }, []);
+  const { user, role, logout } = useAuth();
 
   const handleLogout = (e: React.MouseEvent) => {
     e.preventDefault();
-    localStorage.removeItem('kjo_simulated_auth');
-    window.dispatchEvent(new Event('kjo_auth_change'));
-    window.location.href = '/login';
+    logout();
   };
 
   const links = [
@@ -52,19 +32,19 @@ export default function Navbar({
 
   return (
     <nav className={styles.navbar} role="navigation" aria-label="Main navigation">
-      <a href="/" className={styles.logo}>
+      <Link href="/" className={styles.logo}>
         KJO Samaj
-      </a>
+      </Link>
 
       <div className={styles.navLinks}>
         {links.map((link) => (
-          <a
+          <Link
             key={link.href}
             href={link.href}
             className={`${styles.navLink} ${activeLink === link.label.toLowerCase() ? styles.navLinkActive : ''}`}
           >
             {link.label}
-          </a>
+          </Link>
         ))}
       </div>
 
@@ -76,24 +56,31 @@ export default function Navbar({
           </div>
         )}
 
-        {isAdmin && variant !== 'admin' && (
-          <a href="/dashboard" className={styles.dashboardBtn}>
+        {role === 'admin' && (
+          <Link href="/dashboard" className={styles.dashboardBtn}>
             Dashboard
-          </a>
+          </Link>
         )}
 
-        {isAdmin ? (
-          <a href="/login" className={styles.joinBtn} onClick={handleLogout}>
+        {user && (
+          <Link href="/directory/me" className={styles.profileLink}>
+            <User size={18} />
+            <span>My Profile</span>
+          </Link>
+        )}
+
+        {user ? (
+          <button className={styles.joinBtn} onClick={handleLogout}>
             Logout
-          </a>
+          </button>
         ) : (
           <>
-            <a href="/login" className={styles.memberLoginBtn}>
+            <Link href="/login" className={styles.memberLoginBtn}>
               Login
-            </a>
-            <a href="/login?tab=committee" className={styles.joinBtn}>
+            </Link>
+            <Link href="/login?tab=committee" className={styles.joinBtn}>
               Join Us
-            </a>
+            </Link>
           </>
         )}
       </div>

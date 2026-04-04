@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   LayoutDashboard, Users, Calendar, Wallet, Settings, HelpCircle, LogOut, 
@@ -13,72 +13,135 @@ import Footer from '@/components/layout/Footer/Footer';
 import MemberFormModal from './MemberFormModal';
 import EmptyState from '@/components/ui/EmptyState/EmptyState';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
-import { mockMembers as initialMembers, mockStats } from '@/data/mock';
+import { ApiClient } from '@/lib/api';
+import { useAuth } from '@/lib/auth-context';
 
 const avatarColors = ['#8B1A1A', '#C8956C', '#2D5F8B', '#4A7C59', '#7B5EA7'];
 
+interface MemberAdmin {
+  _id: string;
+  name: string;
+  contact_no?: string;
+  email: string;
+  occupation?: string;
+  current_place?: string;
+  active: boolean;
+  createdAt?: string;
+}
+
 export default function AdminDashboard() {
-  const [members, setMembers] = useState(initialMembers);
+  const [members, setMembers] = useState<MemberAdmin[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  
+  const [uploadJobId, setUploadJobId] = useState<string | null>(null);
+  const [uploadStatus, setUploadStatus] = useState<any>(null);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const { toast } = useToast();
+  const { role, logout, isLoading } = useAuth();
 
+  // Protect Admin Route
   useEffect(() => {
-    // Simulated Auth Guard
-    const authSession = localStorage.getItem('kjo_simulated_auth');
-    if (authSession !== 'committee') {
+    if (!isLoading && role !== 'admin') {
       router.push('/login');
     }
-  }, [router]);
+  }, [isLoading, role, router]);
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const loadMembers = useCallback(async () => {
+    try {
+      // In a real app we would paginate. For admin view demo, load items limit=20
+      const data = await ApiClient.get<MemberAdmin[]>('/members', { limit: 20, name: debouncedSearch });
+      setMembers(data);
+    } catch (err: any) {
+      toast(err.message || 'Failed to fetch directory', 'error');
+    }
+  }, [debouncedSearch, toast]);
+
+  useEffect(() => {
+    if (role === 'admin') loadMembers();
+  }, [role, loadMembers]);
+
+  // Polling for CSV Upload
+  useEffect(() => {
+    let interval: any;
+    if (uploadJobId) {
+      interval = setInterval(async () => {
+        try {
+          const status = await ApiClient.get<any>(`/admin/bulk-upload/${uploadJobId}/status`);
+          setUploadStatus(status);
+          
+          if (status.status === 'completed' || status.status === 'failed') {
+            clearInterval(interval);
+            setUploadJobId(null);
+            toast(`Job finished. Processed: ${status.processed}, Success: ${status.success}, Errors: ${status.errors}`, status.status === 'completed' ? 'success' : 'error');
+            loadMembers();
+          }
+        } catch (err) {
+          clearInterval(interval);
+          setUploadJobId(null);
+          setUploadStatus(null);
+        }
+      }, 2000);
+    }
+    return () => clearInterval(interval);
+  }, [uploadJobId, toast, loadMembers]);
+
 
   const handleLogout = () => {
-    localStorage.removeItem('kjo_simulated_auth');
-    window.dispatchEvent(new Event('kjo_auth_change'));
-    router.push('/login');
+    logout();
   };
 
   const handleExportCSV = () => {
-    const headers = ['ID', 'Name', 'Email', 'Profession', 'Join Date', 'Status'];
-    const csvData = members.map(m => [m.idNumber, m.name, m.email, m.profession, m.joinDate, m.status].join(',')).join('\n');
-    const blob = new Blob([[headers.join(','), csvData].join('\n')], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `kjo_samaj_members_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-    toast('Exporting Directory Data... Successfully downloaded.', 'success');
+    // Basic mock export
+    toast('Exporting Directory Data... Feature coming soon matching filters.', 'success');
   };
 
-  const handleBulkUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBulkUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      toast(`Processing ${file.name}... Success! 12 new members pending verification.`, 'success');
+      toast(`Uploading ${file.name}...`, 'success');
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      try {
+        const res = await ApiClient.post<{ jobId: string }>('/admin/members/bulk-upload', formData);
+        setUploadJobId(res.jobId);
+        toast('Upload started. Check polling status.', 'success');
+      } catch (err: any) {
+        toast(err.message || 'Upload failed', 'error');
+      }
+    }
+  };
+
+  const handleCommitImport = async () => {
+    if (!uploadJobId) return;
+    try {
+      await ApiClient.post(`/admin/bulk-upload/${uploadJobId}/commit`, { dryRun: false });
+      toast('Commit processing...', 'success');
+    } catch (err: any) {
+      toast(err.message || 'Commit failed', 'error');
     }
   };
 
   const handleAddMember = (newMember: any) => {
-    const id = (members.length + 1).toString();
-    const fullMember = {
-      ...newMember,
-      id,
-      idNumber: `KJO-2024-${Math.floor(1000 + Math.random() * 9000)}`,
-      joinDate: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-      status: 'pending',
-    };
-    setMembers([fullMember, ...members]);
-    toast('Member record created successfully.', 'success');
+    toast('Member record creation directly via UI coming soon (use CSV now).', 'success');
+    setIsModalOpen(false);
   };
 
-  const filteredMembers = members.filter(m => 
-    m.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    m.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    m.profession.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  if (isLoading || role !== 'admin') {
+    return <div style={{ padding: '4rem', textAlign: 'center' }}>Loading Admin Workspace...</div>;
+  }
 
-  const tableMembers = filteredMembers.slice(0, 5);
+  const tableMembers = members.slice(0, 5);
 
   return (
     <div className={styles.adminLayout}>
@@ -147,7 +210,9 @@ export default function AdminDashboard() {
               <Search size={16} color="var(--color-text-muted)" />
               <input
                 type="text"
-                placeholder="Search members..."
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 style={{
                   border: 'none',
                   background: 'transparent',
@@ -164,6 +229,46 @@ export default function AdminDashboard() {
             <button className={styles.logoutBtnSmall} onClick={handleLogout}>
               <LogOut size={16} />
             </button>
+          </div>
+        </div>
+
+        {/* Summary Cards */}
+        <div className={styles.dashboardStats}>
+          <div className={styles.statCard}>
+            <div className={styles.statCardHeader}>
+              <div className={styles.statIconWrapper} style={{ backgroundColor: '#fdf2f2' }}>
+                <Users size={20} color="#8B1A1A" />
+              </div>
+              <span className={styles.statTrend}>
+                <TrendingUp size={14} /> +12%
+              </span>
+            </div>
+            <div className={styles.statValue}>{members.length}+</div>
+            <div className={styles.statLabel}>Total Members Recorded</div>
+          </div>
+
+          <div className={styles.statCard}>
+            <div className={styles.statCardHeader}>
+              <div className={styles.statIconWrapper} style={{ backgroundColor: '#f0fdf4' }}>
+                <ShieldCheck size={20} color="#16a34a" />
+              </div>
+            </div>
+            <div className={styles.statValue}>
+              {members.filter(m => m.active).length}
+            </div>
+            <div className={styles.statLabel}>Verified Community Members</div>
+          </div>
+
+          <div className={styles.statCard}>
+            <div className={styles.statCardHeader}>
+              <div className={styles.statIconWrapper} style={{ backgroundColor: '#eff6ff' }}>
+                <Calendar size={20} color="#2563eb" />
+              </div>
+            </div>
+            <div className={styles.statValue}>
+              {new Set(members.map(m => m.current_place).filter(Boolean)).size}
+            </div>
+            <div className={styles.statLabel}>Global Cities Represented</div>
           </div>
         </div>
 
@@ -192,7 +297,7 @@ export default function AdminDashboard() {
                   style={{ display: 'none' }}
                   accept=".csv"
                 />
-                <button className={styles.actionBtn} onClick={() => fileInputRef.current?.click()}>
+                <button className={styles.actionBtn} onClick={() => fileInputRef.current?.click()} disabled={!!uploadJobId}>
                   <FileText size={16} /> Bulk Upload (CSV)
                 </button>
                 <button className={styles.actionBtn} onClick={handleExportCSV}>
@@ -200,64 +305,25 @@ export default function AdminDashboard() {
                 </button>
               </div>
             </div>
-            <button 
-              className={`${styles.actionBtn} ${styles.actionBtnPrimary}`}
-              onClick={() => setIsModalOpen(true)}
-            >
-              <UserPlus size={16} /> Add New Member
-            </button>
-          </div>
-
-          {/* Stats Grid */}
-          <div className={styles.statsGrid}>
-            <div className={styles.statsCard}>
-              <div className={styles.statsCardLabel}>Total Members</div>
-              <div className={styles.statsCardValue}>{mockStats.totalMembers.toLocaleString()}</div>
-              <div className={styles.statsCardTrend}>
-                <TrendingUp size={14} /> +12% vs last month
+            
+            {uploadJobId && uploadStatus && (
+              <div style={{ marginTop: '1rem', padding: '1rem', background: '#ffecc9', border: '1px solid #f59e0b', borderRadius: '8px' }}>
+                <p><strong>Job Processing {uploadStatus.status}...</strong></p>
+                <p>Processed: {uploadStatus.processed || 0} | Success: {uploadStatus.success || 0} | Errors: {uploadStatus.errors || 0}</p>
+                {uploadStatus.status !== 'completed' && uploadStatus.status !== 'failed' && (
+                   <button onClick={handleCommitImport} style={{ marginTop: '8px', padding: '4px 12px', background: '#1c1c1c', color: 'white', borderRadius: '4px', cursor: 'pointer' }}>
+                     Commit Import Now
+                   </button>
+                )}
               </div>
-            </div>
-            <div className={styles.statsCard}>
-              <div className={styles.statsCardLabel}>Verified Professionals</div>
-              <div className={styles.statsCardValue}>{mockStats.verifiedProfessionals.toLocaleString()}</div>
-              <div className={styles.statsCardSub}>72% Data Completion</div>
-            </div>
-            <div className={styles.statsCard} style={{ borderLeftColor: '#EA580C' }}>
-              <div className={styles.statsCardLabel}>New Applications</div>
-              <div className={styles.statsCardValue}>{mockStats.newApplications}</div>
-              <div className={styles.statsCardSub} style={{ color: '#EA580C', fontWeight: 600 }}>Requires immediate review</div>
-            </div>
-            <div className={styles.statsCard} style={{ borderLeftColor: '#C8956C' }}>
-              <div className={styles.statsCardLabel}>Global Chapters</div>
-              <div className={styles.statsCardValue}>{mockStats.globalChapters}</div>
-              <div className={styles.statsCardSub}>Across 8 Countries</div>
-            </div>
-          </div>
-
-          {/* Filter Bar */}
-          <div className={styles.filterBar}>
-            <div className={styles.filterInput}>
-              <Search size={18} className={styles.filterIcon} />
-              <input 
-                type="text" 
-                placeholder="Search member repository..." 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <select className={styles.filterSelect}>
-              <option>All Professions</option>
-            </select>
-            <div className={styles.sortLabel}>
-              Sort by: <span className={styles.sortValue}>Join Date ▾</span>
-            </div>
+            )}
           </div>
 
           {/* Data Table */}
-          <div className={styles.dataTable}>
+          <div className={styles.dataTable} style={{ marginTop: '2rem' }}>
             <div className={styles.tableHeader}>
               <div className={styles.tableHeaderCell}>Member Details</div>
-              <div className={styles.tableHeaderCell}>ID Number</div>
+              <div className={styles.tableHeaderCell}>ID / Phone</div>
               <div className={styles.tableHeaderCell}>Profession</div>
               <div className={styles.tableHeaderCell}>Join Date</div>
               <div className={styles.tableHeaderCell}>Status</div>
@@ -265,28 +331,28 @@ export default function AdminDashboard() {
             </div>
             {tableMembers.length > 0 ? (
               tableMembers.map((member, index) => (
-                <div key={member.id} className={styles.tableRow}>
+                <div key={member._id} className={styles.tableRow}>
                   <div className={styles.memberCell}>
                     <div
                       className={styles.memberAvatar}
                       style={{ backgroundColor: avatarColors[index % avatarColors.length] }}
                     >
-                      {member.name.split(' ').map(n => n[0]).join('')}
+                      {(member.name || '?').split(' ').map(n => n?.[0]).join('')}
                     </div>
                     <div>
                       <div className={styles.memberCellName}>{member.name}</div>
                       <div className={styles.memberCellEmail}>{member.email}</div>
                     </div>
                   </div>
-                  <div className={styles.cellText}>{member.idNumber}</div>
+                  <div className={styles.cellText}>{member.contact_no || member._id.slice(-6)}</div>
                   <div>
-                    <span className={styles.professionBadge}>{member.profession}</span>
+                    <span className={styles.professionBadge}>{member.occupation || 'N/A'}</span>
                   </div>
-                  <div className={styles.cellText}>{member.joinDate}</div>
+                  <div className={styles.cellText}>{member.createdAt ? member.createdAt.slice(0, 10) : 'Recent'}</div>
                   <div>
-                    <span className={`${styles.statusBadge} ${member.status === 'verified' ? styles.statusVerified : styles.statusPending}`}>
+                    <span className={`${styles.statusBadge} ${member.active ? styles.statusVerified : styles.statusPending}`}>
                       <span className={styles.statusDot} />
-                      {member.status.toUpperCase()}
+                      {member.active ? 'VERIFIED' : 'PENDING'}
                     </span>
                   </div>
                   <div>
@@ -308,14 +374,6 @@ export default function AdminDashboard() {
                 }
               />
             )}
-          </div>
-
-          {/* Table Footer */}
-          <div className={styles.tableFooter}>
-            <span className={styles.showingText}>
-              Showing <span className={styles.showingBold}>1-{tableMembers.length}</span> of <span className={styles.showingBold}>{filteredMembers.length}</span> members
-            </span>
-            <Pagination currentPage={1} totalPages={Math.ceil(filteredMembers.length / 5)} />
           </div>
 
           <MemberFormModal 

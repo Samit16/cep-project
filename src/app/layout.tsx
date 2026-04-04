@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Playfair_Display, Inter } from "next/font/google";
 import { ToastProvider } from "@/components/ui/Toast/ToastProvider";
+import { AuthProvider } from "@/lib/auth-context";
 import "./globals.css";
 
 const playfairDisplay = Playfair_Display({
@@ -32,7 +33,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${playfairDisplay.variable} ${inter.variable}`}>
       <body>
-        <ToastProvider>{children}</ToastProvider>
+        <AuthProvider>
+          <ToastProvider>{children}</ToastProvider>
+        </AuthProvider>
       </body>
     </html>
   );

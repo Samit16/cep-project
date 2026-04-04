@@ -4,25 +4,69 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { User, Lock, Shield, Landmark } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
+import { ApiClient } from '@/lib/api';
+import { useAuth } from '@/lib/auth-context';
 import styles from './LoginPage.module.css';
 
 export default function LoginPage() {
   const [activeTab, setActiveTab] = useState<'member' | 'committee'>('member');
+  const [contactNo, setContactNo] = useState('');
+  const [otp, setOtp] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  
+  const [otpSent, setOtpSent] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  
   const router = useRouter();
   const { toast } = useToast();
+  const { login } = useAuth();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleMemberLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (activeTab === 'committee') {
-      localStorage.setItem('kjo_simulated_auth', 'committee');
-      window.dispatchEvent(new Event('kjo_auth_change'));
-      toast('Login Successful: Welcome back to the Committee Dashboard', 'success');
+    if (!contactNo) {
+      toast('Please enter your registered mobile number', 'error');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      if (!otpSent) {
+        // Request OTP
+        const res = await ApiClient.post<{ message: string; dev_otp?: string }>('/auth/otp/request', { contact_no: contactNo });
+        setOtpSent(true);
+        toast(`OTP Sent! ${res.dev_otp ? `(Development OTP: ${res.dev_otp})` : ''}`, 'success');
+      } else {
+        // Verify OTP
+        const res = await ApiClient.post<{ token: string }>('/auth/otp/verify', { contact_no: contactNo, otp });
+        login(res.token, { sub: contactNo, role: 'member' });
+        toast('Login Successful!', 'success');
+        router.push('/directory');
+      }
+    } catch (err: any) {
+      toast(err.message || 'Authentication failed', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAdminLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!username || !password) {
+      toast('Please enter username and password', 'error');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const res = await ApiClient.post<{ token: string }>('/auth/admin/login', { username, password });
+      login(res.token, { sub: username, role: 'admin' });
+      toast('Login Successful: Welcome back', 'success');
       router.push('/dashboard');
-    } else {
-      localStorage.setItem('kjo_simulated_auth', 'member');
-      window.dispatchEvent(new Event('kjo_auth_change'));
-      toast('Login Successful: Welcome to Member Portal', 'success');
-      router.push('/directory');
+    } catch (err: any) {
+      toast(err.message || 'Invalid credentials', 'error');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -37,12 +81,14 @@ export default function LoginPage() {
             {/* Tab Toggle */}
             <div className={styles.tabToggle}>
               <button
+                type="button"
                 className={`${styles.tab} ${activeTab === 'member' ? styles.tabActive : ''}`}
-                onClick={() => setActiveTab('member')}
+                onClick={() => { setActiveTab('member'); setOtpSent(false); setOtp(''); }}
               >
                 Member Login
               </button>
               <button
+                type="button"
                 className={`${styles.tab} ${activeTab === 'committee' ? styles.tabActive : ''}`}
                 onClick={() => setActiveTab('committee')}
               >
@@ -50,44 +96,85 @@ export default function LoginPage() {
               </button>
             </div>
 
-            {/* Form */}
-            <form onSubmit={handleLogin}>
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>
-                  Mobile Number or Email
-                </label>
-                <div className={styles.inputWrapper}>
-                  <User size={18} className={styles.inputIcon} />
-                  <input
-                    type="text"
-                    className={styles.inputField}
-                    placeholder="Enter details"
-                  />
+            {/* Forms */}
+            {activeTab === 'member' ? (
+              <form onSubmit={handleMemberLogin}>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Mobile Number</label>
+                  <div className={styles.inputWrapper}>
+                    <User size={18} className={styles.inputIcon} />
+                    <input
+                      type="text"
+                      className={styles.inputField}
+                      placeholder="+919999999999"
+                      value={contactNo}
+                      onChange={(e) => setContactNo(e.target.value)}
+                      disabled={otpSent || isLoading}
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>
-                  {activeTab === 'member' ? 'OTP or Password' : 'Password'}
-                  <a href="#" className={styles.forgotLink}>Forgot Password?</a>
-                </label>
-                <div className={styles.inputWrapper}>
-                  <Lock size={18} className={styles.inputIcon} />
-                  <input
-                    type="password"
-                    className={styles.inputField}
-                    placeholder="••••••••"
-                  />
+                {otpSent && (
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Enter OTP</label>
+                    <div className={styles.inputWrapper}>
+                      <Lock size={18} className={styles.inputIcon} />
+                      <input
+                        type="text"
+                        className={styles.inputField}
+                        placeholder="6-digit OTP"
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value)}
+                        disabled={isLoading}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <button type="submit" className={styles.submitBtn} disabled={isLoading}>
+                  {isLoading ? 'Processing...' : otpSent ? 'Verify & Access Account' : 'Request OTP'}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleAdminLogin}>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Username</label>
+                  <div className={styles.inputWrapper}>
+                    <User size={18} className={styles.inputIcon} />
+                    <input
+                      type="text"
+                      className={styles.inputField}
+                      placeholder="admin"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      disabled={isLoading}
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <button type="submit" className={styles.submitBtn}>
-                Access Account
-              </button>
-            </form>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Password</label>
+                  <div className={styles.inputWrapper}>
+                    <Lock size={18} className={styles.inputIcon} />
+                    <input
+                      type="password"
+                      className={styles.inputField}
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={isLoading}
+                    />
+                  </div>
+                </div>
+
+                <button type="submit" className={styles.submitBtn} disabled={isLoading}>
+                  {isLoading ? 'Processing...' : 'Secure Login'}
+                </button>
+              </form>
+            )}
 
             <p className={styles.joinText}>
-              Not a member? <a href="/register" className={styles.joinLink}>Join us</a>
+              Not a member? <a href="/about" className={styles.joinLink}>Learn more</a>
             </p>
           </div>
 
