@@ -20,7 +20,7 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
     const data = request.body as any;
     const encrypted = {
       ...data,
-      contact_no: encryptField(data.contact_no),
+      contact_numbers: data.contact_numbers?.map((num: string) => encryptField(num)) || [],
     };
     const member = await (fastify as any).models.Member.create(encrypted);
     reply.code(201).send(member);
@@ -32,7 +32,7 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
     const data = request.body as any;
     const encrypted = {
       ...data,
-      contact_no: data.contact_no ? encryptField(data.contact_no) : undefined,
+      contact_numbers: data.contact_numbers ? data.contact_numbers.map((num: string) => encryptField(num)) : undefined,
     };
     const member = await (fastify as any).models.Member.findByIdAndUpdate(id, encrypted, { new: true });
     reply.send(member);
@@ -53,19 +53,20 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
   // Export CSV
   fastify.get('/members/export', async (request, reply) => {
     const members = await (fastify as any).models.Member.find({}).lean();
-    const csv = members
+    const csvHeader = ['First Name', 'Last Name', 'Address', 'Contact Numbers', 'Email', 'Occupation', 'Town', 'Status'].join(',');
+    const csvRows = members
       .map((m: any) => [
-        m.name,
-        m.contact_no,
-        m.email,
-        m.occupation ?? '',
-        m.current_place ?? '',
-        m.kutch_town ?? '',
-        m.marital_status ?? '',
-        m.if_alive ?? true,
+        `"${m.first_name}"`,
+        `"${m.last_name}"`,
+        `"${m.address ?? ''}"`,
+        `"${(m.contact_numbers || []).join(';')}"`,
+        `"${m.email || ''}"`,
+        `"${m.occupation ?? ''}"`,
+        `"${m.kutch_town ?? ''}"`,
+        m.is_alive ?? true ? 'Alive' : 'Deceased',
       ].join(','))
       .join('\n');
-    reply.header('Content-Type', 'text/csv').send(csv);
+    reply.header('Content-Type', 'text/csv').send(`${csvHeader}\n${csvRows}`);
   });
 
   // Audit logs

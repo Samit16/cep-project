@@ -11,6 +11,7 @@ interface Config {
   frontendUrl: string;
   csvBatchSize: number;
   databaseUrl: string;
+  port: number;
 }
 
 const config: Config = {
@@ -22,6 +23,7 @@ const config: Config = {
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
   csvBatchSize: parseInt(process.env.CSV_BATCH_SIZE || '100', 10),
   databaseUrl: process.env.DATABASE_URL || 'mongodb://localhost:27017/kjo_samaj',
+  port: parseInt(process.env.PORT || '3001', 10),
 };
 
 export default config;

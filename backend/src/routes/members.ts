@@ -11,8 +11,13 @@ const memberRoutes: FastifyPluginAsync = async (fastify) => {
     const { name, city, occupation } = request.query as any;
 
     const query: any = { active: true };
-    if (name) query.name = { $regex: name, $options: 'i' };
-    if (city) query.current_place = city; // approximate mapping
+    if (name) {
+      query.$or = [
+        { first_name: { $regex: name, $options: 'i' } },
+        { last_name: { $regex: name, $options: 'i' } },
+      ];
+    }
+    if (city) query.current_place = city; 
     if (occupation) query.occupation = occupation;
 
     const members = await (fastify as any).models.Member.find(query)
@@ -22,7 +27,7 @@ const memberRoutes: FastifyPluginAsync = async (fastify) => {
 
     const result = members.map((m: any) => ({
       ...m,
-      contact_no: decryptField(m.contact_no),
+      contact_numbers: (m.contact_numbers || []).map((num: string) => decryptField(num)),
     }));
 
     reply.send(result);
@@ -35,12 +40,13 @@ const memberRoutes: FastifyPluginAsync = async (fastify) => {
     if (!member) return reply.code(404).send({ error: 'Not found' });
 
     const payload = request.user as any;
-    const isOwner = payload.sub === member.contact_no;
+    const encryptedSub = encryptField(payload.sub);
+    const isOwner = member.contact_numbers.includes(encryptedSub);
     const visible = member.contact_visibility === 'public' || isOwner;
 
     const response = {
       ...member,
-      contact_no: visible ? decryptField(member.contact_no) : undefined,
+      contact_numbers: visible ? member.contact_numbers.map((num: string) => decryptField(num)) : [],
     };
     reply.send(response);
   });
@@ -48,11 +54,12 @@ const memberRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /me
   fastify.get('/me', async (request, reply) => {
     const payload = request.user as any;
-    const member = await (fastify as any).models.Member.findOne({ contact_no: encryptField(payload.sub) }).lean();
+    const encryptedSub = encryptField(payload.sub);
+    const member = await (fastify as any).models.Member.findOne({ contact_numbers: encryptedSub }).lean();
     if (!member) return reply.code(404).send({ error: 'Not found' });
     const result = {
       ...member,
-      contact_no: decryptField(member.contact_no),
+      contact_numbers: member.contact_numbers.map((num: string) => decryptField(num)),
     };
     reply.send(result);
   });
