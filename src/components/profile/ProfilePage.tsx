@@ -1,15 +1,20 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pencil, Eye, ShieldCheck, Mail, Phone, MapPin, CheckCircle2 } from 'lucide-react';
 import styles from './ProfilePage.module.css';
-import { mockMembers } from '@/data/mock';
+import { ApiClient } from '@/lib/api';
+import { useAuth } from '@/lib/auth-context';
+import { useToast } from '@/components/ui/Toast/ToastProvider';
+import { ProfileSkeleton } from '@/components/ui/Skeleton/Skeleton';
+import ProfileUpdateModal from './ProfileUpdateModal';
+import { motion } from 'framer-motion';
 
 const AVATAR_COLORS = ['#8B1A1A', '#C8956C', '#2D5F8B', '#4A7C59', '#7B5EA7', '#D4763C', '#3B8686', '#9B5DE5', '#E07A5F'];
 
 function getAvatarColor(name: string) {
   let hash = 0;
-  for (let i = 0; i < name.length; i++) {
+  for (let i = 0; i < (name?.length || 0); i++) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
   }
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
@@ -19,40 +24,118 @@ interface ProfilePageProps {
   memberId?: string;
 }
 
-export default function ProfilePage({ memberId = '1' }: ProfilePageProps) {
-  const member = mockMembers.find(m => m.id === memberId) || mockMembers[0];
-  const nameParts = member.name.split(' ');
+interface MemberDetail {
+  _id: string;
+  name: string;
+  contact_no?: string;
+  email: string;
+  occupation?: string;
+  marital_status?: string;
+  current_place?: string;
+  kutch_town?: string;
+  family_members?: string[];
+  contact_visibility?: string;
+  active?: boolean;
+}
+
+export default function ProfilePage({ memberId }: ProfilePageProps) {
+  const [member, setMember] = useState<MemberDetail | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+  
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    async function loadData() {
+      setIsLoading(true);
+      try {
+        const endpoint = memberId ? `/members/${memberId}` : '/members/me';
+        const data = await ApiClient.get<MemberDetail>(endpoint);
+        setMember(data);
+      } catch (err: any) {
+        toast(err.message || 'Failed to load profile', 'error');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
+  }, [memberId, toast]);
+
+  if (isLoading) {
+    return <ProfileSkeleton />;
+  }
+
+  if (!member) {
+    return <div style={{ textAlign: 'center', padding: '4rem 0' }}>Profile unavailable.</div>;
+  }
+
+  const nameParts = (member.name || '').split(' ');
   const firstName = nameParts[0];
   const lastName = nameParts.slice(1).join(' ');
-  const initials = member.name.split(' ').map(n => n[0]).join('');
-
+  const initials = (member.name || '?').split(' ').map(n => n?.[0]).join('');
+  
   return (
-    <div className={styles.profileContent}>
+    <motion.div 
+      className={styles.profileContent}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
       {/* Profile Hero */}
       <div className={styles.profileHero}>
-        <div className={styles.profilePhoto}>
+        <motion.div 
+          className={styles.profilePhoto}
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.2 }}
+        >
           <div className={styles.profilePhotoInitials} style={{ backgroundColor: getAvatarColor(member.name) }}>
             {initials}
           </div>
-        </div>
+        </motion.div>
         <div className={styles.profileHeroInfo}>
-          <p className={styles.verifiedLabel}>
-            {member.status === 'verified' ? 'Verified Member' : 'Member'}
-          </p>
-          <h1 className={styles.profileName}>
+          <motion.p 
+            className={styles.verifiedLabel}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+          >
+            {member.active ? 'Verified Member' : 'Member'}
+          </motion.p>
+          <motion.h1 
+            className={styles.profileName}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.4 }}
+          >
             {firstName}<br />
             <span className={styles.profileNameItalic}>{lastName}</span>
-          </h1>
-          <p className={styles.profileBio}>
-            {member.bio || 'A valued member of the Kutchi Jain Oswal Samaj community.'}
-          </p>
+          </motion.h1>
+          <motion.p 
+            className={styles.profileBio}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+          >
+            A valued member of the Kutchi Jain Oswal Samaj community.
+          </motion.p>
           <div className={styles.profileActions}>
-            <button className={styles.editProfileBtn}>
-              <Pencil size={16} /> Edit Profile
-            </button>
-            <button className={styles.privacyBtn}>
+            <motion.button 
+              className={styles.editProfileBtn} 
+              onClick={() => setIsUpdateModalOpen(true)}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Pencil size={16} /> Request Update
+            </motion.button>
+            <motion.button 
+              className={styles.privacyBtn}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
               <Eye size={16} /> View Privacy Settings
-            </button>
+            </motion.button>
           </div>
         </div>
       </div>
@@ -60,19 +143,31 @@ export default function ProfilePage({ memberId = '1' }: ProfilePageProps) {
       {/* Info Cards */}
       <div className={styles.infoGrid}>
         {/* Personal Info */}
-        <div className={styles.infoCard}>
+        <motion.div 
+          className={styles.infoCard}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+        >
           <div className={styles.sectionHeader}>
             <span className={styles.sectionDash} />
             <span className={styles.sectionTitle}>Personal</span>
           </div>
-          <div className={styles.infoLabel}>Date of Birth</div>
-          <div className={styles.infoValue}>{member.dateOfBirth || 'Not specified'}</div>
-          <div className={styles.infoLabel}>Education</div>
-          <div className={styles.infoValue}>{member.education || 'Not specified'}</div>
-        </div>
+          <div className={styles.infoLabel}>Origin Kutch Town</div>
+          <div className={styles.infoValue}>{member.kutch_town || 'Not specified'}</div>
+          <div className={styles.infoLabel}>Marital Status</div>
+          <div className={styles.infoValue}>{member.marital_status || 'Not specified'}</div>
+          <div className={styles.infoLabel}>Family Members</div>
+          <div className={styles.infoValue}>{(member.family_members || []).join(', ') || 'None listed'}</div>
+        </motion.div>
 
         {/* Professional Standing */}
-        <div className={styles.infoCard}>
+        <motion.div 
+          className={styles.infoCard}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7 }}
+        >
           <div className={styles.sectionHeader}>
             <span className={styles.sectionDash} />
             <span className={styles.sectionTitle}>Professional Standing</span>
@@ -80,25 +175,21 @@ export default function ProfilePage({ memberId = '1' }: ProfilePageProps) {
           </div>
           <div className={styles.infoLabel}>Current Occupation</div>
           <div className={`${styles.infoValue} ${styles.infoValueLarge}`}>
-            {member.profession}
+            {member.occupation || 'Not specified'}
           </div>
           <div className={styles.separator} />
-          <div className={styles.infoLabel}>Company</div>
-          <div className={styles.infoValue}>{member.company || 'Not specified'}</div>
-          
-          {member.officeLocation && (
-            <div className={styles.officePhoto}>
-              <div className={styles.officeBadge}>
-                <div className={styles.officeBadgeLabel}>Office Headquarters</div>
-                <div className={styles.officeBadgeValue}>{member.officeLocation}</div>
-              </div>
-            </div>
-          )}
-        </div>
+          <div className={styles.infoLabel}>Current Residence</div>
+          <div className={styles.infoValue}>{member.current_place || 'Not specified'}</div>
+        </motion.div>
       </div>
 
       {/* Contact Info */}
-      <div className={styles.contactCard}>
+      <motion.div 
+        className={styles.contactCard}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.8 }}
+      >
         <div className={styles.sectionHeader}>
           <span className={styles.sectionDash} />
           <span className={styles.sectionTitle}>Contact</span>
@@ -107,49 +198,45 @@ export default function ProfilePage({ memberId = '1' }: ProfilePageProps) {
           <Mail size={18} className={styles.contactIcon} />
           <div>
             <div className={styles.contactLabel}>Email Address</div>
-            <div className={styles.contactValue}>{member.email}</div>
+            <div className={styles.contactValue}>{member.email || 'Not available'}</div>
           </div>
         </div>
         <div className={styles.contactRow}>
           <Phone size={18} className={styles.contactIcon} />
           <div>
             <div className={styles.contactLabel}>Phone Number</div>
-            <div className={styles.contactValue}>{member.phone || 'Not available'}</div>
+            <div className={styles.contactValue}>
+              {member.contact_no 
+                ? member.contact_no 
+                : <span style={{ fontStyle: 'italic', color: '#666' }}>Number is private</span>
+              }
+            </div>
           </div>
         </div>
-        <div className={styles.contactRow}>
-          <MapPin size={18} className={styles.contactIcon} />
-          <div>
-            <div className={styles.contactLabel}>Residential Address</div>
-            <div className={styles.contactValue}>{member.address || 'Not available'}</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Expertise & Contributions */}
-      <div className={styles.expertiseSection}>
-        <h3 className={styles.expertiseTitle}>Expertise &amp; Contributions</h3>
-        <div className={styles.expertiseTags}>
-          {(member.expertise || ['Community Member']).map((tag) => (
-            <span key={tag} className={styles.tag}>{tag}</span>
-          ))}
-        </div>
-      </div>
+      </motion.div>
 
       {/* Visibility Banner */}
-      <div className={styles.visibilityBanner}>
+      <motion.div 
+        className={styles.visibilityBanner}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.9 }}
+      >
         <ShieldCheck size={24} className={styles.visibilityIcon} />
         <div>
-          <h3 className={styles.visibilityTitle}>Member Directory Visibility</h3>
+          <h3 className={styles.visibilityTitle}>Member Directory Visibility ({member.contact_visibility})</h3>
           <p className={styles.visibilityText}>
-            Your profile is currently visible to verified community members only. You
-            can adjust your visibility preferences in the privacy settings panel.
+            Depending on privacy settings, contact numbers are only visible to the profile owner or if explicitly marked public.
           </p>
         </div>
-        <a href="/privacy" className={styles.visibilityLink}>
-          Go to Privacy Dashboard &gt;
-        </a>
-      </div>
-    </div>
+      </motion.div>
+
+      {isUpdateModalOpen && (
+        <ProfileUpdateModal 
+          member={member} 
+          onClose={() => setIsUpdateModalOpen(false)} 
+        />
+      )}
+    </motion.div>
   );
 }

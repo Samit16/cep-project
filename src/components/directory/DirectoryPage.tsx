@@ -1,59 +1,86 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Search, LayoutGrid, List, ShieldCheck, MapPin, Settings, Users } from 'lucide-react';
 import styles from './DirectoryPage.module.css';
 import { OverlayBadge } from '@/components/ui/Badge/Badge';
 import Pagination from '@/components/ui/Pagination/Pagination';
 import EmptyState from '@/components/ui/EmptyState/EmptyState';
-import { mockMembers } from '@/data/mock';
+import { ApiClient } from '@/lib/api';
+import { useToast } from '@/components/ui/Toast/ToastProvider';
+import { DirectorySkeleton } from '@/components/ui/Skeleton/Skeleton';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const AVATAR_COLORS = ['#8B1A1A', '#C8956C', '#2D5F8B', '#4A7C59', '#7B5EA7', '#D4763C', '#3B8686', '#9B5DE5', '#E07A5F'];
 
 function getAvatarColor(name: string) {
   let hash = 0;
-  for (let i = 0; i < name.length; i++) {
+  for (let i = 0; i < (name?.length || 0); i++) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
   }
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
+interface Member {
+  _id: string;
+  name: string;
+  occupation?: string;
+  current_place?: string;
+  contact_visibility?: string;
+}
+
 export default function DirectoryPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
-  const [professionFilter, setProfessionFilter] = useState('All Professions');
-  const [locationFilter, setLocationFilter] = useState('All Locations');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [professionFilter, setProfessionFilter] = useState('');
+  const [locationFilter, setLocationFilter] = useState('');
+  
+  const [members, setMembers] = useState<Member[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
+  const [totalPages, setTotalPages] = useState(1); 
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const filteredMembers = useMemo(() => {
-    return mockMembers.filter((member) => {
-      const matchesSearch = member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          member.profession.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesProfession = professionFilter === 'All Professions' || member.profession === professionFilter;
-      const matchesLocation = locationFilter === 'All Locations' || 
-                             `${member.city}, ${member.state}` === locationFilter ||
-                             member.city === locationFilter;
-      
-      return matchesSearch && matchesProfession && matchesLocation;
-    });
-  }, [searchQuery, professionFilter, locationFilter]);
+  const { toast } = useToast();
+  const itemsPerPage = 12;
 
-  const professions = ['All Professions', ...Array.from(new Set(mockMembers.map(m => m.profession)))];
-  const locations = ['All Locations', ...Array.from(new Set(mockMembers.map(m => m.city + (m.state ? `, ${m.state}` : ''))))];
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
-  const members = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredMembers.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredMembers, currentPage, itemsPerPage]);
+  const loadMembers = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const response = await ApiClient.get<Member[]>('/members', {
+        page: currentPage,
+        limit: itemsPerPage,
+        name: debouncedSearch,
+        city: locationFilter,
+        occupation: professionFilter,
+      });
+      setMembers(response);
+      setHasMore(response.length === itemsPerPage);
+    } catch (err: any) {
+      toast(err.message || 'Failed to load directory', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentPage, debouncedSearch, locationFilter, professionFilter, toast]);
 
-  const handleFilterChange = (setter: React.Dispatch<React.SetStateAction<string>>) => (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setter(e.target.value);
-    setCurrentPage(1);
-  };
+  useEffect(() => {
+    loadMembers();
+  }, [loadMembers]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
+    setCurrentPage(1);
+  };
+
+  const handleFilterChange = (setter: React.Dispatch<React.SetStateAction<string>>) => (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setter(e.target.value === 'All Categories' ? '' : e.target.value);
     setCurrentPage(1);
   };
 
@@ -96,19 +123,28 @@ export default function DirectoryPage() {
             onChange={handleSearchChange}
           />
         </div>
+        
+        {/* Placeholder dynamic filters - Backend mapping later */}
         <select 
           className={styles.filterSelect}
           value={professionFilter}
           onChange={handleFilterChange(setProfessionFilter)}
         >
-          {professions.map(p => <option key={p} value={p}>{p}</option>)}
+          <option value="">All Professions</option>
+          <option value="Business">Business</option>
+          <option value="Software Engineer">Software Engineer</option>
+          <option value="Doctor">Doctor</option>
         </select>
         <select 
           className={styles.filterSelect}
           value={locationFilter}
           onChange={handleFilterChange(setLocationFilter)}
         >
-          {locations.map(l => <option key={l} value={l}>{l}</option>)}
+          <option value="">All Locations</option>
+          <option value="Mumbai">Mumbai</option>
+          <option value="Bhuj">Bhuj</option>
+          <option value="London">London</option>
+          <option value="Dubai">Dubai</option>
         </select>
         <button className={styles.filterBtn} aria-label="Advanced filters">
           <Settings size={18} />
@@ -121,48 +157,77 @@ export default function DirectoryPage() {
         Privacy-First: Sensitive contact information is hidden for security. Use &apos;Request Contact&apos; inside profiles for inquiries.
       </div>
 
-      {/* Member Grid or Empty State */}
-      {members.length > 0 ? (
+      {/* Loading State Output */}
+      {isLoading ? (
+        <DirectorySkeleton />
+      ) : members.length > 0 ? (
         <>
-          <div className={styles.memberGrid}>
+          <motion.div 
+            className={styles.memberGrid}
+            initial="hidden"
+            animate="show"
+            variants={{
+              hidden: { opacity: 0 },
+              show: {
+                opacity: 1,
+                transition: {
+                  staggerChildren: 0.1
+                }
+              }
+            }}
+          >
             {members.map((member) => (
-              <div key={member.id} className={styles.memberCard}>
+              <motion.div 
+                key={member._id} 
+                className={styles.memberCard}
+                variants={{
+                  hidden: { opacity: 0, y: 20 },
+                  show: { opacity: 1, y: 0 }
+                }}
+                whileHover={{ y: -5, boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }}
+              >
                 <div className={styles.memberCardImage}>
                   <div 
                     className={styles.memberCardInitials} 
                     style={{ backgroundColor: getAvatarColor(member.name) }}
                   >
-                    {member.name.split(' ').map(n => n[0]).join('')}
+                    {(member.name || '?').split(' ').map(n => n?.[0]).join('')}
                   </div>
-                  {member.status === 'verified' && member.role === 'member' && (
-                    <OverlayBadge type="verified">Verified</OverlayBadge>
-                  )}
-                  {member.role === 'committee' && (
-                    <OverlayBadge type="committee">Committee</OverlayBadge>
+                  {member.contact_visibility === 'public' && (
+                    <OverlayBadge type="verified">Public</OverlayBadge>
                   )}
                 </div>
                 <div className={styles.memberCardBody}>
                   <h3 className={styles.memberCardName}>{member.name}</h3>
-                  <p className={styles.memberCardProfession}>{member.profession}</p>
+                  <p className={styles.memberCardProfession}>{member.occupation || 'N/A'}</p>
                   <p className={styles.memberCardLocation}>
                     <MapPin size={14} className={styles.locationIcon} />
-                    {member.city}{member.state ? `, ${member.state}` : ''}{member.country && member.country !== 'India' ? `, ${member.country}` : ''}
+                    {member.current_place || 'Unknown'}
                   </p>
-                  <a href={`/directory/${member.id}`} className={styles.viewProfileBtn}>
+                  <a href={`/directory/${member._id}`} className={styles.viewProfileBtn}>
                     View Basic Profile
                   </a>
                 </div>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
 
-          {/* Pagination */}
-          <div className={styles.paginationWrapper}>
-            <Pagination 
-              currentPage={currentPage} 
-              totalPages={Math.ceil(filteredMembers.length / itemsPerPage)} 
-              onPageChange={(page) => setCurrentPage(page)}
-            />
+          {/* Simple Pagination */}
+          <div className={styles.paginationWrapper} style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '2rem' }}>
+             <button 
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
+                disabled={currentPage === 1}
+                className={styles.viewProfileBtn}
+              >
+               Previous
+             </button>
+             <button 
+                onClick={() => setCurrentPage(p => p + 1)} 
+                disabled={!hasMore}
+                className={styles.viewProfileBtn}
+              >
+               Next Page
+             </button>
           </div>
         </>
       ) : (
@@ -174,7 +239,7 @@ export default function DirectoryPage() {
             <button 
               className="ctaBtnOutlinedHero" 
               style={{ padding: '8px 16px', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)' }}
-              onClick={() => { setSearchQuery(''); setProfessionFilter('All Professions'); setLocationFilter('All Locations'); }}
+              onClick={() => { setSearchQuery(''); setProfessionFilter(''); setLocationFilter(''); }}
             >
               Clear Filters
             </button>

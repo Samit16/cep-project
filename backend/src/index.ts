@@ -61,7 +61,7 @@ const start = async () => {
     await server.register(eventRoutes, { prefix: '/api/events' });
     await server.register(bulkUploadRoutes, { prefix: '/api/admin' });
 
-    const addr = await server.listen({ port: config.port, host: '0.0.0.0' });
+    const addr = await server.listen({ port: 3001, host: '0.0.0.0' });
     logger.info(`Server listening on ${addr}`);
   } catch (err) {
     logger.error(err);
