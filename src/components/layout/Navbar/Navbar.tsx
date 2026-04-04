@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Search, User } from 'lucide-react';
+import { Search, User, Home } from 'lucide-react';
 import styles from './Navbar.module.css';
 import { useAuth } from '@/lib/auth-context';
 import Link from 'next/link';
@@ -27,13 +27,14 @@ export default function Navbar({
   const links = [
     { label: 'Directory', href: '/directory' },
     { label: 'About', href: '/about' },
-    { label: 'Achievements', href: '/#achievements' },
+    { label: 'Archives', href: '/#archives' },
   ];
 
   return (
     <nav className={styles.navbar} role="navigation" aria-label="Main navigation">
-      <Link href="/" className={styles.logo}>
-        KJO Samaj
+      <Link href="/" className={styles.logo} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <Home size={24} />
+        KVO Nagpur
       </Link>
 
       <div className={styles.navLinks}>

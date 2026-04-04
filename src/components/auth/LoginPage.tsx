@@ -198,7 +198,7 @@ export default function LoginPage() {
       
       {/* Visual Identity Side */}
       <div className={styles.imageSide}>
-        <img src="/images/history.png" alt="Kutchi Jain Oswal Samaj Heritage" className={styles.heritageImage} />
+        <img src="/images/history.png" alt="KVO Nagpur Heritage" className={styles.heritageImage} />
         <div className={styles.imageOverlay}>
           <h2>A Century of Unity</h2>
           <p>Over 100 years of empowering our community globally.</p>

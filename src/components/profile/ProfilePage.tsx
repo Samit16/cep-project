@@ -118,7 +118,7 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
           >
-            A valued member of the Kutchi Jain Oswal Samaj community.
+            A valued member of the KVO Nagpur community.
           </motion.p>
           <div className={styles.profileActions}>
             <motion.button 

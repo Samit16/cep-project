@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { 
   LayoutDashboard, Users, Calendar, Wallet, Settings, HelpCircle, LogOut, 
   Search, FileText, Download, UserPlus, TrendingUp, ClipboardList, 
-  ShieldCheck, Pencil, MoreVertical, User, ChevronDown
+  ShieldCheck, Pencil, MoreVertical, User, ChevronDown, Plus, Trash2, X, MapPin, Clock
 } from 'lucide-react';
 import styles from './AdminDashboard.module.css';
 import Pagination from '@/components/ui/Pagination/Pagination';
@@ -29,11 +29,45 @@ interface MemberAdmin {
   createdAt?: string;
 }
 
+interface EventItem {
+  id: string;
+  title: string;
+  date: string;
+  time: string;
+  location: string;
+  description: string;
+}
+
+const defaultEvents: EventItem[] = [
+  {
+    id: '1',
+    title: 'Heritage Gala & Cultural Night',
+    date: '2024-04-15',
+    time: '6:00 PM',
+    location: 'Grand Ballroom, Samaj Center, Dadar',
+    description: 'An evening of culture, tradition, and connecting with the community.',
+  },
+  {
+    id: '2',
+    title: 'Annual General Meeting 2024',
+    date: '2024-05-20',
+    time: '10:00 AM',
+    location: 'Convention Hall, Andheri East, Mumbai',
+    description: 'Annual meeting to discuss community progress, finances, and upcoming initiatives.',
+  },
+];
+
 export default function AdminDashboard() {
   const [members, setMembers] = useState<MemberAdmin[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  
+  const [events, setEvents] = useState<EventItem[]>(defaultEvents);
+  const [isEventModalOpen, setIsEventModalOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<EventItem | null>(null);
+  const [eventForm, setEventForm] = useState({ title: '', date: '', time: '', location: '', description: '' });
+  const [activeTab, setActiveTab] = useState<'members' | 'events'>('members');
   
   const [uploadJobId, setUploadJobId] = useState<string | null>(null);
   const [uploadStatus, setUploadStatus] = useState<any>(null);
@@ -137,6 +171,40 @@ export default function AdminDashboard() {
     setIsModalOpen(false);
   };
 
+  const openCreateEvent = () => {
+    setEditingEvent(null);
+    setEventForm({ title: '', date: '', time: '', location: '', description: '' });
+    setIsEventModalOpen(true);
+  };
+
+  const openEditEvent = (event: EventItem) => {
+    setEditingEvent(event);
+    setEventForm({ title: event.title, date: event.date, time: event.time, location: event.location, description: event.description });
+    setIsEventModalOpen(true);
+  };
+
+  const handleSaveEvent = () => {
+    if (!eventForm.title || !eventForm.date) {
+      toast('Please fill in at least the event title and date.', 'error');
+      return;
+    }
+    if (editingEvent) {
+      setEvents(prev => prev.map(e => e.id === editingEvent.id ? { ...e, ...eventForm } : e));
+      toast('Event updated successfully.', 'success');
+    } else {
+      const newEvent: EventItem = { id: Date.now().toString(), ...eventForm };
+      setEvents(prev => [...prev, newEvent]);
+      toast('Event created successfully.', 'success');
+    }
+    setIsEventModalOpen(false);
+    setEditingEvent(null);
+  };
+
+  const handleDeleteEvent = (id: string) => {
+    setEvents(prev => prev.filter(e => e.id !== id));
+    toast('Event deleted.', 'success');
+  };
+
   if (isLoading || role !== 'admin') {
     return <div style={{ padding: '4rem', textAlign: 'center' }}>Loading Admin Workspace...</div>;
   }
@@ -148,7 +216,7 @@ export default function AdminDashboard() {
       {/* Sidebar */}
       <aside className={styles.sidebar}>
         <div className={styles.sidebarHeader}>
-          <div className={styles.sidebarLogo}>KJO Samaj</div>
+          <div className={styles.sidebarLogo}>KVO Nagpur</div>
           <div className={styles.sidebarLogoSub}>Admin Panel</div>
         </div>
 
@@ -162,18 +230,24 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <nav className={styles.sidebarNav}>
-          <button className={`${styles.sidebarItem} ${styles.sidebarItemActive}`}>
+          <nav className={styles.sidebarNav}>
+          <button 
+            className={`${styles.sidebarItem} ${activeTab === 'members' ? styles.sidebarItemActive : ''}`}
+            onClick={() => setActiveTab('members')}
+          >
             <LayoutDashboard size={18} className={styles.sidebarItemIcon} />
             Dashboard
+          </button>
+          <button 
+            className={`${styles.sidebarItem} ${activeTab === 'events' ? styles.sidebarItemActive : ''}`}
+            onClick={() => setActiveTab('events')}
+          >
+            <Calendar size={18} className={styles.sidebarItemIcon} />
+            Manage Events
           </button>
           <a href="/members" className={styles.sidebarItem}>
             <Users size={18} className={styles.sidebarItemIcon} />
             Member Requests
-          </a>
-          <a href="/events" className={styles.sidebarItem}>
-            <Calendar size={18} className={styles.sidebarItemIcon} />
-            Events
           </a>
         </nav>
 
@@ -233,6 +307,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Summary Cards */}
+        {activeTab === 'members' && (
         <div className={styles.dashboardStats}>
           <div className={styles.statCard}>
             <div className={styles.statCardHeader}>
@@ -271,8 +346,10 @@ export default function AdminDashboard() {
             <div className={styles.statLabel}>Global Cities Represented</div>
           </div>
         </div>
+        )}
 
-        {/* Dashboard Content */}
+        {/* Dashboard Content — Members */}
+        {activeTab === 'members' && (
         <div className={styles.dashboardContent}>
           {/* Page Header */}
           <div className={styles.pageHeader}>
@@ -285,7 +362,7 @@ export default function AdminDashboard() {
                 <h1 className={styles.pageTitle}>Member Directory</h1>
                 <p className={styles.pageDescription}>
                   Manage and audit the complete heritage database of the
-                  Kutchi Jain Oswal Samaj members. Professional records and
+                  KVO Nagpur members. Professional records and
                   verified status tracking.
                 </p>
               </div>
@@ -382,6 +459,181 @@ export default function AdminDashboard() {
             onSave={handleAddMember}
           />
         </div>
+        )}
+
+        {/* ========== EVENTS MANAGEMENT TAB ========== */}
+        {activeTab === 'events' && (
+          <div className={styles.dashboardContent}>
+            <div className={styles.pageHeader}>
+              <div className={styles.pageHeaderTop}>
+                <div>
+                  <p className={styles.pageLabel}>
+                    <Calendar size={14} className={styles.pageLabelIcon} />
+                    Events Management
+                  </p>
+                  <h1 className={styles.pageTitle}>Community Events</h1>
+                  <p className={styles.pageDescription}>
+                    Create, edit, and manage community events. Only committee members can access this section.
+                  </p>
+                </div>
+                <div className={styles.pageActions}>
+                  <button className={styles.actionBtnPrimary} onClick={openCreateEvent} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', border: 'none' }}>
+                    <Plus size={16} /> Create New Event
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Events List */}
+            <div className={styles.dataTable} style={{ marginTop: '1rem' }}>
+              <div className={styles.tableHeader} style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 0.8fr' }}>
+                <div className={styles.tableHeaderCell}>Event Details</div>
+                <div className={styles.tableHeaderCell}>Date</div>
+                <div className={styles.tableHeaderCell}>Time</div>
+                <div className={styles.tableHeaderCell}>Location</div>
+                <div className={styles.tableHeaderCell}>Actions</div>
+              </div>
+              {events.length > 0 ? (
+                events.map((event) => (
+                  <div key={event.id} className={styles.tableRow} style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 0.8fr' }}>
+                    <div>
+                      <div className={styles.memberCellName}>{event.title}</div>
+                      <div className={styles.memberCellEmail} style={{ marginTop: '2px' }}>{event.description.slice(0, 60)}...</div>
+                    </div>
+                    <div className={styles.cellText}>
+                      {new Date(event.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </div>
+                    <div className={styles.cellText}>{event.time}</div>
+                    <div className={styles.cellText} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <MapPin size={12} color="var(--color-text-muted)" /> {event.location.split(',')[0]}
+                    </div>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <button
+                        className={styles.actionsBtn}
+                        aria-label="Edit event"
+                        onClick={() => openEditEvent(event)}
+                        style={{ padding: '6px', borderRadius: '4px' }}
+                      >
+                        <Pencil size={15} />
+                      </button>
+                      <button
+                        className={styles.actionsBtn}
+                        aria-label="Delete event"
+                        onClick={() => handleDeleteEvent(event.id)}
+                        style={{ padding: '6px', borderRadius: '4px', color: '#dc2626' }}
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <EmptyState
+                  icon={Calendar}
+                  title="No events yet"
+                  description="Create your first community event to get started."
+                  action={
+                    <button className={styles.actionBtnPrimary} onClick={openCreateEvent} style={{ border: 'none', padding: '8px 18px', borderRadius: '8px', cursor: 'pointer' }}>
+                      Create Event
+                    </button>
+                  }
+                />
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ========== EVENT FORM MODAL ========== */}
+        {isEventModalOpen && (
+          <div style={{
+            position: 'fixed', inset: 0, zIndex: 100,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)',
+          }}>
+            <div style={{
+              background: '#fff', borderRadius: '16px', padding: '2rem', width: '100%', maxWidth: '520px',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.15)', position: 'relative',
+              animation: 'fadeUp 0.3s ease',
+            }}>
+              <button
+                onClick={() => { setIsEventModalOpen(false); setEditingEvent(null); }}
+                style={{ position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8' }}
+              >
+                <X size={20} />
+              </button>
+              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.5rem', marginBottom: '1.5rem', color: 'var(--color-text-primary)' }}>
+                {editingEvent ? 'Edit Event' : 'Create New Event'}
+              </h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-secondary)', marginBottom: '4px', display: 'block' }}>Event Title *</label>
+                  <input
+                    type="text"
+                    value={eventForm.title}
+                    onChange={(e) => setEventForm(f => ({ ...f, title: e.target.value }))}
+                    placeholder="Heritage Gala Night"
+                    style={{ width: '100%', padding: '10px 14px', border: '1.5px solid var(--color-border)', borderRadius: '8px', fontSize: '0.9375rem', outline: 'none', transition: 'border-color 0.2s', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-secondary)', marginBottom: '4px', display: 'block' }}>Date *</label>
+                    <input
+                      type="date"
+                      value={eventForm.date}
+                      onChange={(e) => setEventForm(f => ({ ...f, date: e.target.value }))}
+                      style={{ width: '100%', padding: '10px 14px', border: '1.5px solid var(--color-border)', borderRadius: '8px', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-secondary)', marginBottom: '4px', display: 'block' }}>Time</label>
+                    <input
+                      type="text"
+                      value={eventForm.time}
+                      onChange={(e) => setEventForm(f => ({ ...f, time: e.target.value }))}
+                      placeholder="6:00 PM"
+                      style={{ width: '100%', padding: '10px 14px', border: '1.5px solid var(--color-border)', borderRadius: '8px', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-secondary)', marginBottom: '4px', display: 'block' }}>Location</label>
+                  <input
+                    type="text"
+                    value={eventForm.location}
+                    onChange={(e) => setEventForm(f => ({ ...f, location: e.target.value }))}
+                    placeholder="Grand Ballroom, Samaj Center"
+                    style={{ width: '100%', padding: '10px 14px', border: '1.5px solid var(--color-border)', borderRadius: '8px', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-secondary)', marginBottom: '4px', display: 'block' }}>Description</label>
+                  <textarea
+                    value={eventForm.description}
+                    onChange={(e) => setEventForm(f => ({ ...f, description: e.target.value }))}
+                    placeholder="Describe the event..."
+                    rows={3}
+                    style={{ width: '100%', padding: '10px 14px', border: '1.5px solid var(--color-border)', borderRadius: '8px', fontSize: '0.9375rem', outline: 'none', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                  <button
+                    onClick={() => { setIsEventModalOpen(false); setEditingEvent(null); }}
+                    style={{ padding: '10px 24px', border: '1.5px solid var(--color-border)', borderRadius: '8px', background: 'transparent', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-secondary)', transition: 'all 0.2s' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveEvent}
+                    style={{ padding: '10px 24px', border: 'none', borderRadius: '8px', background: 'var(--color-primary)', color: '#fff', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 600, transition: 'all 0.2s', boxShadow: '0 4px 14px rgba(139,26,26,0.25)' }}
+                  >
+                    {editingEvent ? 'Save Changes' : 'Create Event'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <Footer />
       </div>
