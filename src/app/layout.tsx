@@ -20,9 +20,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "KJO Samaj — Kutchi Jain Oswal Samaj Community Platform",
+  title: "KVO Nagpur — Community Platform",
   description:
-    "The official digital platform of Kutchi Jain Oswal Samaj. Connect with community members, explore the directory, and preserve our heritage together.",
+    "The official digital platform of KVO Nagpur. Connect with community members, explore the directory, and preserve our heritage together.",
 };
 
 export default function RootLayout({

@@ -34,7 +34,7 @@ export default function AboutPage() {
               Our Sacred <span className={styles.italic}>Heritage</span>
             </h1>
             <p className={styles.subtitle}>
-              For over a century, the Kutchi Jain Oswal Samaj has stood as a beacon of unity,
+              For over a century, the KVO Nagpur has stood as a beacon of unity,
               tradition, and progress — connecting thousands across six continents.
             </p>
           </div>
@@ -137,7 +137,7 @@ export default function AboutPage() {
         <section className={styles.ctaSection}>
           <h2 className={styles.ctaTitle}>Be Part of Our Story</h2>
           <p className={styles.ctaText}>
-            Join the Kutchi Jain Oswal Samaj today and contribute to a legacy that spans generations.
+            Join KVO Nagpur today and contribute to a legacy that spans generations.
           </p>
           <div className={styles.ctaActions}>
             <a href="/login" className={styles.ctaBtnPrimary}>Join the Community</a>

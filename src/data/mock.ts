@@ -18,7 +18,7 @@ export const mockMembers: Member[] = [
     role: 'committee',
     contactVisible: true,
     address: '402, Heritage Residency, Marine Drive, Mumbai, 400020',
-    bio: 'Preserving the traditions of our community while innovating for the future of the Kutchi Jain Oswal Samaj.',
+    bio: 'Preserving the traditions of our community while innovating for the future of the KVO Nagpur.',
     expertise: ['Strategic Planning', 'Philanthropy', 'Supply Chain', 'Legacy Textiles'],
     officeLocation: 'Bandra-Kurla Complex, Mumbai',
     idNumber: 'KJO-2024-8841',

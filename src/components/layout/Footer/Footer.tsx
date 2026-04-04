@@ -13,7 +13,7 @@ export default function Footer() {
     <footer className={styles.footer}>
       <div className={styles.footerInner}>
         <div className={styles.footerTop}>
-          <span className={styles.footerLogo}>KJO Samaj</span>
+          <span className={styles.footerLogo}>KVO Nagpur</span>
           <div className={styles.footerLinks}>
             {links.map((link) => (
               <a key={link.href} href={link.href} className={styles.footerLink}>
@@ -24,7 +24,7 @@ export default function Footer() {
         </div>
         <div className={styles.footerBottom}>
           <p className={styles.copyright}>
-            © 2024 Kutchi Jain Oswal Samaj. Preserving Heritage, Building Future.
+            © 2024 KVO Nagpur. Preserving Heritage, Building Future.
           </p>
         </div>
       </div>

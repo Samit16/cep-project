@@ -24,20 +24,17 @@ export function HeroSection() {
         </h1>
         <p className={`${styles.heroSubtitle} ${styles.animateFadeUp} ${styles.delay2}`}>
           A vibrant tapestry of culture, commerce, and community. We stand as
-          the custodians of the Kutchi Jain Oswal legacy, empowering
+          the custodians of the KVO Nagpur legacy, empowering
           generations through unity.
         </p>
         <div className={`${styles.heroCta} ${styles.animateFadeUp} ${styles.delay3}`}>
           <a href="/login" className={styles.ctaBtnPrimary}>
             Become a Member
           </a>
-          <a href="/directory" className={styles.ctaBtnOutlinedHero}>
-            Explore Directory
-          </a>
         </div>
       </div>
       <div ref={heroImageRef} className={`${styles.heroImage} ${styles.parallaxImage}`}>
-        <img src="/images/hero.png" alt="Heritage architecture of the Kutchi Jain Oswal community" />
+        <img src="/images/hero.png" alt="Heritage architecture of the KVO Nagpur community" />
       </div>
     </section>
   );
@@ -57,8 +54,8 @@ export function HistoryMissionSection() {
           <p className={styles.historyLabel}>The Heritage Realm</p>
           <h2 className={styles.historyTitle}>History &amp; Mission</h2>
           <p className={styles.historyText}>
-            Founded on the bedrock of resilience and mutual prosperity, the Kutchi Jain
-            Oswal Samaj has been a pillar of strength for over a century. Our ancestors
+            Founded on the bedrock of resilience and mutual prosperity, the KVO
+            Nagpur has been a pillar of strength for over a century. Our ancestors
             transitioned from the arid plains of Kutch to the bustling centers of global
             commerce.
           </p>
@@ -92,9 +89,9 @@ export function AchievementsSection() {
   const bannerRef = useParallax<HTMLDivElement>({ speed: 0.12 });
 
   return (
-    <section id="achievements" className={styles.achievementsSection}>
+    <section id="archives" className={styles.achievementsSection}>
       <div ref={titleRef} className={`${styles.achievementsSectionInner} ${styles.scrollReveal}`}>
-        <h2 className={styles.achievementsTitle}>Celebrating Excellence</h2>
+        <h2 className={styles.achievementsTitle}>Archives</h2>
         <p className={styles.achievementsSubtitle}>
           Honouring those whose contributions and impact inspire the future of the Samaj.
         </p>
@@ -198,7 +195,7 @@ export function CTABanner() {
     <section ref={ctaRef} className={`${styles.ctaBanner} ${styles.scrollReveal}`}>
       <h2 className={styles.ctaTitle}>Ready to Shape Our Tomorrow?</h2>
       <p className={styles.ctaSubtitle}>
-        Join the KJO Samaj today. Gain access to a worldwide network and contribute
+        Join KVO Nagpur today. Gain access to a worldwide network and contribute
         to our community&apos;s lasting legacy.
       </p>
       <div className={styles.ctaActions}>
