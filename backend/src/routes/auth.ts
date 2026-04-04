@@ -3,11 +3,20 @@ import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import { randomInt } from 'crypto';
 import config from '../config/env';
+import { encryptField } from '../plugins/encryption';
 
 const authRoutes: FastifyPluginAsync = async (fastify) => {
   // OTP request
   fastify.post('/otp/request', async (request, reply) => {
     const { contact_no } = request.body as { contact_no: string };
+    
+    // Ensure member exists with this number
+    const encrypted = encryptField(contact_no);
+    const member = await (fastify as any).models.Member.findOne({ contact_numbers: encrypted });
+    if (!member) {
+      return reply.code(404).send({ error: 'Member not found with this contact number' });
+    }
+
     const otp = randomInt(100000, 999999).toString();
     const hashedOtp = crypto.createHash('sha256').update(otp).digest('hex');
     const key = `otp:${contact_no}`;

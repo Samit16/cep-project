@@ -30,7 +30,7 @@ npm install
 cp .env.example .env
 # Edit .env with your real DATABASE_URL and REDIS_HOST
 
-# 3. Start the server (API at http://localhost:3000)
+# 3. Start the server (API at http://localhost:3001)
 npm run dev
 
 # 4. In a separate terminal, start the background worker
@@ -39,15 +39,18 @@ npm run worker
 
 ## 📊 Member Schema
 The new Mongoose schema includes the following fields:
-- `name`: Full name of the member.
-- `contact_no`: Encrypted mobile number (Primary ID for OTP).
+- `first_name`: Member's given name.
+- `last_name`: Member's family name.
+- `address`: Full residential address.
+- `contact_numbers`: Array of encrypted mobile numbers (Used for OTP login).
 - `email`: Official email address.
 - `occupation`: Professional details.
 - `marital_status`: Single, Married, etc.
 - `current_place`: Current city of residence.
 - `kutch_town`: Ancestral town in Kutch.
 - `family_members`: List of related members.
-- `if_alive`: Boolean status.
+- `is_alive`: Boolean status.
+- `profile_complete`: Boolean flag for onboarding status.
 - `contact_visibility`: `public` or `private`.
 
 ## ⚙️ Environment Variables (`.env`)
@@ -60,6 +63,7 @@ REDIS_HOST=localhost
 REDIS_PORT=6379
 REDIS_PASSWORD=
 FRONTEND_URL=http://localhost:3000
+PORT=3001
 CSV_BATCH_SIZE=100
 ```
 

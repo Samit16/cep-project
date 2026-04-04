@@ -9,15 +9,21 @@ import Member from '../models/Member';
 import CsvImportError from '../models/CsvImportError';
 
 const memberSchema = z.object({
-  name: z.string().min(2),
-  contact_no: z.string().regex(/^\+\d{11,14}$/),
-  email: z.string().email(),
-  occupation: z.string().optional(),
-  marital_status: z.string().optional(),
-  current_place: z.string().optional(),
-  kutch_town: z.string().optional(),
+  first_name: z.string().min(2),
+  last_name: z.string().min(2),
+  address: z.string().optional().default(''),
+  contact_numbers: z.union([z.string(), z.array(z.string())]).transform((val) => {
+    if (typeof val === 'string') return val.split(';').map(s => s.trim()).filter(Boolean);
+    return val;
+  }),
+  email: z.string().email().optional().or(z.literal('')),
+  occupation: z.string().optional().default(''),
+  marital_status: z.string().optional().default(''),
+  current_place: z.string().optional().default(''),
+  kutch_town: z.string().optional().default(''),
   family_members: z.array(z.string()).optional().default([]),
-  if_alive: z.boolean().default(true),
+  is_alive: z.boolean().optional().default(true),
+  profile_complete: z.boolean().optional().default(false),
   contact_visibility: z.enum(['public', 'private']).default('private'),
 });
 
@@ -49,7 +55,7 @@ export async function bulkUploadProcessor(job: Job) {
       const data = result.data;
       const encrypted = {
         ...data,
-        contact_no: encryptField(data.contact_no),
+        contact_numbers: (data.contact_numbers as string[]).map((num: string) => encryptField(num)),
       };
       batch.push(encrypted);
       if (batch.length >= (config.csvBatchSize || 100)) {
