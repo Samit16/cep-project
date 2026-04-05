@@ -21,7 +21,12 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     const hashedOtp = crypto.createHash('sha256').update(otp).digest('hex');
     const key = `otp:${contact_no}`;
     await fastify.redis.set(key, hashedOtp, 'EX', 300);
-    reply.send({ message: 'OTP sent', dev_otp: otp });
+    
+    // Instead of sending OTP to client, log it for development purposes. 
+    // In production, integrate with an SMS gateway here.
+    (fastify as any).log.info(`[Auth] Generated OTP for ${contact_no}: ${otp}`);
+    
+    reply.send({ message: 'OTP sent' });
   });
 
 
