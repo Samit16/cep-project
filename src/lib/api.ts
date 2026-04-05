@@ -6,6 +6,7 @@ export class ApiClient {
   private static getHeaders(customHeaders: Record<string, string> = {}) {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
       ...customHeaders,
     };
 
@@ -63,12 +64,21 @@ export class ApiClient {
       delete headers['Content-Type']; // Let browser set boundary
     }
 
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
-      method: 'POST',
-      headers,
-      body: isFormData ? body : JSON.stringify(body),
-    });
-    return this.handleResponse<T>(response);
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+        method: 'POST',
+        headers,
+        body: isFormData ? body : JSON.stringify(body),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      return await this.handleResponse<T>(response);
+    } catch (err: any) {
+      throw new Error(err.message || 'Network error or backend unreachable.');
+    }
   }
 
   static async put<T>(endpoint: string, body: any): Promise<T> {
