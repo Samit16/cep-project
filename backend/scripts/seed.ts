@@ -8,7 +8,7 @@ import { encryptField } from '../src/plugins/encryption';
 
 dotenv.config();
 
-const dbUrl = process.env.DATABASE_URL || 'mongodb://localhost:27017/kjo_samaj';
+const dbUrl = process.env.DATABASE_URL || 'mongodb://localhost:27017/kvjos_nagpur';
 
 async function seed() {
   console.log('Connecting to MongoDB at:', dbUrl);
