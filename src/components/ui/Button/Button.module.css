@@ -1,0 +1,103 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* --- Sizes --- */
+.sm {
+  font-size: var(--text-sm);
+  padding: 6px 14px;
+  height: 32px;
+}
+
+.md {
+  font-size: 0.875rem;
+  padding: 10px 20px;
+  height: 40px;
+}
+
+.lg {
+  font-size: var(--text-base);
+  padding: 12px 24px;
+  height: 48px;
+}
+
+/* --- Variants --- */
+.primary {
+  background-color: var(--color-primary);
+  color: var(--color-text-on-primary);
+  border: 1px solid var(--color-primary);
+}
+
+.primary:hover {
+  background-color: var(--color-primary-dark);
+  border-color: var(--color-primary-dark);
+}
+
+.outlined {
+  background-color: transparent;
+  color: var(--color-primary);
+  border: 1.5px solid var(--color-primary);
+}
+
+.outlined:hover {
+  background-color: var(--color-primary-lightest);
+}
+
+.secondaryOutlined {
+  background-color: transparent;
+  color: var(--color-text-primary);
+  border: 1.5px solid var(--color-border);
+}
+
+.secondaryOutlined:hover {
+  background-color: var(--color-bg-section-alt);
+  border-color: var(--color-text-secondary);
+}
+
+.ghost {
+  background-color: transparent;
+  color: var(--color-primary);
+  border: 1px solid transparent;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.ghost:hover {
+  opacity: 0.8;
+}
+
+.danger {
+  background-color: var(--color-primary);
+  color: var(--color-text-on-primary);
+  border: 1px solid var(--color-primary);
+}
+
+.danger:hover {
+  background-color: var(--color-primary-dark);
+}
+
+/* --- Full width --- */
+.fullWidth {
+  width: 100%;
+}
+
+/* --- Icon --- */
+.icon {
+  display: inline-flex;
+  flex-shrink: 0;
+}
