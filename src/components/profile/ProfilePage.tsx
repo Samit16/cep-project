@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Pencil, Eye, ShieldCheck, Mail, Phone, MapPin, CheckCircle2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Pencil, Eye, ShieldCheck, Mail, Phone, MapPin, CheckCircle2, LogOut, Users, Calendar, Info, BookOpen } from 'lucide-react';
 import styles from './ProfilePage.module.css';
 import { ApiClient } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
@@ -9,6 +10,7 @@ import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { ProfileSkeleton } from '@/components/ui/Skeleton/Skeleton';
 import ProfileUpdateModal from './ProfileUpdateModal';
 import { motion } from 'framer-motion';
+import Link from 'next/link';
 
 const AVATAR_COLORS = ['#8B1A1A', '#C8956C', '#2D5F8B', '#4A7C59', '#7B5EA7', '#D4763C', '#3B8686', '#9B5DE5', '#E07A5F'];
 
@@ -43,8 +45,11 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { toast } = useToast();
+  const router = useRouter();
+
+  const isOwnProfile = !memberId;
 
   useEffect(() => {
     async function loadData() {
@@ -62,6 +67,12 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
     loadData();
   }, [memberId, toast]);
 
+  const handleLogout = () => {
+    logout();
+    router.push('/');
+    toast('Logged out successfully', 'success');
+  };
+
   if (isLoading) {
     return <ProfileSkeleton />;
   }
@@ -74,6 +85,13 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
   const firstName = nameParts[0];
   const lastName = nameParts.slice(1).join(' ');
   const initials = (member.name || '?').split(' ').map(n => n?.[0]).join('');
+
+  const quickActions = [
+    { icon: Users, label: 'Member Directory', description: 'Browse all community members', href: '/directory', color: '#2D5F8B' },
+    { icon: Calendar, label: 'Community Events', description: 'Upcoming events & gatherings', href: '/events', color: '#4A7C59' },
+    { icon: BookOpen, label: 'Archives', description: 'Heritage & past achievements', href: '/#archives', color: '#7B5EA7' },
+    { icon: Info, label: 'About KVO', description: 'Our mission and history', href: '/about', color: '#D4763C' },
+  ];
   
   return (
     <motion.div 
@@ -101,7 +119,7 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
           >
-            {member.active ? 'Verified Member' : 'Member'}
+            {member.active ? '● Verified Member' : '○ Member'}
           </motion.p>
           <motion.h1 
             className={styles.profileName}
@@ -120,23 +138,25 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
           >
             A valued member of the KVO Nagpur community.
           </motion.p>
-          <div className={styles.profileActions}>
-            <motion.button 
-              className={styles.editProfileBtn} 
-              onClick={() => setIsUpdateModalOpen(true)}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <Pencil size={16} /> Request Update
-            </motion.button>
-            <motion.button 
-              className={styles.privacyBtn}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <Eye size={16} /> View Privacy Settings
-            </motion.button>
-          </div>
+          {isOwnProfile && (
+            <div className={styles.profileActions}>
+              <motion.button 
+                className={styles.editProfileBtn} 
+                onClick={() => setIsUpdateModalOpen(true)}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Pencil size={16} /> Request Update
+              </motion.button>
+              <motion.button 
+                className={styles.privacyBtn}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Eye size={16} /> View Privacy Settings
+              </motion.button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -215,12 +235,47 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
         </div>
       </motion.div>
 
+      {/* Quick Actions - only on own profile */}
+      {isOwnProfile && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.85 }}
+        >
+          <div className={styles.sectionHeader} style={{ marginBottom: 'var(--space-6)' }}>
+            <span className={styles.sectionDash} />
+            <span className={styles.sectionTitle}>Quick Actions</span>
+          </div>
+          <div className={styles.quickActionsGrid}>
+            {quickActions.map((action, index) => (
+              <motion.div
+                key={action.label}
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.9 + index * 0.05 }}
+              >
+                <Link href={action.href} className={styles.quickActionCard}>
+                  <div className={styles.quickActionIcon} style={{ backgroundColor: `${action.color}12`, color: action.color }}>
+                    <action.icon size={22} />
+                  </div>
+                  <div className={styles.quickActionInfo}>
+                    <h4 className={styles.quickActionLabel}>{action.label}</h4>
+                    <p className={styles.quickActionDesc}>{action.description}</p>
+                  </div>
+                  <span className={styles.quickActionArrow}>→</span>
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
       {/* Visibility Banner */}
       <motion.div 
         className={styles.visibilityBanner}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.9 }}
+        transition={{ delay: 1.0 }}
       >
         <ShieldCheck size={24} className={styles.visibilityIcon} />
         <div>
@@ -230,6 +285,27 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
           </p>
         </div>
       </motion.div>
+
+      {/* Logout Section - only on own profile */}
+      {isOwnProfile && (
+        <motion.div 
+          className={styles.logoutSection}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.1 }}
+        >
+          <div className={styles.logoutSectionInner}>
+            <div>
+              <h4 className={styles.logoutTitle}>Sign Out</h4>
+              <p className={styles.logoutDesc}>Sign out of your KVO Nagpur account on this device.</p>
+            </div>
+            <button className={styles.logoutBtn} onClick={handleLogout}>
+              <LogOut size={16} />
+              Sign Out
+            </button>
+          </div>
+        </motion.div>
+      )}
 
       {isUpdateModalOpen && (
         <ProfileUpdateModal 
