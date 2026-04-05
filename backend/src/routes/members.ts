@@ -10,7 +10,7 @@ const memberRoutes: FastifyPluginAsync = async (fastify) => {
     const { skip, take } = getPagination(request.query);
     const { name, city, occupation } = request.query as any;
 
-    const query: any = { active: true };
+    const query: any = { active: { $ne: false } };
     if (name) {
       query.$or = [
         { first_name: { $regex: name, $options: 'i' } },
@@ -25,10 +25,15 @@ const memberRoutes: FastifyPluginAsync = async (fastify) => {
       .limit(take)
       .lean();
 
-    const result = members.map((m: any) => ({
-      ...m,
-      contact_numbers: (m.contact_numbers || []).map((num: string) => decryptField(num)),
-    }));
+    const result = members.map((m: any) => {
+      const decrypted = (m.contact_numbers || []).map((num: string) => decryptField(num));
+      return {
+        ...m,
+        name: `${m.first_name || ''} ${m.last_name || ''}`.trim(),
+        contact_no: decrypted[0] || '',
+        contact_numbers: decrypted,
+      };
+    });
 
     reply.send(result);
   });

@@ -41,7 +41,7 @@ export default function LoginPage() {
         const res = await ApiClient.post<{ token: string }>('/auth/otp/verify', { contact_no: contactNo, otp });
         login(res.token, { sub: contactNo, role: 'member' });
         toast('Login Successful!', 'success');
-        router.push('/directory');
+        router.push('/profile');
       }
     } catch (err: any) {
       toast(err.message || 'Authentication failed', 'error');

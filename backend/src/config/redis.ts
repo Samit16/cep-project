@@ -5,13 +5,19 @@ import { logger } from '../utils/logger';
 const redis = new IORedis({
   host: config.redisHost,
   port: config.redisPort,
-  password: config.redisPassword,
+  password: config.redisPassword || undefined,
+  tls: config.redisPassword ? {} : undefined, // Upstash / cloud Redis requires TLS
   maxRetriesPerRequest: null,
   enableOfflineQueue: false,
+  retryStrategy: () => null, // Stop retrying — fail-open mode
 });
 
+let redisErrorLogged = false;
 redis.on('error', (err: any) => {
-  logger.warn({ err }, 'Redis connection failed. Features like OTP and Rate Limiting will be disabled.');
+  if (!redisErrorLogged) {
+    logger.warn({ err }, 'Redis unavailable. OTP and Rate Limiting disabled. Running in fail-open mode.');
+    redisErrorLogged = true;
+  }
 });
 
 export default redis;
