@@ -1,0 +1,1550 @@
+﻿diff --cc backend/scripts/seed.ts
+index 3e28eba,b4f2634..0000000
+--- a/backend/scripts/seed.ts
++++ b/backend/scripts/seed.ts
+@@@ -8,7 -8,7 +8,11 @@@ import { encryptField } from '../src/pl
+  
+  dotenv.config();
+  
+++<<<<<<< HEAD
+ +const dbUrl = process.env.DATABASE_URL || 'mongodb://localhost:27017/kjo_samaj';
+++=======
++ const dbUrl = process.env.DATABASE_URL || 'mongodb://localhost:27017/kvjos_nagpur';
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+  
+  async function seed() {
+    console.log('Connecting to MongoDB at:', dbUrl);
+diff --cc backend/src/config/db.ts
+index 5212eea,6efb292..0000000
+--- a/backend/src/config/db.ts
++++ b/backend/src/config/db.ts
+@@@ -4,7 -4,7 +4,11 @@@ import { logger } from '../utils/logger
+  
+  export const connectDB = async () => {
+    try {
+++<<<<<<< HEAD
+ +    const conn = await mongoose.connect(config.databaseUrl || 'mongodb://localhost:27017/kjo_samaj', {
+++=======
++     const conn = await mongoose.connect(config.databaseUrl || 'mongodb://localhost:27017/kvjos_nagpur', {
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+        family: 4, // PROD: Force IPv4 for Atlas Free Tier
+      });
+      logger.info(`MongoDB Connected: ${conn.connection.host}`);
+diff --cc backend/src/config/env.ts
+index a68ce26,fb0526e..0000000
+--- a/backend/src/config/env.ts
++++ b/backend/src/config/env.ts
+@@@ -22,7 -22,7 +22,11 @@@ const config: Config = 
+    redisPassword: process.env.REDIS_PASSWORD || undefined,
+    frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
+    csvBatchSize: parseInt(process.env.CSV_BATCH_SIZE || '100', 10),
+++<<<<<<< HEAD
+ +  databaseUrl: process.env.DATABASE_URL || 'mongodb://localhost:27017/kjo_samaj',
+++=======
++   databaseUrl: process.env.DATABASE_URL || 'mongodb://localhost:27017/kvjos_nagpur',
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+    port: parseInt(process.env.PORT || '3001', 10),
+  };
+  
+diff --cc backend/src/config/redis.ts
+index 0de2a31,5e0941d..0000000
+--- a/backend/src/config/redis.ts
++++ b/backend/src/config/redis.ts
+@@@ -5,13 -5,19 +5,29 @@@ import { logger } from '../utils/logger
+  const redis = new IORedis({
+    host: config.redisHost,
+    port: config.redisPort,
+++<<<<<<< HEAD
+ +  password: config.redisPassword,
+ +  maxRetriesPerRequest: null,
+ +  enableOfflineQueue: false,
+ +});
+ +
+ +redis.on('error', (err: any) => {
+ +  logger.warn({ err }, 'Redis connection failed. Features like OTP and Rate Limiting will be disabled.');
+++=======
++   password: config.redisPassword || undefined,
++   tls: config.redisPassword ? {} : undefined, // Upstash / cloud Redis requires TLS
++   maxRetriesPerRequest: null,
++   enableOfflineQueue: false,
++   retryStrategy: () => null, // Stop retrying ΓÇö fail-open mode
++ });
++ 
++ let redisErrorLogged = false;
++ redis.on('error', (err: any) => {
++   if (!redisErrorLogged) {
++     logger.warn({ err }, 'Redis unavailable. OTP and Rate Limiting disabled. Running in fail-open mode.');
++     redisErrorLogged = true;
++   }
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+  });
+  
+  export default redis;
+diff --cc backend/src/index.ts
+index 00aa6c0,ded05d4..0000000
+--- a/backend/src/index.ts
++++ b/backend/src/index.ts
+@@@ -13,8 -13,6 +13,11 @@@ import Admin from './models/Admin'
+  import Event from './models/Event';
+  import AuditLog from './models/AuditLog';
+  import CsvImportError from './models/CsvImportError';
+++<<<<<<< HEAD
+ +import User from './models/User';
+ +import SystemSetting from './models/SystemSetting';
+++=======
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+  
+  import { bulkUploadQueue } from './plugins/redisQueue';
+  import authRoutes from './routes/auth';
+@@@ -23,7 -21,7 +26,11 @@@ import adminRoutes from './routes/admin
+  import eventRoutes from './routes/events';
+  import bulkUploadRoutes from './routes/bulkUpload';
+  
+++<<<<<<< HEAD
+ +const models = { Member, Admin, Event, AuditLog, CsvImportError, User, SystemSetting };
+++=======
++ const models = { Member, Admin, Event, AuditLog, CsvImportError };
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+  
+  const server = Fastify({
+    logger: {
+diff --cc backend/src/routes/auth.ts
+index bfcd118,05ab577..0000000
+--- a/backend/src/routes/auth.ts
++++ b/backend/src/routes/auth.ts
+@@@ -1,4 -1,4 +1,8 @@@
+++<<<<<<< HEAD
+ +import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
+++=======
++ import { FastifyPluginAsync } from 'fastify';
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+  import crypto from 'crypto';
+  import bcrypt from 'bcrypt';
+  import { randomInt } from 'crypto';
+@@@ -7,7 -7,7 +11,11 @@@ import { encryptField } from '../plugin
+  
+  const authRoutes: FastifyPluginAsync = async (fastify) => {
+    // OTP request
+++<<<<<<< HEAD
+ +  fastify.post('/otp/request', async (request: FastifyRequest, reply: FastifyReply) => {
+++=======
++   fastify.post('/otp/request', async (request, reply) => {
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+      const { contact_no } = request.body as { contact_no: string };
+      
+      // Ensure member exists with this number
+@@@ -20,15 -20,16 +28,28 @@@
+      const otp = randomInt(100000, 999999).toString();
+      const hashedOtp = crypto.createHash('sha256').update(otp).digest('hex');
+      const key = `otp:${contact_no}`;
+++<<<<<<< HEAD
+ +    await (fastify as any).redis.set(key, hashedOtp, 'EX', 300);
+ +    reply.send({ message: 'OTP sent', dev_otp: otp });
+ +  });
+ +
+ +  // OTP verify
+ +  fastify.post('/otp/verify', async (request: FastifyRequest, reply: FastifyReply) => {
+ +    const { contact_no, otp } = request.body as { contact_no: string; otp: string };
+ +    const key = `otp:${contact_no}`;
+ +    const stored = await (fastify as any).redis.get(key);
+++=======
++     await fastify.redis.set(key, hashedOtp, 'EX', 300);
++     reply.send({ message: 'OTP sent', dev_otp: otp });
++   });
++ 
++ 
++   // OTP verify
++   fastify.post('/otp/verify', async (request, reply) => {
++     const { contact_no, otp } = request.body as { contact_no: string; otp: string };
++     const key = `otp:${contact_no}`;
++     const stored = await fastify.redis.get(key);
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+      if (!stored) {
+        return reply.code(400).send({ error: 'OTP expired or not requested' });
+      }
+@@@ -36,13 -37,13 +57,22 @@@
+      if (hashed !== stored) {
+        return reply.code(401).send({ error: 'Invalid OTP' });
+      }
+++<<<<<<< HEAD
+ +    await (fastify as any).redis.del(key);
+ +    const token = (fastify as any).jwt.sign({ sub: contact_no, role: 'member' });
+++=======
++     await fastify.redis.del(key);
++     const token = fastify.jwt.sign({ sub: contact_no, role: 'member' });
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+      reply.send({ token });
+    });
+  
+    // Admin login
+++<<<<<<< HEAD
+ +  fastify.post('/admin/login', async (request: FastifyRequest, reply: FastifyReply) => {
+++=======
++   fastify.post('/admin/login', async (request, reply) => {
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+      const { username, password, remember } = request.body as {
+        username: string;
+        password: string;
+@@@ -56,102 -57,15 +86,114 @@@
+      if (!valid) return reply.code(401).send({ error: 'Invalid credentials' });
+      
+      const payload: any = { sub: (admin as any)._id, role: 'admin' };
+++<<<<<<< HEAD
+ +    const token = (fastify as any).jwt.sign(payload, { expiresIn: remember ? '7d' : '30m' });
+ +    reply.send({ token });
+ +  });
+ +
+ +  // Member login with default credentials mapping
+ +  fastify.post('/member/login', async (request: FastifyRequest, reply: FastifyReply) => {
+ +    const { username, password } = request.body as { username?: string; password?: string };
+ +    if (!username || !password) return reply.code(400).send({ error: 'Username and password required' });
+ +
+ +    let user = await (fastify as any).models.User.findOne({ username });
+ +
+ +    if (!user) {
+ +      const underscoreIdx = username.lastIndexOf('_');
+ +      if (underscoreIdx !== -1) {
+ +        const firstName = username.substring(0, underscoreIdx);
+ +        const lastName = username.substring(underscoreIdx + 1);
+ +
+ +        const member = await (fastify as any).models.Member.findOne({
+ +          first_name: { $regex: new RegExp(`^${firstName}$`, 'i') },
+ +          last_name: { $regex: new RegExp(`^${lastName}$`, 'i') }
+ +        });
+ +
+ +        if (member) {
+ +          const settings = await (fastify as any).models.SystemSetting.findOne();
+ +          if (settings && settings.default_password_hash) {
+ +            const valid = await bcrypt.compare(password, settings.default_password_hash);
+ +            if (valid) {
+ +              user = await (fastify as any).models.User.create({
+ +                username,
+ +                password,
+ +                role: 'member',
+ +                member_id: member._id,
+ +                is_first_login: true,
+ +                is_active: true
+ +              });
+ +            }
+ +          }
+ +        }
+ +      }
+ +    } else {
+ +      const valid = await user.comparePassword(password);
+ +      if (!valid) {
+ +        return reply.code(401).send({ error: 'Invalid credentials' });
+ +      }
+ +    }
+ +
+ +    if (!user) {
+ +      return reply.code(401).send({ error: 'Invalid credentials' });
+ +    }
+ +
+ +    if (user.is_first_login) {
+ +      const token = (fastify as any).jwt.sign({ sub: user.member_id, userId: user._id, role: 'member', update_required: true }, { expiresIn: '15m' });
+ +      return reply.send({ token, message: 'Please update your credentials', update_required: true });
+ +    }
+ +
+ +    const token = (fastify as any).jwt.sign({ sub: user.member_id, userId: user._id, role: 'member' });
+ +    reply.send({ token });
+ +  });
+ +
+ +  // Member update credentials route
+ +  fastify.post('/member/update-credentials', { preValidation: [(fastify as any).authenticate] }, async (request: FastifyRequest, reply: FastifyReply) => {
+ +    const payload = (request as any).user;
+ +    if (payload.role !== 'member') {
+ +      return reply.code(403).send({ error: 'Forbidden' });
+ +    }
+ +
+ +    const { new_username, new_password } = request.body as { new_username?: string; new_password?: string };
+ +    if (!new_username || !new_password) {
+ +      return reply.code(400).send({ error: 'Missing new_username or new_password' });
+ +    }
+ +
+ +    const user = await (fastify as any).models.User.findById(payload.userId);
+ +    if (!user) {
+ +      return reply.code(404).send({ error: 'User not found' });
+ +    }
+ +
+ +    if (user.username !== new_username) {
+ +      const existing = await (fastify as any).models.User.findOne({ username: new_username });
+ +      if (existing) {
+ +        return reply.code(400).send({ error: 'Username already taken' });
+ +      }
+ +    }
+ +
+ +    user.username = new_username;
+ +    user.password = new_password;
+ +    user.is_first_login = false;
+ +    await user.save();
+ +
+ +    reply.send({ message: 'Credentials updated successfully' });
+ +  });
+ +
+ +  // Logout
+ +  fastify.post('/logout', { preValidation: [(fastify as any).authenticate] }, async (request: FastifyRequest, reply: FastifyReply) => {
+ +    const payload = (request as any).user;
+ +    if (payload.role === 'admin' && payload.remember) {
+ +      await (fastify as any).redis.del(`remember:${payload.sub}`);
+++=======
++     const token = fastify.jwt.sign(payload, { expiresIn: remember ? '7d' : '30m' });
++     reply.send({ token });
++   });
++ 
++   // Logout
++   fastify.post('/logout', { preValidation: [fastify.authenticate] }, async (request, reply) => {
++     const payload = request.user as any;
++     if (payload.role === 'admin' && payload.remember) {
++       await fastify.redis.del(`remember:${payload.sub}`);
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+      }
+      reply.send({ message: 'Logged out' });
+    });
+diff --cc backend/src/routes/members.ts
+index 3287b9f,4031a5a..0000000
+--- a/backend/src/routes/members.ts
++++ b/backend/src/routes/members.ts
+@@@ -10,7 -10,7 +10,11 @@@ const memberRoutes: FastifyPluginAsync 
+      const { skip, take } = getPagination(request.query);
+      const { name, city, occupation } = request.query as any;
+  
+++<<<<<<< HEAD
+ +    const query: any = { active: true };
+++=======
++     const query: any = { active: { $ne: false } };
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+      if (name) {
+        query.$or = [
+          { first_name: { $regex: name, $options: 'i' } },
+@@@ -25,10 -25,15 +29,22 @@@
+        .limit(take)
+        .lean();
+  
+++<<<<<<< HEAD
+ +    const result = members.map((m: any) => ({
+ +      ...m,
+ +      contact_numbers: (m.contact_numbers || []).map((num: string) => decryptField(num)),
+ +    }));
+++=======
++     const result = members.map((m: any) => {
++       const decrypted = (m.contact_numbers || []).map((num: string) => decryptField(num));
++       return {
++         ...m,
++         name: `${m.first_name || ''} ${m.last_name || ''}`.trim(),
++         contact_no: decrypted[0] || '',
++         contact_numbers: decrypted,
++       };
++     });
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+  
+      reply.send(result);
+    });
+diff --cc package-lock.json
+index 134d61c,b6d9af0..0000000
+--- a/package-lock.json
++++ b/package-lock.json
+@@@ -8,11 -8,8 +8,16 @@@
+        "name": "cep-project",
+        "version": "0.1.0",
+        "dependencies": {
+++<<<<<<< HEAD
+ +        "bcryptjs": "^3.0.3",
+ +        "dotenv": "^17.4.0",
+          "framer-motion": "^12.38.0",
+          "lucide-react": "^1.7.0",
+ +        "mongoose": "^9.4.1",
+++=======
+++        "framer-motion": "^12.38.0",
+++        "lucide-react": "^1.7.0",
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+          "next": "16.2.1",
+          "react": "19.2.4",
+          "react-dom": "19.2.4"
+@@@ -1011,15 -1008,6 +1016,18 @@@
+          "@jridgewell/sourcemap-codec": "^1.4.14"
+        }
+      },
+++<<<<<<< HEAD
+ +    "node_modules/@mongodb-js/saslprep": {
+ +      "version": "1.4.6",
+ +      "resolved": "https://registry.npmjs.org/@mongodb-js/saslprep/-/saslprep-1.4.6.tgz",
+ +      "integrity": "sha512-y+x3H1xBZd38n10NZF/rEBlvDOOMQ6LKUTHqr8R9VkJ+mmQOYtJFxIlkkK8fZrtOiL6VixbOBWMbZGBdal3Z1g==",
+ +      "license": "MIT",
+ +      "dependencies": {
+ +        "sparse-bitfield": "^3.0.3"
+ +      }
+ +    },
+++=======
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+      "node_modules/@napi-rs/wasm-runtime": {
+        "version": "0.2.12",
+        "resolved": "https://registry.npmjs.org/@napi-rs/wasm-runtime/-/wasm-runtime-0.2.12.tgz",
+@@@ -1303,21 -1291,6 +1311,24 @@@
+          "@types/react": "^19.2.0"
+        }
+      },
+++<<<<<<< HEAD
+ +    "node_modules/@types/webidl-conversions": {
+ +      "version": "7.0.3",
+ +      "resolved": "https://registry.npmjs.org/@types/webidl-conversions/-/webidl-conversions-7.0.3.tgz",
+ +      "integrity": "sha512-CiJJvcRtIgzadHCYXw7dqEnMNRjhGZlYK05Mj9OyktqV8uVT8fD2BFOB7S1uwBE3Kj2Z+4UyPmFw/Ixgw/LAlA==",
+ +      "license": "MIT"
+ +    },
+ +    "node_modules/@types/whatwg-url": {
+ +      "version": "13.0.0",
+ +      "resolved": "https://registry.npmjs.org/@types/whatwg-url/-/whatwg-url-13.0.0.tgz",
+ +      "integrity": "sha512-N8WXpbE6Wgri7KUSvrmQcqrMllKZ9uxkYWMt+mCSGwNc0Hsw9VQTW7ApqI4XNrx6/SaM2QQJCzMPDEXE058s+Q==",
+ +      "license": "MIT",
+ +      "dependencies": {
+ +        "@types/webidl-conversions": "*"
+ +      }
+ +    },
+++=======
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+      "node_modules/@typescript-eslint/eslint-plugin": {
+        "version": "8.57.2",
+        "resolved": "https://registry.npmjs.org/@typescript-eslint/eslint-plugin/-/eslint-plugin-8.57.2.tgz",
+@@@ -2187,15 -2160,6 +2198,18 @@@
+          "node": ">=6.0.0"
+        }
+      },
+++<<<<<<< HEAD
+ +    "node_modules/bcryptjs": {
+ +      "version": "3.0.3",
+ +      "resolved": "https://registry.npmjs.org/bcryptjs/-/bcryptjs-3.0.3.tgz",
+ +      "integrity": "sha512-GlF5wPWnSa/X5LKM1o0wz0suXIINz1iHRLvTS+sLyi7XPbe5ycmYI3DlZqVGZZtDgl4DmasFg7gOB3JYbphV5g==",
+ +      "license": "BSD-3-Clause",
+ +      "bin": {
+ +        "bcrypt": "bin/bcrypt"
+ +      }
+ +    },
+++=======
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+      "node_modules/brace-expansion": {
+        "version": "1.1.13",
+        "resolved": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-1.1.13.tgz",
+@@@ -2254,15 -2218,6 +2268,18 @@@
+          "node": "^6 || ^7 || ^8 || ^9 || ^10 || ^11 || ^12 || >=13.7"
+        }
+      },
+++<<<<<<< HEAD
+ +    "node_modules/bson": {
+ +      "version": "7.2.0",
+ +      "resolved": "https://registry.npmjs.org/bson/-/bson-7.2.0.tgz",
+ +      "integrity": "sha512-YCEo7KjMlbNlyHhz7zAZNDpIpQbd+wOEHJYezv0nMYTn4x31eIUM2yomNNubclAt63dObUzKHWsBLJ9QcZNSnQ==",
+ +      "license": "Apache-2.0",
+ +      "engines": {
+ +        "node": ">=20.19.0"
+ +      }
+ +    },
+++=======
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+      "node_modules/call-bind": {
+        "version": "1.0.8",
+        "resolved": "https://registry.npmjs.org/call-bind/-/call-bind-1.0.8.tgz",
+@@@ -2567,18 -2522,6 +2584,21 @@@
+          "node": ">=0.10.0"
+        }
+      },
+++<<<<<<< HEAD
+ +    "node_modules/dotenv": {
+ +      "version": "17.4.0",
+ +      "resolved": "https://registry.npmjs.org/dotenv/-/dotenv-17.4.0.tgz",
+ +      "integrity": "sha512-kCKF62fwtzwYm0IGBNjRUjtJgMfGapII+FslMHIjMR5KTnwEmBmWLDRSnc3XSNP8bNy34tekgQyDT0hr7pERRQ==",
+ +      "license": "BSD-2-Clause",
+ +      "engines": {
+ +        "node": ">=12"
+ +      },
+ +      "funding": {
+ +        "url": "https://dotenvx.com"
+ +      }
+ +    },
+++=======
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+      "node_modules/dunder-proto": {
+        "version": "1.0.1",
+        "resolved": "https://registry.npmjs.org/dunder-proto/-/dunder-proto-1.0.1.tgz",
+@@@ -4287,15 -4230,6 +4307,18 @@@
+          "node": ">=4.0"
+        }
+      },
+++<<<<<<< HEAD
+ +    "node_modules/kareem": {
+ +      "version": "3.2.0",
+ +      "resolved": "https://registry.npmjs.org/kareem/-/kareem-3.2.0.tgz",
+ +      "integrity": "sha512-VS8MWZz/cT+SqBCpVfNN4zoVz5VskR3N4+sTmUXme55e9avQHntpwpNq0yjnosISXqwJ3AQVjlbI4Dyzv//JtA==",
+ +      "license": "Apache-2.0",
+ +      "engines": {
+ +        "node": ">=18.0.0"
+ +      }
+ +    },
+++=======
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+      "node_modules/keyv": {
+        "version": "4.5.4",
+        "resolved": "https://registry.npmjs.org/keyv/-/keyv-4.5.4.tgz",
+@@@ -4405,12 -4339,6 +4428,15 @@@
+          "node": ">= 0.4"
+        }
+      },
+++<<<<<<< HEAD
+ +    "node_modules/memory-pager": {
+ +      "version": "1.5.0",
+ +      "resolved": "https://registry.npmjs.org/memory-pager/-/memory-pager-1.5.0.tgz",
+ +      "integrity": "sha512-ZS4Bp4r/Zoeq6+NLJpP+0Zzm0pR8whtGPf1XExKLJBAczGMnSi3It14OiNCStjQjM6NU1okjQGSxgEZN8eBYKg==",
+ +      "license": "MIT"
+ +    },
+++=======
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+      "node_modules/merge2": {
+        "version": "1.4.1",
+        "resolved": "https://registry.npmjs.org/merge2/-/merge2-1.4.1.tgz",
+@@@ -4458,86 -4386,6 +4484,89 @@@
+          "url": "https://github.com/sponsors/ljharb"
+        }
+      },
+++<<<<<<< HEAD
+ +    "node_modules/mongodb": {
+ +      "version": "7.1.1",
+ +      "resolved": "https://registry.npmjs.org/mongodb/-/mongodb-7.1.1.tgz",
+ +      "integrity": "sha512-067DXiMjcpYQl6bGjWQoTUEE9UoRViTtKFcoqX7z08I+iDZv/emH1g8XEFiO3qiDfXAheT5ozl1VffDTKhIW/w==",
+ +      "license": "Apache-2.0",
+ +      "dependencies": {
+ +        "@mongodb-js/saslprep": "^1.3.0",
+ +        "bson": "^7.1.1",
+ +        "mongodb-connection-string-url": "^7.0.0"
+ +      },
+ +      "engines": {
+ +        "node": ">=20.19.0"
+ +      },
+ +      "peerDependencies": {
+ +        "@aws-sdk/credential-providers": "^3.806.0",
+ +        "@mongodb-js/zstd": "^7.0.0",
+ +        "gcp-metadata": "^7.0.1",
+ +        "kerberos": "^7.0.0",
+ +        "mongodb-client-encryption": ">=7.0.0 <7.1.0",
+ +        "snappy": "^7.3.2",
+ +        "socks": "^2.8.6"
+ +      },
+ +      "peerDependenciesMeta": {
+ +        "@aws-sdk/credential-providers": {
+ +          "optional": true
+ +        },
+ +        "@mongodb-js/zstd": {
+ +          "optional": true
+ +        },
+ +        "gcp-metadata": {
+ +          "optional": true
+ +        },
+ +        "kerberos": {
+ +          "optional": true
+ +        },
+ +        "mongodb-client-encryption": {
+ +          "optional": true
+ +        },
+ +        "snappy": {
+ +          "optional": true
+ +        },
+ +        "socks": {
+ +          "optional": true
+ +        }
+ +      }
+ +    },
+ +    "node_modules/mongodb-connection-string-url": {
+ +      "version": "7.0.1",
+ +      "resolved": "https://registry.npmjs.org/mongodb-connection-string-url/-/mongodb-connection-string-url-7.0.1.tgz",
+ +      "integrity": "sha512-h0AZ9A7IDVwwHyMxmdMXKy+9oNlF0zFoahHiX3vQ8e3KFcSP3VmsmfvtRSuLPxmyv2vjIDxqty8smTgie/SNRQ==",
+ +      "license": "Apache-2.0",
+ +      "dependencies": {
+ +        "@types/whatwg-url": "^13.0.0",
+ +        "whatwg-url": "^14.1.0"
+ +      },
+ +      "engines": {
+ +        "node": ">=20.19.0"
+ +      }
+ +    },
+ +    "node_modules/mongoose": {
+ +      "version": "9.4.1",
+ +      "resolved": "https://registry.npmjs.org/mongoose/-/mongoose-9.4.1.tgz",
+ +      "integrity": "sha512-4rFBWa+/wdBQSfvnOPJBpiSG6UCEbhSQh865dEdaH9Y8WfHBUC+I2XT28dp0IBIGrEwmh+gzrgZgea5PbmrHWA==",
+ +      "license": "MIT",
+ +      "dependencies": {
+ +        "kareem": "3.2.0",
+ +        "mongodb": "~7.1",
+ +        "mpath": "0.9.0",
+ +        "mquery": "6.0.0",
+ +        "ms": "2.1.3",
+ +        "sift": "17.1.3"
+ +      },
+ +      "engines": {
+ +        "node": ">=20.19.0"
+ +      },
+ +      "funding": {
+ +        "type": "opencollective",
+ +        "url": "https://opencollective.com/mongoose"
+ +      }
+ +    },
+++=======
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+      "node_modules/motion-dom": {
+        "version": "12.38.0",
+        "resolved": "https://registry.npmjs.org/motion-dom/-/motion-dom-12.38.0.tgz",
+@@@ -4553,28 -4401,11 +4582,35 @@@
+        "integrity": "sha512-eHWisygbiwVvf6PZ1vhaHCLamvkSbPIeAYxWUuL3a2PD/TROgE7FvfHWTIH4vMl798QLfMw15nRqIaRDXTlYRg==",
+        "license": "MIT"
+      },
+++<<<<<<< HEAD
+ +    "node_modules/mpath": {
+ +      "version": "0.9.0",
+ +      "resolved": "https://registry.npmjs.org/mpath/-/mpath-0.9.0.tgz",
+ +      "integrity": "sha512-ikJRQTk8hw5DEoFVxHG1Gn9T/xcjtdnOKIU1JTmGjZZlg9LST2mBLmcX3/ICIbgJydT2GOc15RnNy5mHmzfSew==",
+ +      "license": "MIT",
+ +      "engines": {
+ +        "node": ">=4.0.0"
+ +      }
+ +    },
+ +    "node_modules/mquery": {
+ +      "version": "6.0.0",
+ +      "resolved": "https://registry.npmjs.org/mquery/-/mquery-6.0.0.tgz",
+ +      "integrity": "sha512-b2KQNsmgtkscfeDgkYMcWGn9vZI9YoXh802VDEwE6qc50zxBFQ0Oo8ROkawbPAsXCY1/Z1yp0MagqsZStPWJjw==",
+ +      "license": "MIT",
+ +      "engines": {
+ +        "node": ">=20.19.0"
+ +      }
+ +    },
+++=======
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+      "node_modules/ms": {
+        "version": "2.1.3",
+        "resolved": "https://registry.npmjs.org/ms/-/ms-2.1.3.tgz",
+        "integrity": "sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==",
+++<<<<<<< HEAD
+++=======
++       "dev": true,
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+        "license": "MIT"
+      },
+      "node_modules/nanoid": {
+@@@ -5011,6 -4842,7 +5047,10 @@@
+        "version": "2.3.1",
+        "resolved": "https://registry.npmjs.org/punycode/-/punycode-2.3.1.tgz",
+        "integrity": "sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==",
+++<<<<<<< HEAD
+++=======
++       "dev": true,
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+        "license": "MIT",
+        "engines": {
+          "node": ">=6"
+@@@ -5462,12 -5294,6 +5502,15 @@@
+          "url": "https://github.com/sponsors/ljharb"
+        }
+      },
+++<<<<<<< HEAD
+ +    "node_modules/sift": {
+ +      "version": "17.1.3",
+ +      "resolved": "https://registry.npmjs.org/sift/-/sift-17.1.3.tgz",
+ +      "integrity": "sha512-Rtlj66/b0ICeFzYTuNvX/EF1igRbbnGSvEyT79McoZa/DeGhMyC5pWKOEsZKnpkqtSeovd5FL/bjHWC3CIIvCQ==",
+ +      "license": "MIT"
+ +    },
+++=======
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+      "node_modules/source-map-js": {
+        "version": "1.2.1",
+        "resolved": "https://registry.npmjs.org/source-map-js/-/source-map-js-1.2.1.tgz",
+@@@ -5477,15 -5303,6 +5520,18 @@@
+          "node": ">=0.10.0"
+        }
+      },
+++<<<<<<< HEAD
+ +    "node_modules/sparse-bitfield": {
+ +      "version": "3.0.3",
+ +      "resolved": "https://registry.npmjs.org/sparse-bitfield/-/sparse-bitfield-3.0.3.tgz",
+ +      "integrity": "sha512-kvzhi7vqKTfkh0PZU+2D2PIllw2ymqJKujUcyPMd9Y75Nv4nPbGJZXNhxsgdQab2BmlDct1YnfQCguEvHr7VsQ==",
+ +      "license": "MIT",
+ +      "dependencies": {
+ +        "memory-pager": "^1.0.2"
+ +      }
+ +    },
+++=======
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+      "node_modules/stable-hash": {
+        "version": "0.0.5",
+        "resolved": "https://registry.npmjs.org/stable-hash/-/stable-hash-0.0.5.tgz",
+@@@ -5753,18 -5570,6 +5799,21 @@@
+          "node": ">=8.0"
+        }
+      },
+++<<<<<<< HEAD
+ +    "node_modules/tr46": {
+ +      "version": "5.1.1",
+ +      "resolved": "https://registry.npmjs.org/tr46/-/tr46-5.1.1.tgz",
+ +      "integrity": "sha512-hdF5ZgjTqgAntKkklYw0R03MG2x/bSzTtkxmIRw/sTNV8YXsCJ1tfLAX23lhxhHJlEf3CRCOCGGWw3vI3GaSPw==",
+ +      "license": "MIT",
+ +      "dependencies": {
+ +        "punycode": "^2.3.1"
+ +      },
+ +      "engines": {
+ +        "node": ">=18"
+ +      }
+ +    },
+++=======
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+      "node_modules/ts-api-utils": {
+        "version": "2.5.0",
+        "resolved": "https://registry.npmjs.org/ts-api-utils/-/ts-api-utils-2.5.0.tgz",
+@@@ -6041,28 -5846,6 +6090,31 @@@
+          "punycode": "^2.1.0"
+        }
+      },
+++<<<<<<< HEAD
+ +    "node_modules/webidl-conversions": {
+ +      "version": "7.0.0",
+ +      "resolved": "https://registry.npmjs.org/webidl-conversions/-/webidl-conversions-7.0.0.tgz",
+ +      "integrity": "sha512-VwddBukDzu71offAQR975unBIGqfKZpM+8ZX6ySk8nYhVoo5CYaZyzt3YBvYtRtO+aoGlqxPg/B87NGVZ/fu6g==",
+ +      "license": "BSD-2-Clause",
+ +      "engines": {
+ +        "node": ">=12"
+ +      }
+ +    },
+ +    "node_modules/whatwg-url": {
+ +      "version": "14.2.0",
+ +      "resolved": "https://registry.npmjs.org/whatwg-url/-/whatwg-url-14.2.0.tgz",
+ +      "integrity": "sha512-De72GdQZzNTUBBChsXueQUnPKDkg/5A5zp7pFDuQAj5UFoENpiACU0wlCvzpAGnTkj++ihpKwKyYewn/XNUbKw==",
+ +      "license": "MIT",
+ +      "dependencies": {
+ +        "tr46": "^5.1.0",
+ +        "webidl-conversions": "^7.0.0"
+ +      },
+ +      "engines": {
+ +        "node": ">=18"
+ +      }
+ +    },
+++=======
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+      "node_modules/which": {
+        "version": "2.0.2",
+        "resolved": "https://registry.npmjs.org/which/-/which-2.0.2.tgz",
+diff --cc package.json
+index b7b5c8f,283a9fb..0000000
+--- a/package.json
++++ b/package.json
+@@@ -9,11 -9,8 +9,16 @@@
+      "lint": "eslint"
+    },
+    "dependencies": {
+++<<<<<<< HEAD
+ +    "bcryptjs": "^3.0.3",
+ +    "dotenv": "^17.4.0",
+      "framer-motion": "^12.38.0",
+      "lucide-react": "^1.7.0",
+ +    "mongoose": "^9.4.1",
+++=======
+++    "framer-motion": "^12.38.0",
+++    "lucide-react": "^1.7.0",
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+      "next": "16.2.1",
+      "react": "19.2.4",
+      "react-dom": "19.2.4"
+diff --cc src/components/admin/AdminDashboard.tsx
+index 7d367ab,cb0fc10..0000000
+--- a/src/components/admin/AdminDashboard.tsx
++++ b/src/components/admin/AdminDashboard.tsx
+@@@ -93,7 -93,7 +93,11 @@@ export default function AdminDashboard(
+    const loadMembers = useCallback(async () => {
+      try {
+        // In a real app we would paginate. For admin view demo, load items limit=20
+++<<<<<<< HEAD
+ +      const data = await ApiClient.get<MemberAdmin[]>('/members', { limit: 20, name: debouncedSearch });
+++=======
++       const data = await ApiClient.get<MemberAdmin[]>('/members', { limit: 1000, name: debouncedSearch });
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+        setMembers(data);
+      } catch (err: any) {
+        toast(err.message || 'Failed to fetch directory', 'error');
+@@@ -209,7 -209,7 +213,11 @@@
+      return <div style={{ padding: '4rem', textAlign: 'center' }}>Loading Admin Workspace...</div>;
+    }
+  
+++<<<<<<< HEAD
+ +  const tableMembers = members.slice(0, 5);
+++=======
++   const tableMembers = members;
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+  
+    return (
+      <div className={styles.adminLayout}>
+diff --cc src/components/auth/LoginPage.module.css
+index 0955b1e,16349ca..0000000
+--- a/src/components/auth/LoginPage.module.css
++++ b/src/components/auth/LoginPage.module.css
+@@@ -180,12 -180,22 +180,30 @@@
+    font-size: var(--text-md);
+    font-weight: var(--weight-semibold);
+    cursor: pointer;
+++<<<<<<< HEAD
+ +  transition: background-color var(--transition-fast);
+ +  margin-top: var(--space-4);
+++=======
++   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
++   margin-top: var(--space-4);
++   box-shadow: 0 2px 4px rgba(139, 26, 26, 0.1);
++   position: relative;
++   overflow: hidden;
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+  }
+  
+  .submitBtn:hover {
+    background: var(--color-primary-dark);
+++<<<<<<< HEAD
+++=======
++   transform: translateY(-2px);
++   box-shadow: 0 6px 16px rgba(139, 26, 26, 0.25);
++ }
++ 
++ .submitBtn:active {
++   transform: translateY(0) scale(0.98);
++   box-shadow: 0 2px 4px rgba(139, 26, 26, 0.2);
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+  }
+  
+  .joinText {
+diff --cc src/components/auth/LoginPage.tsx
+index e6808b3,f9446aa..0000000
+--- a/src/components/auth/LoginPage.tsx
++++ b/src/components/auth/LoginPage.tsx
+@@@ -41,7 -41,7 +41,11 @@@ export default function LoginPage() 
+          const res = await ApiClient.post<{ token: string }>('/auth/otp/verify', { contact_no: contactNo, otp });
+          login(res.token, { sub: contactNo, role: 'member' });
+          toast('Login Successful!', 'success');
+++<<<<<<< HEAD
+ +        router.push('/directory');
+++=======
++         router.push('/profile');
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+        }
+      } catch (err: any) {
+        toast(err.message || 'Authentication failed', 'error');
+diff --cc src/components/layout/Navbar/Navbar.module.css
+index 37538a6,df3d7a3..0000000
+--- a/src/components/layout/Navbar/Navbar.module.css
++++ b/src/components/layout/Navbar/Navbar.module.css
+@@@ -9,6 -9,15 +9,18 @@@
+    position: sticky;
+    top: 0;
+    z-index: 100;
+++<<<<<<< HEAD
+++=======
++   transition: box-shadow 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
++ }
++ 
++ .scrolled {
++   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
++   background-color: rgba(253, 251, 248, 0.95);
++   backdrop-filter: blur(8px);
++   -webkit-backdrop-filter: blur(8px);
++   border-bottom-color: transparent; /* remove border when shadow appears for cleaner look */
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+  }
+  
+  .logo {
+@@@ -150,9 -159,89 +162,96 @@@
+    font-weight: var(--weight-semibold);
+    cursor: pointer;
+    text-decoration: none;
+++<<<<<<< HEAD
+ +  transition: all var(--transition-fast);
+++=======
++   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
++   box-shadow: 0 2px 4px rgba(139, 26, 26, 0.1);
++   position: relative;
++   overflow: hidden;
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+  }
+  
+  .joinBtn:hover {
+    background-color: var(--color-primary-dark);
+++<<<<<<< HEAD
+++=======
++   transform: translateY(-1px);
++   box-shadow: 0 4px 12px rgba(139, 26, 26, 0.2);
++ }
++ 
++ .joinBtn:active {
++   transform: translateY(0) scale(0.98);
++   box-shadow: 0 2px 4px rgba(139, 26, 26, 0.1);
++ }
++ 
++ .profileLink {
++   display: flex;
++   align-items: center;
++   gap: 8px;
++   font-size: 0.8125rem;
++   font-weight: var(--weight-semibold);
++   color: var(--color-text-primary);
++   text-decoration: none;
++   padding: 6px 14px;
++   border-radius: var(--radius-full);
++   border: 1.5px solid var(--color-border);
++   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
++   background: transparent;
++ }
++ 
++ .profileLink:hover {
++   border-color: var(--color-primary);
++   color: var(--color-primary);
++   background-color: var(--color-primary-lightest);
++   transform: translateY(-1px);
++   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
++ }
++ 
++ .profileLink:active {
++   transform: translateY(0) scale(0.98);
++ }
++ 
++ .userAvatar {
++   width: 26px;
++   height: 26px;
++   border-radius: 50%;
++   background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
++   color: #fff;
++   display: flex;
++   align-items: center;
++   justify-content: center;
++   font-size: 0.6875rem;
++   font-weight: var(--weight-bold);
++   letter-spacing: 0;
++   flex-shrink: 0;
++ }
++ 
++ .logoutBtn {
++   display: inline-flex;
++   align-items: center;
++   gap: 6px;
++   font-size: 0.8125rem;
++   padding: 8px 16px;
++   border: 1.5px solid var(--color-border);
++   color: var(--color-text-secondary);
++   background: transparent;
++   border-radius: var(--radius-md);
++   font-weight: var(--weight-medium);
++   cursor: pointer;
++   text-decoration: none;
++   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
++ }
++ 
++ .logoutBtn:hover {
++   border-color: var(--color-primary);
++   color: var(--color-primary);
++   background-color: rgba(139, 26, 26, 0.04);
++   transform: translateY(-1px);
++   box-shadow: 0 4px 12px rgba(139, 26, 26, 0.08);
++ }
++ 
++ .logoutBtn:active {
++   transform: translateY(0) scale(0.98);
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+  }
+diff --cc src/components/layout/Navbar/Navbar.tsx
+index eb470aa,20af019..0000000
+--- a/src/components/layout/Navbar/Navbar.tsx
++++ b/src/components/layout/Navbar/Navbar.tsx
+@@@ -1,10 -1,11 +1,19 @@@
+  'use client';
+  
+++<<<<<<< HEAD
+ +import React from 'react';
+ +import { Search, User, Home } from 'lucide-react';
+ +import styles from './Navbar.module.css';
+ +import { useAuth } from '@/lib/auth-context';
+ +import Link from 'next/link';
+++=======
++ import React, { useState, useEffect } from 'react';
++ import { Search, User, Home, LogOut } from 'lucide-react';
++ import styles from './Navbar.module.css';
++ import { useAuth } from '@/lib/auth-context';
++ import Link from 'next/link';
++ import { useRouter } from 'next/navigation';
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+  
+  interface NavbarProps {
+    variant?: 'public' | 'admin';
+@@@ -18,10 -19,32 +27,38 @@@ export default function Navbar(
+    showSearch = false,
+  }: NavbarProps) {
+    const { user, role, logout } = useAuth();
+++<<<<<<< HEAD
+++=======
++   const [isScrolled, setIsScrolled] = useState(false);
++   const router = useRouter();
++ 
++   useEffect(() => {
++     const handleScroll = () => {
++       setIsScrolled(window.scrollY > 10);
++     };
++     
++     window.addEventListener('scroll', handleScroll, { passive: true });
++     handleScroll(); // Check on mount
++     
++     return () => window.removeEventListener('scroll', handleScroll);
++   }, []);
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+  
+    const handleLogout = (e: React.MouseEvent) => {
+      e.preventDefault();
+      logout();
+++<<<<<<< HEAD
+++=======
++     router.push('/');
++   };
++ 
++   // Generate user initials for the avatar
++   const getUserInitial = () => {
++     if (user?.sub) {
++       return user.sub.charAt(0).toUpperCase();
++     }
++     return 'U';
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+    };
+  
+    const links = [
+@@@ -31,7 -54,7 +68,11 @@@
+    ];
+  
+    return (
+++<<<<<<< HEAD
+ +    <nav className={styles.navbar} role="navigation" aria-label="Main navigation">
+++=======
++     <nav className={`${styles.navbar} ${isScrolled ? styles.scrolled : ''}`} role="navigation" aria-label="Main navigation">
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+        <Link href="/" className={styles.logo} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Home size={24} />
+          KVO Nagpur
+@@@ -64,25 -87,21 +105,41 @@@
+          )}
+  
+          {user && (
+++<<<<<<< HEAD
+ +          <Link href="/directory/me" className={styles.profileLink}>
+ +            <User size={18} />
+++=======
++           <Link href="/profile" className={styles.profileLink}>
++             <span className={styles.userAvatar}>{getUserInitial()}</span>
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+              <span>My Profile</span>
+            </Link>
+          )}
+  
+          {user ? (
+++<<<<<<< HEAD
+ +          <button className={styles.joinBtn} onClick={handleLogout}>
+ +            Logout
+ +          </button>
+ +        ) : (
+ +          <>
+ +            <Link href="/login" className={styles.memberLoginBtn}>
+ +              Login
+ +            </Link>
+ +            <Link href="/login?tab=committee" className={styles.joinBtn}>
+ +              Join Us
+ +            </Link>
+ +          </>
+++=======
++           <button className={styles.logoutBtn} onClick={handleLogout}>
++             <LogOut size={15} />
++             Logout
++           </button>
++         ) : (
++           <Link href="/login" className={styles.joinBtn}>
++             Login
++           </Link>
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+          )}
+        </div>
+      </nav>
+diff --cc src/components/profile/ProfilePage.module.css
+index 04162e5,77bbecd..0000000
+--- a/src/components/profile/ProfilePage.module.css
++++ b/src/components/profile/ProfilePage.module.css
+@@@ -112,11 -112,21 +112,28 @@@
+    font-size: 0.875rem;
+    font-weight: var(--weight-semibold);
+    cursor: pointer;
+++<<<<<<< HEAD
+ +  transition: background-color var(--transition-fast);
+++=======
++   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
++   box-shadow: 0 2px 4px rgba(139, 26, 26, 0.1);
++   position: relative;
++   overflow: hidden;
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+  }
+  
+  .editProfileBtn:hover {
+    background: var(--color-primary-dark);
+++<<<<<<< HEAD
+++=======
++   transform: translateY(-2px);
++   box-shadow: 0 6px 16px rgba(139, 26, 26, 0.25);
++ }
++ 
++ .editProfileBtn:active {
++   transform: translateY(0) scale(0.98);
++   box-shadow: 0 2px 4px rgba(139, 26, 26, 0.2);
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+  }
+  
+  .privacyBtn {
+@@@ -131,11 -141,17 +148,24 @@@
+    font-size: 0.875rem;
+    font-weight: var(--weight-medium);
+    cursor: pointer;
+++<<<<<<< HEAD
+ +  transition: all var(--transition-fast);
+++=======
++   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+  }
+  
+  .privacyBtn:hover {
+    background: var(--color-bg-section-alt);
+++<<<<<<< HEAD
+++=======
++   transform: translateY(-1px);
++   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
++ }
++ 
++ .privacyBtn:active {
++   transform: translateY(0) scale(0.98);
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+  }
+  
+  /* Info Cards Grid */
+@@@ -377,3 -393,186 +407,189 @@@
+    gap: var(--space-2);
+    white-space: nowrap;
+  }
+++<<<<<<< HEAD
+++=======
++ 
++ /* Quick Actions Grid */
++ .quickActionsGrid {
++   display: grid;
++   grid-template-columns: repeat(2, 1fr);
++   gap: var(--space-4);
++   margin-bottom: var(--space-8);
++ }
++ 
++ .quickActionCard {
++   display: flex;
++   align-items: center;
++   gap: var(--space-4);
++   padding: var(--space-5) var(--space-6);
++   background: var(--color-bg-card);
++   border: 1px solid var(--color-border-light);
++   border-radius: var(--radius-xl);
++   text-decoration: none;
++   box-shadow: var(--shadow-xs);
++   transition: all var(--transition-base);
++   cursor: pointer;
++ }
++ 
++ .quickActionCard:hover {
++   border-color: var(--color-border);
++   box-shadow: var(--shadow-md);
++   transform: translateY(-2px);
++ }
++ 
++ .quickActionIcon {
++   width: 48px;
++   height: 48px;
++   border-radius: var(--radius-lg);
++   display: flex;
++   align-items: center;
++   justify-content: center;
++   flex-shrink: 0;
++   transition: transform var(--transition-fast);
++ }
++ 
++ .quickActionCard:hover .quickActionIcon {
++   transform: scale(1.08);
++ }
++ 
++ .quickActionInfo {
++   flex: 1;
++   min-width: 0;
++ }
++ 
++ .quickActionLabel {
++   font-family: var(--font-sans);
++   font-size: var(--text-base);
++   font-weight: var(--weight-semibold);
++   color: var(--color-text-primary);
++   margin-bottom: 2px;
++ }
++ 
++ .quickActionDesc {
++   font-size: var(--text-sm);
++   color: var(--color-text-muted);
++   line-height: var(--leading-normal);
++ }
++ 
++ .quickActionArrow {
++   font-size: var(--text-lg);
++   color: var(--color-text-muted);
++   transition: all var(--transition-fast);
++   flex-shrink: 0;
++ }
++ 
++ .quickActionCard:hover .quickActionArrow {
++   color: var(--color-primary);
++   transform: translateX(4px);
++ }
++ 
++ /* Logout Section */
++ .logoutSection {
++   margin-top: var(--space-4);
++   margin-bottom: var(--space-8);
++ }
++ 
++ .logoutSectionInner {
++   display: flex;
++   align-items: center;
++   justify-content: space-between;
++   padding: var(--space-6) var(--space-8);
++   background: var(--color-bg-card);
++   border: 1px dashed var(--color-border);
++   border-radius: var(--radius-xl);
++ }
++ 
++ .logoutTitle {
++   font-family: var(--font-sans);
++   font-size: var(--text-base);
++   font-weight: var(--weight-semibold);
++   color: var(--color-text-primary);
++   margin-bottom: var(--space-1);
++ }
++ 
++ .logoutDesc {
++   font-size: var(--text-sm);
++   color: var(--color-text-muted);
++ }
++ 
++ .logoutBtn {
++   display: inline-flex;
++   align-items: center;
++   gap: var(--space-2);
++   padding: 10px 24px;
++   background: transparent;
++   color: var(--color-primary);
++   border: 1.5px solid var(--color-primary-light);
++   border-radius: var(--radius-md);
++   font-size: 0.875rem;
++   font-weight: var(--weight-semibold);
++   cursor: pointer;
++   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
++   flex-shrink: 0;
++ }
++ 
++ .logoutBtn:hover {
++   background: var(--color-primary);
++   color: #fff;
++   border-color: var(--color-primary);
++   transform: translateY(-1px);
++   box-shadow: 0 4px 12px rgba(139, 26, 26, 0.2);
++ }
++ 
++ .logoutBtn:active {
++   transform: translateY(0) scale(0.98);
++ }
++ 
++ /* Responsive */
++ @media (max-width: 768px) {
++   .profileContent {
++     padding: var(--space-6);
++   }
++ 
++   .profileHero {
++     flex-direction: column;
++     align-items: center;
++     text-align: center;
++     gap: var(--space-6);
++   }
++ 
++   .profilePhoto {
++     width: 160px;
++     height: 190px;
++   }
++ 
++   .profilePhotoInitials {
++     font-size: 2.5rem;
++   }
++ 
++   .profileName {
++     font-size: 2rem;
++   }
++ 
++   .profileActions {
++     justify-content: center;
++     flex-wrap: wrap;
++   }
++ 
++   .infoGrid {
++     grid-template-columns: 1fr;
++   }
++ 
++   .quickActionsGrid {
++     grid-template-columns: 1fr;
++   }
++ 
++   .visibilityBanner {
++     flex-direction: column;
++     gap: var(--space-4);
++     text-align: center;
++   }
++ 
++   .logoutSectionInner {
++     flex-direction: column;
++     gap: var(--space-4);
++     text-align: center;
++   }
++ }
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+diff --cc src/components/profile/ProfilePage.tsx
+index 08eddbf,224bf94..0000000
+--- a/src/components/profile/ProfilePage.tsx
++++ b/src/components/profile/ProfilePage.tsx
+@@@ -1,7 -1,8 +1,12 @@@
+  'use client';
+  
+  import React, { useEffect, useState } from 'react';
+++<<<<<<< HEAD
+ +import { Pencil, Eye, ShieldCheck, Mail, Phone, MapPin, CheckCircle2 } from 'lucide-react';
+++=======
++ import { useRouter } from 'next/navigation';
++ import { Pencil, Eye, ShieldCheck, Mail, Phone, MapPin, CheckCircle2, LogOut, Users, Calendar, Info, BookOpen } from 'lucide-react';
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+  import styles from './ProfilePage.module.css';
+  import { ApiClient } from '@/lib/api';
+  import { useAuth } from '@/lib/auth-context';
+@@@ -9,6 -10,7 +14,10 @@@ import { useToast } from '@/components/
+  import { ProfileSkeleton } from '@/components/ui/Skeleton/Skeleton';
+  import ProfileUpdateModal from './ProfileUpdateModal';
+  import { motion } from 'framer-motion';
+++<<<<<<< HEAD
+++=======
++ import Link from 'next/link';
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+  
+  const AVATAR_COLORS = ['#8B1A1A', '#C8956C', '#2D5F8B', '#4A7C59', '#7B5EA7', '#D4763C', '#3B8686', '#9B5DE5', '#E07A5F'];
+  
+@@@ -43,8 -45,11 +52,16 @@@ export default function ProfilePage({ m
+    const [isLoading, setIsLoading] = useState(true);
+    const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+    
+++<<<<<<< HEAD
+ +  const { user } = useAuth();
+ +  const { toast } = useToast();
+++=======
++   const { user, logout } = useAuth();
++   const { toast } = useToast();
++   const router = useRouter();
++ 
++   const isOwnProfile = !memberId;
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+  
+    useEffect(() => {
+      async function loadData() {
+@@@ -62,6 -67,12 +79,15 @@@
+      loadData();
+    }, [memberId, toast]);
+  
+++<<<<<<< HEAD
+++=======
++   const handleLogout = () => {
++     logout();
++     router.push('/');
++     toast('Logged out successfully', 'success');
++   };
++ 
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+    if (isLoading) {
+      return <ProfileSkeleton />;
+    }
+@@@ -74,6 -85,13 +100,16 @@@
+    const firstName = nameParts[0];
+    const lastName = nameParts.slice(1).join(' ');
+    const initials = (member.name || '?').split(' ').map(n => n?.[0]).join('');
+++<<<<<<< HEAD
+++=======
++ 
++   const quickActions = [
++     { icon: Users, label: 'Member Directory', description: 'Browse all community members', href: '/directory', color: '#2D5F8B' },
++     { icon: Calendar, label: 'Community Events', description: 'Upcoming events & gatherings', href: '/events', color: '#4A7C59' },
++     { icon: BookOpen, label: 'Archives', description: 'Heritage & past achievements', href: '/#archives', color: '#7B5EA7' },
++     { icon: Info, label: 'About KVO', description: 'Our mission and history', href: '/about', color: '#D4763C' },
++   ];
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+    
+    return (
+      <motion.div 
+@@@ -101,7 -119,7 +137,11 @@@
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+            >
+++<<<<<<< HEAD
+ +            {member.active ? 'Verified Member' : 'Member'}
+++=======
++             {member.active ? 'ΓùÅ Verified Member' : 'Γùï Member'}
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+            </motion.p>
+            <motion.h1 
+              className={styles.profileName}
+@@@ -120,23 -138,25 +160,45 @@@
+            >
+              A valued member of the KVO Nagpur community.
+            </motion.p>
+++<<<<<<< HEAD
+ +          <div className={styles.profileActions}>
+ +            <motion.button 
+ +              className={styles.editProfileBtn} 
+ +              onClick={() => setIsUpdateModalOpen(true)}
+ +              whileHover={{ scale: 1.02 }}
+ +              whileTap={{ scale: 0.98 }}
+ +            >
+ +              <Pencil size={16} /> Request Update
+ +            </motion.button>
+ +            <motion.button 
+ +              className={styles.privacyBtn}
+ +              whileHover={{ scale: 1.02 }}
+ +              whileTap={{ scale: 0.98 }}
+ +            >
+ +              <Eye size={16} /> View Privacy Settings
+ +            </motion.button>
+ +          </div>
+++=======
++           {isOwnProfile && (
++             <div className={styles.profileActions}>
++               <motion.button 
++                 className={styles.editProfileBtn} 
++                 onClick={() => setIsUpdateModalOpen(true)}
++                 whileHover={{ scale: 1.02 }}
++                 whileTap={{ scale: 0.98 }}
++               >
++                 <Pencil size={16} /> Request Update
++               </motion.button>
++               <motion.button 
++                 className={styles.privacyBtn}
++                 whileHover={{ scale: 1.02 }}
++                 whileTap={{ scale: 0.98 }}
++               >
++                 <Eye size={16} /> View Privacy Settings
++               </motion.button>
++             </div>
++           )}
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+          </div>
+        </div>
+  
+@@@ -215,12 -235,47 +277,54 @@@
+          </div>
+        </motion.div>
+  
+++<<<<<<< HEAD
+++=======
++       {/* Quick Actions - only on own profile */}
++       {isOwnProfile && (
++         <motion.div
++           initial={{ opacity: 0, y: 20 }}
++           animate={{ opacity: 1, y: 0 }}
++           transition={{ delay: 0.85 }}
++         >
++           <div className={styles.sectionHeader} style={{ marginBottom: 'var(--space-6)' }}>
++             <span className={styles.sectionDash} />
++             <span className={styles.sectionTitle}>Quick Actions</span>
++           </div>
++           <div className={styles.quickActionsGrid}>
++             {quickActions.map((action, index) => (
++               <motion.div
++                 key={action.label}
++                 initial={{ opacity: 0, y: 15 }}
++                 animate={{ opacity: 1, y: 0 }}
++                 transition={{ delay: 0.9 + index * 0.05 }}
++               >
++                 <Link href={action.href} className={styles.quickActionCard}>
++                   <div className={styles.quickActionIcon} style={{ backgroundColor: `${action.color}12`, color: action.color }}>
++                     <action.icon size={22} />
++                   </div>
++                   <div className={styles.quickActionInfo}>
++                     <h4 className={styles.quickActionLabel}>{action.label}</h4>
++                     <p className={styles.quickActionDesc}>{action.description}</p>
++                   </div>
++                   <span className={styles.quickActionArrow}>ΓåÆ</span>
++                 </Link>
++               </motion.div>
++             ))}
++           </div>
++         </motion.div>
++       )}
++ 
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+        {/* Visibility Banner */}
+        <motion.div 
+          className={styles.visibilityBanner}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+++<<<<<<< HEAD
+ +        transition={{ delay: 0.9 }}
+++=======
++         transition={{ delay: 1.0 }}
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+        >
+          <ShieldCheck size={24} className={styles.visibilityIcon} />
+          <div>
+@@@ -231,6 -286,27 +335,30 @@@
+          </div>
+        </motion.div>
+  
+++<<<<<<< HEAD
+++=======
++       {/* Logout Section - only on own profile */}
++       {isOwnProfile && (
++         <motion.div 
++           className={styles.logoutSection}
++           initial={{ opacity: 0 }}
++           animate={{ opacity: 1 }}
++           transition={{ delay: 1.1 }}
++         >
++           <div className={styles.logoutSectionInner}>
++             <div>
++               <h4 className={styles.logoutTitle}>Sign Out</h4>
++               <p className={styles.logoutDesc}>Sign out of your KVO Nagpur account on this device.</p>
++             </div>
++             <button className={styles.logoutBtn} onClick={handleLogout}>
++               <LogOut size={16} />
++               Sign Out
++             </button>
++           </div>
++         </motion.div>
++       )}
++ 
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+        {isUpdateModalOpen && (
+          <ProfileUpdateModal 
+            member={member} 
+diff --cc src/middleware.ts
+index a584505,a84c9db..0000000
+--- a/src/middleware.ts
++++ b/src/middleware.ts
+@@@ -37,7 -37,7 +37,11 @@@ export function middleware(request: Nex
+      
+      // Redirect away from login if already authenticated
+      if (path === '/login') {
+++<<<<<<< HEAD
+ +      return NextResponse.redirect(new URL(role === 'admin' ? '/dashboard' : '/directory', request.url));
+++=======
++       return NextResponse.redirect(new URL(role === 'admin' ? '/dashboard' : '/profile', request.url));
+++>>>>>>> 2a1864cf86588337e3995bc7b394e31f7aedeba7
+      }
+    }
+  
