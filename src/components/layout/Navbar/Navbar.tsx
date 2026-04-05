@@ -1,10 +1,11 @@
 'use client';
 
-import React from 'react';
-import { Search, User, Home } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, User, Home, LogOut } from 'lucide-react';
 import styles from './Navbar.module.css';
 import { useAuth } from '@/lib/auth-context';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 interface NavbarProps {
   variant?: 'public' | 'admin';
@@ -18,10 +19,32 @@ export default function Navbar({
   showSearch = false,
 }: NavbarProps) {
   const { user, role, logout } = useAuth();
+  const [isScrolled, setIsScrolled] = useState(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+    
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll(); // Check on mount
+    
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const handleLogout = (e: React.MouseEvent) => {
     e.preventDefault();
     logout();
+    router.push('/');
+  };
+
+  // Generate user initials for the avatar
+  const getUserInitial = () => {
+    if (user?.sub) {
+      return user.sub.charAt(0).toUpperCase();
+    }
+    return 'U';
   };
 
   const links = [
@@ -31,7 +54,7 @@ export default function Navbar({
   ];
 
   return (
-    <nav className={styles.navbar} role="navigation" aria-label="Main navigation">
+    <nav className={`${styles.navbar} ${isScrolled ? styles.scrolled : ''}`} role="navigation" aria-label="Main navigation">
       <Link href="/" className={styles.logo} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <Home size={24} />
         KVO Nagpur
@@ -64,25 +87,21 @@ export default function Navbar({
         )}
 
         {user && (
-          <Link href="/directory/me" className={styles.profileLink}>
-            <User size={18} />
+          <Link href="/profile" className={styles.profileLink}>
+            <span className={styles.userAvatar}>{getUserInitial()}</span>
             <span>My Profile</span>
           </Link>
         )}
 
         {user ? (
-          <button className={styles.joinBtn} onClick={handleLogout}>
+          <button className={styles.logoutBtn} onClick={handleLogout}>
+            <LogOut size={15} />
             Logout
           </button>
         ) : (
-          <>
-            <Link href="/login" className={styles.memberLoginBtn}>
-              Login
-            </Link>
-            <Link href="/login?tab=committee" className={styles.joinBtn}>
-              Join Us
-            </Link>
-          </>
+          <Link href="/login" className={styles.joinBtn}>
+            Login
+          </Link>
         )}
       </div>
     </nav>
