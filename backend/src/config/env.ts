@@ -22,7 +22,7 @@ const config: Config = {
   redisPassword: process.env.REDIS_PASSWORD || undefined,
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
   csvBatchSize: parseInt(process.env.CSV_BATCH_SIZE || '100', 10),
-  databaseUrl: process.env.DATABASE_URL || 'mongodb://localhost:27017/kjo_samaj',
+  databaseUrl: process.env.DATABASE_URL || 'mongodb://localhost:27017/kvjos_nagpur',
   port: parseInt(process.env.PORT || '3001', 10),
 };
 
