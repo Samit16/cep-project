@@ -60,7 +60,7 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       const res = await ApiClient.post<{ token: string }>('/auth/admin/login', { username, password });
-      login(res.token, { sub: username, role: 'admin' });
+      login(res.token); // Let the auth context decode the role from the token
       toast('Login Successful: Welcome back', 'success');
       router.push('/dashboard');
     } catch (err: any) {
