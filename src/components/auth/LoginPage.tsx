@@ -41,7 +41,7 @@ export default function LoginPage() {
         const res = await ApiClient.post<{ token: string }>('/auth/otp/verify', { contact_no: contactNo, otp });
         login(res.token, { sub: contactNo, role: 'member' });
         toast('Login Successful!', 'success');
-        router.push('/profile');
+        router.push('/directory');
       }
     } catch (err: any) {
       toast(err.message || 'Authentication failed', 'error');
@@ -60,7 +60,7 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       const res = await ApiClient.post<{ token: string }>('/auth/admin/login', { username, password });
-      login(res.token); // Let the auth context decode the role from the token
+      login(res.token, { sub: username, role: 'admin' });
       toast('Login Successful: Welcome back', 'success');
       router.push('/dashboard');
     } catch (err: any) {

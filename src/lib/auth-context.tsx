@@ -14,7 +14,7 @@ interface AuthContextType {
   token: string | null;
   user: UserDetails | null;
   role: Role;
-  login: (token: string, userDetails?: UserDetails) => void;
+  login: (token: string, userDetails: UserDetails) => void;
   logout: () => void;
   isLoading: boolean;
 }
