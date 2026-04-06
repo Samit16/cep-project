@@ -37,7 +37,7 @@ export function middleware(request: NextRequest) {
     
     // Redirect away from login if already authenticated
     if (path === '/login') {
-      return NextResponse.redirect(new URL(role === 'admin' ? '/dashboard' : '/profile', request.url));
+      return NextResponse.redirect(new URL(role === 'admin' ? '/dashboard' : '/directory', request.url));
     }
   }
 

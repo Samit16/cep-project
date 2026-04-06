@@ -93,7 +93,7 @@ export default function AdminDashboard() {
   const loadMembers = useCallback(async () => {
     try {
       // In a real app we would paginate. For admin view demo, load items limit=20
-      const data = await ApiClient.get<MemberAdmin[]>('/members', { limit: 1000, name: debouncedSearch });
+      const data = await ApiClient.get<MemberAdmin[]>('/members', { limit: 20, name: debouncedSearch });
       setMembers(data);
     } catch (err: any) {
       toast(err.message || 'Failed to fetch directory', 'error');
@@ -209,7 +209,7 @@ export default function AdminDashboard() {
     return <div style={{ padding: '4rem', textAlign: 'center' }}>Loading Admin Workspace...</div>;
   }
 
-  const tableMembers = members;
+  const tableMembers = members.slice(0, 5);
 
   return (
     <div className={styles.adminLayout}>

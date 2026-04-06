@@ -13,6 +13,8 @@ import Admin from './models/Admin';
 import Event from './models/Event';
 import AuditLog from './models/AuditLog';
 import CsvImportError from './models/CsvImportError';
+import User from './models/User';
+import SystemSetting from './models/SystemSetting';
 
 import { bulkUploadQueue } from './plugins/redisQueue';
 import authRoutes from './routes/auth';
@@ -21,7 +23,7 @@ import adminRoutes from './routes/admin';
 import eventRoutes from './routes/events';
 import bulkUploadRoutes from './routes/bulkUpload';
 
-const models = { Member, Admin, Event, AuditLog, CsvImportError };
+const models = { Member, Admin, Event, AuditLog, CsvImportError, User, SystemSetting };
 
 const server = Fastify({
   logger: {

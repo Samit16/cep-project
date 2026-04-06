@@ -1,4 +1,4 @@
-import { FastifyPluginAsync } from 'fastify';
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import { randomInt } from 'crypto';
@@ -7,7 +7,7 @@ import { encryptField } from '../plugins/encryption';
 
 const authRoutes: FastifyPluginAsync = async (fastify) => {
   // OTP request
-  fastify.post('/otp/request', async (request, reply) => {
+  fastify.post('/otp/request', async (request: FastifyRequest, reply: FastifyReply) => {
     const { contact_no } = request.body as { contact_no: string };
 
     // Ensure member exists with this number
@@ -20,16 +20,15 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     const otp = randomInt(100000, 999999).toString();
     const hashedOtp = crypto.createHash('sha256').update(otp).digest('hex');
     const key = `otp:${contact_no}`;
-    await fastify.redis.set(key, hashedOtp, 'EX', 300);
+    await (fastify as any).redis.set(key, hashedOtp, 'EX', 300);
     reply.send({ message: 'OTP sent', dev_otp: otp });
   });
 
-
   // OTP verify
-  fastify.post('/otp/verify', async (request, reply) => {
+  fastify.post('/otp/verify', async (request: FastifyRequest, reply: FastifyReply) => {
     const { contact_no, otp } = request.body as { contact_no: string; otp: string };
     const key = `otp:${contact_no}`;
-    const stored = await fastify.redis.get(key);
+    const stored = await (fastify as any).redis.get(key);
     if (!stored) {
       return reply.code(400).send({ error: 'OTP expired or not requested' });
     }
@@ -37,13 +36,13 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     if (hashed !== stored) {
       return reply.code(401).send({ error: 'Invalid OTP' });
     }
-    await fastify.redis.del(key);
+    await (fastify as any).redis.del(key);
     const token = (fastify as any).jwt.sign({ sub: contact_no, role: 'member' });
     reply.send({ token });
   });
 
-  // Admin & Committee login
-  fastify.post('/admin/login', async (request, reply) => {
+  // Admin login
+  fastify.post('/admin/login', async (request: FastifyRequest, reply: FastifyReply) => {
     const { username, password, remember } = request.body as {
       username: string;
       password: string;
@@ -126,6 +125,59 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     if (!user) {
       return reply.code(401).send({ error: 'Invalid credentials' });
     }
+    const valid = await bcrypt.compare(password, admin.passwordHash);
+    if (!valid) return reply.code(401).send({ error: 'Invalid credentials' });
+    
+    const payload: any = { sub: (admin as any)._id, role: 'admin' };
+    const token = (fastify as any).jwt.sign(payload, { expiresIn: remember ? '7d' : '30m' });
+    reply.send({ token });
+  });
+
+  // Member login with default credentials mapping
+  fastify.post('/member/login', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { username, password } = request.body as { username?: string; password?: string };
+    if (!username || !password) return reply.code(400).send({ error: 'Username and password required' });
+
+    let user = await (fastify as any).models.User.findOne({ username });
+
+    if (!user) {
+      const underscoreIdx = username.lastIndexOf('_');
+      if (underscoreIdx !== -1) {
+        const firstName = username.substring(0, underscoreIdx);
+        const lastName = username.substring(underscoreIdx + 1);
+
+        const member = await (fastify as any).models.Member.findOne({
+          first_name: { $regex: new RegExp(`^${firstName}$`, 'i') },
+          last_name: { $regex: new RegExp(`^${lastName}$`, 'i') }
+        });
+
+        if (member) {
+          const settings = await (fastify as any).models.SystemSetting.findOne();
+          if (settings && settings.default_password_hash) {
+            const valid = await bcrypt.compare(password, settings.default_password_hash);
+            if (valid) {
+              user = await (fastify as any).models.User.create({
+                username,
+                password,
+                role: 'member',
+                member_id: member._id,
+                is_first_login: true,
+                is_active: true
+              });
+            }
+          }
+        }
+      }
+    } else {
+      const valid = await user.comparePassword(password);
+      if (!valid) {
+        return reply.code(401).send({ error: 'Invalid credentials' });
+      }
+    }
+
+    if (!user) {
+      return reply.code(401).send({ error: 'Invalid credentials' });
+    }
 
     if (user.is_first_login) {
       const token = (fastify as any).jwt.sign({ sub: user.member_id, userId: user._id, role: 'member', update_required: true }, { expiresIn: '15m' });
@@ -137,13 +189,13 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // Member update credentials route
-  fastify.post('/member/update-credentials', { preValidation: [(fastify as any).authenticate] }, async (request: any, reply: any) => {
-    const payload = request.user as any;
+  fastify.post('/member/update-credentials', { preValidation: [(fastify as any).authenticate] }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const payload = (request as any).user;
     if (payload.role !== 'member') {
       return reply.code(403).send({ error: 'Forbidden' });
     }
 
-    const { new_username, new_password } = request.body as any;
+    const { new_username, new_password } = request.body as { new_username?: string; new_password?: string };
     if (!new_username || !new_password) {
       return reply.code(400).send({ error: 'Missing new_username or new_password' });
     }
@@ -169,10 +221,10 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // Logout
-  fastify.post('/logout', { preValidation: [(fastify as any).authenticate] }, async (request: any, reply: any) => {
-    const payload = request.user as any;
+  fastify.post('/logout', { preValidation: [(fastify as any).authenticate] }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const payload = (request as any).user;
     if (payload.role === 'admin' && payload.remember) {
-      await fastify.redis.del(`remember:${payload.sub}`);
+      await (fastify as any).redis.del(`remember:${payload.sub}`);
     }
     reply.send({ message: 'Logged out' });
   });

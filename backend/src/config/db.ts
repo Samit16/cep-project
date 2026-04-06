@@ -4,7 +4,7 @@ import { logger } from '../utils/logger';
 
 export const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(config.databaseUrl || 'mongodb://localhost:27017/kvjos_nagpur', {
+    const conn = await mongoose.connect(config.databaseUrl || 'mongodb://localhost:27017/kjo_samaj', {
       family: 4, // PROD: Force IPv4 for Atlas Free Tier
     });
     logger.info(`MongoDB Connected: ${conn.connection.host}`);
