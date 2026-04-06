@@ -29,7 +29,7 @@ export function middleware(request: NextRequest) {
     }
   } else {
     // Has role
-    if (isAdminPath && role !== 'admin') {
+    if (isAdminPath && role !== 'admin' && role !== 'committee') {
       return NextResponse.redirect(new URL('/directory', request.url));
     }
     // We don't restrict member paths from admins currently, an admin might have a member profile, 

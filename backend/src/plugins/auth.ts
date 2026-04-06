@@ -19,12 +19,14 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
   });
 
   // Role‑based preValidation hook
-  fastify.decorate('requireRole', (role: 'admin' | 'member') => {
-    return async (request, reply) => {
+  fastify.decorate('requireRole', (roleOrRoles: 'admin' | 'member' | 'committee' | ('admin' | 'member' | 'committee')[]) => {
+    return async (request: any, reply: any) => {
       try {
         await request.jwtVerify();
         const payload = request.user as any;
-        if (payload.role !== role) {
+        const roles = Array.isArray(roleOrRoles) ? roleOrRoles : [roleOrRoles];
+        
+        if (!roles.includes(payload.role)) {
           reply.code(403).send({ error: 'Forbidden: insufficient role' });
         }
       } catch (err) {

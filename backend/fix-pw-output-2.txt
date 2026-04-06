@@ -1,0 +1,34 @@
+﻿node.exe : (node:2784) 
+[DEP0169] 
+DeprecationWarning: 
+`url.parse()` behavior is 
+not standardized and prone 
+to errors that have 
+security implications. Use 
+the WHATWG URL API 
+instead. CVEs are not 
+issued for `url.parse()` 
+vulnerabilities.
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
+    + CategoryInfo         
+     : NotSpecified: ((no  
+  de:2784) [DE...ulnerab   
+ ilities.:String) [], R    
+emoteException
+    + FullyQualifiedErrorI 
+   d : NativeCommandError
+ 
+(Use `node 
+--trace-deprecation ...` 
+to show where the warning 
+was created)
+New bcrypt hash: $2b$10$Rrwfcl/t0aI7n1rR6K1q..vRstz4DWVsqF59TIkNaofgAohpNiHk2
+Stored password starts with $2: true
+Verify bcrypt compare: true

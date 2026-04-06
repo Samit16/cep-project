@@ -79,7 +79,7 @@ export default function AdminDashboard() {
 
   // Protect Admin Route
   useEffect(() => {
-    if (!isLoading && role !== 'admin') {
+    if (!isLoading && role !== 'admin' && role !== 'committee') {
       router.push('/login');
     }
   }, [isLoading, role, router]);
@@ -92,8 +92,7 @@ export default function AdminDashboard() {
 
   const loadMembers = useCallback(async () => {
     try {
-      // In a real app we would paginate. For admin view demo, load items limit=20
-      const data = await ApiClient.get<MemberAdmin[]>('/members', { limit: 20, name: debouncedSearch });
+      const data = await ApiClient.get<MemberAdmin[]>('/members', { limit: 100, name: debouncedSearch });
       setMembers(data);
     } catch (err: any) {
       toast(err.message || 'Failed to fetch directory', 'error');
@@ -101,7 +100,7 @@ export default function AdminDashboard() {
   }, [debouncedSearch, toast]);
 
   useEffect(() => {
-    if (role === 'admin') loadMembers();
+    if (role === 'admin' || role === 'committee') loadMembers();
   }, [role, loadMembers]);
 
   // Polling for CSV Upload
@@ -205,11 +204,11 @@ export default function AdminDashboard() {
     toast('Event deleted.', 'success');
   };
 
-  if (isLoading || role !== 'admin') {
-    return <div style={{ padding: '4rem', textAlign: 'center' }}>Loading Admin Workspace...</div>;
+  if (isLoading || (role !== 'admin' && role !== 'committee')) {
+    return <div style={{ padding: '4rem', textAlign: 'center' }}>Loading Workspace...</div>;
   }
 
-  const tableMembers = members.slice(0, 5);
+  const tableMembers = members;
 
   return (
     <div className={styles.adminLayout}>
@@ -217,7 +216,7 @@ export default function AdminDashboard() {
       <aside className={styles.sidebar}>
         <div className={styles.sidebarHeader}>
           <div className={styles.sidebarLogo}>KVO Nagpur</div>
-          <div className={styles.sidebarLogoSub}>Admin Panel</div>
+          <div className={styles.sidebarLogoSub}>{role === 'admin' ? 'Admin Panel' : 'Committee Panel'}</div>
         </div>
 
         <div className={styles.sidebarProfile}>
@@ -225,7 +224,7 @@ export default function AdminDashboard() {
             <User size={20} color="var(--color-primary)" />
           </div>
           <div>
-            <div className={styles.sidebarProfileName}>Admin Panel</div>
+            <div className={styles.sidebarProfileName}>{role === 'admin' ? 'Administrator' : 'Committee Member'}</div>
             <div className={styles.sidebarProfileRole}>Samaj Committee</div>
           </div>
         </div>
@@ -299,7 +298,7 @@ export default function AdminDashboard() {
             </div>
           </div>
           <div className={styles.topBarRight}>
-            <div className={styles.adminBadge}>Admin Session</div>
+            <div className={styles.adminBadge}>{role === 'admin' ? 'Admin Session' : 'Committee Session'}</div>
             <button className={styles.logoutBtnSmall} onClick={handleLogout}>
               <LogOut size={16} />
             </button>
@@ -421,7 +420,7 @@ export default function AdminDashboard() {
                       <div className={styles.memberCellEmail}>{member.email}</div>
                     </div>
                   </div>
-                  <div className={styles.cellText}>{member.contact_no || member._id.slice(-6)}</div>
+                  <div className={styles.cellText}>{member.contact_no || 'Yet to be updated'}</div>
                   <div>
                     <span className={styles.professionBadge}>{member.occupation || 'N/A'}</span>
                   </div>

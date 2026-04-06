@@ -57,7 +57,7 @@ export default function Navbar({
           </div>
         )}
 
-        {role === 'admin' && (
+        {(role === 'admin' || role === 'committee') && (
           <Link href="/dashboard" className={styles.dashboardBtn}>
             Dashboard
           </Link>
