@@ -1,0 +1,22 @@
+﻿where.exe : INFO: 
+Could not find files 
+for the given 
+pattern(s).
+At line:1 char:148
++ ... ing utf8 -Append 
+redis-check.txt; 
+where.exe redis-server 
+2>&1 | Out-F ...
++                      
+                 ~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: (INFO: Could n   
+ ot...ven pattern(s    
+).:String) [], Rem    
+oteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 

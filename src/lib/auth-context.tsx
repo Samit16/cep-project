@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
-type Role = 'admin' | 'member' | null;
+type Role = 'admin' | 'member' | 'committee' | null;
 
 interface UserDetails {
   id?: string;
@@ -59,7 +59,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         handleLogout();
       } else if (decoded) {
         setToken(t);
-        setUser({ sub: decoded.sub, role: decoded.role || 'member' });
+        setUser({ sub: decoded.sub, role: decoded.role || null });
       }
     } else {
       setToken(null);
@@ -84,7 +84,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     
     // Fallback if userDetails not provided directly: decode token
     const decoded = parseJwt(newToken);
-    const resolvedUser = userDetails || { sub: decoded?.sub, role: decoded?.role || 'member' };
+    const resolvedUser = userDetails || { sub: decoded?.sub, role: decoded?.role || null };
 
     setToken(newToken);
     setUser(resolvedUser);

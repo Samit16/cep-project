@@ -164,10 +164,18 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       }
     }
 
-    user.username = new_username;
-    user.password = new_password;
-    user.is_first_login = false;
-    await user.save();
+    const hashed_password = await bcrypt.hash(new_password, 10);
+    
+    await (fastify as any).models.User.updateOne(
+      { _id: user._id },
+      { 
+        $set: {
+          username: new_username,
+          password: hashed_password,
+          is_first_login: false
+        }
+      }
+    );
 
     reply.send({ message: 'Credentials updated successfully' });
   });

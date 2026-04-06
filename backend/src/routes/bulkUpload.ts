@@ -2,7 +2,7 @@ import { FastifyPluginAsync } from 'fastify';
 import { bulkUploadQueue } from '../plugins/redisQueue';
 
 const bulkUploadRoutes: FastifyPluginAsync = async (fastify) => {
-  fastify.addHook('preValidation', fastify.requireRole('admin'));
+  fastify.addHook('preValidation', (fastify as any).requireRole(['admin', 'committee']));
 
   // POST upload
   fastify.post('/members/bulk-upload', async (request, reply) => {

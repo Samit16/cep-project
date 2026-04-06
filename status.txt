@@ -1,0 +1,26 @@
+﻿On branch backend
+Your branch is up to date with 'origin/backend'.
+
+You are currently cherry-picking commit b1eb32a.
+  (fix conflicts and run "git cherry-pick --continue")
+  (use "git cherry-pick --skip" to skip this patch)
+  (use "git cherry-pick --abort" to cancel the cherry-pick operation)
+
+Changes to be committed:
+	new file:   backend/backend_tsc.txt
+	modified:   src/components/auth/LoginPage.tsx
+	modified:   src/lib/auth-context.tsx
+
+Unmerged paths:
+  (use "git add <file>..." to mark resolution)
+	both modified:   backend/src/routes/auth.ts
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	backend-log.txt
+	branch-list.txt
+	branch-list2.txt
+	git-log.txt
+	origin-backend-log.txt
+	status.txt
+

@@ -3,16 +3,28 @@ import { encryptField } from '../plugins/encryption';
 import { getPagination } from '../utils/pagination';
 
 const adminRoutes: FastifyPluginAsync = async (fastify) => {
-  fastify.addHook('preValidation', fastify.requireRole('admin'));
+  fastify.addHook('preValidation', (fastify as any).requireRole(['admin', 'committee']));
 
   // List members
   fastify.get('/members', async (request, reply) => {
     const { skip, take } = getPagination(request.query);
-    const members = await (fastify as any).models.Member.find({})
+    const { name } = request.query as any;
+    const query: any = {};
+    if (name) {
+      query.$or = [
+        { first_name: { $regex: name, $options: 'i' } },
+        { last_name: { $regex: name, $options: 'i' } },
+      ];
+    }
+    const members = await (fastify as any).models.Member.find(query)
       .skip(skip)
       .limit(take)
       .lean();
-    reply.send(members);
+    const result = members.map((m: any) => ({
+      ...m,
+      name: `${m.first_name || ''} ${m.last_name || ''}`.trim(),
+    }));
+    reply.send(result);
   });
 
   // Create member
