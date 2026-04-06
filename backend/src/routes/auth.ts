@@ -21,7 +21,12 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     const hashedOtp = crypto.createHash('sha256').update(otp).digest('hex');
     const key = `otp:${contact_no}`;
     await (fastify as any).redis.set(key, hashedOtp, 'EX', 300);
-    reply.send({ message: 'OTP sent', dev_otp: otp });
+    
+    // Instead of sending OTP to client, log it for development purposes. 
+    // In production, integrate with an SMS gateway here.
+    (fastify as any).log.info(`[Auth] Generated OTP for ${contact_no}: ${otp}`);
+    
+    reply.send({ message: 'OTP sent' });
   });
 
   // OTP verify
@@ -78,59 +83,6 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     return reply.code(401).send({ error: 'Invalid credentials' });
-  });
-
-  // Member login with default credentials mapping
-  fastify.post('/member/login', async (request: any, reply: any) => {
-    const { username, password } = request.body as any;
-    if (!username || !password) return reply.code(400).send({ error: 'Username and password required' });
-
-    let user = await (fastify as any).models.User.findOne({ username });
-
-    if (!user) {
-      const underscoreIdx = username.lastIndexOf('_');
-      if (underscoreIdx !== -1) {
-        const firstName = username.substring(0, underscoreIdx);
-        const lastName = username.substring(underscoreIdx + 1);
-
-        const member = await (fastify as any).models.Member.findOne({
-          first_name: { $regex: new RegExp(`^${firstName}$`, 'i') },
-          last_name: { $regex: new RegExp(`^${lastName}$`, 'i') }
-        });
-
-        if (member) {
-          const settings = await (fastify as any).models.SystemSetting.findOne();
-          if (settings && settings.default_password_hash) {
-            const valid = await bcrypt.compare(password, settings.default_password_hash);
-            if (valid) {
-              user = await (fastify as any).models.User.create({
-                username,
-                password,
-                role: 'member',
-                member_id: member._id,
-                is_first_login: true,
-                is_active: true
-              });
-            }
-          }
-        }
-      }
-    } else {
-      const valid = await user.comparePassword(password);
-      if (!valid) {
-        return reply.code(401).send({ error: 'Invalid credentials' });
-      }
-    }
-
-    if (!user) {
-      return reply.code(401).send({ error: 'Invalid credentials' });
-    }
-    const valid = await bcrypt.compare(password, admin.passwordHash);
-    if (!valid) return reply.code(401).send({ error: 'Invalid credentials' });
-    
-    const payload: any = { sub: (admin as any)._id, role: 'admin' };
-    const token = (fastify as any).jwt.sign(payload, { expiresIn: remember ? '7d' : '30m' });
-    reply.send({ token });
   });
 
   // Member login with default credentials mapping

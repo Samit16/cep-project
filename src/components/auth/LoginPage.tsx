@@ -35,7 +35,7 @@ export default function LoginPage() {
         // Request OTP
         const res = await ApiClient.post<{ message: string; dev_otp?: string }>('/auth/otp/request', { contact_no: contactNo });
         setOtpSent(true);
-        toast(`OTP Sent! ${res.dev_otp ? `(Development OTP: ${res.dev_otp})` : ''}`, 'success');
+        toast('OTP Sent!', 'success');
       } else {
         // Verify OTP
         const res = await ApiClient.post<{ token: string }>('/auth/otp/verify', { contact_no: contactNo, otp });

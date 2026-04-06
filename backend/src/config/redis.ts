@@ -6,6 +6,7 @@ const redis = new IORedis({
   host: config.redisHost,
   port: config.redisPort,
   password: config.redisPassword,
+  tls: config.redisHost.includes('upstash.io') ? {} : undefined,
   maxRetriesPerRequest: null,
   enableOfflineQueue: false,
 });
