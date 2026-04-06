@@ -112,21 +112,11 @@
   font-size: 0.875rem;
   font-weight: var(--weight-semibold);
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 4px rgba(139, 26, 26, 0.1);
-  position: relative;
-  overflow: hidden;
+  transition: background-color var(--transition-fast);
 }
 
 .editProfileBtn:hover {
   background: var(--color-primary-dark);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(139, 26, 26, 0.25);
-}
-
-.editProfileBtn:active {
-  transform: translateY(0) scale(0.98);
-  box-shadow: 0 2px 4px rgba(139, 26, 26, 0.2);
 }
 
 .privacyBtn {
@@ -141,17 +131,11 @@
   font-size: 0.875rem;
   font-weight: var(--weight-medium);
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all var(--transition-fast);
 }
 
 .privacyBtn:hover {
   background: var(--color-bg-section-alt);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-}
-
-.privacyBtn:active {
-  transform: translateY(0) scale(0.98);
 }
 
 /* Info Cards Grid */
@@ -392,187 +376,4 @@
   align-items: center;
   gap: var(--space-2);
   white-space: nowrap;
-}
-
-/* Quick Actions Grid */
-.quickActionsGrid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-4);
-  margin-bottom: var(--space-8);
-}
-
-.quickActionCard {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-5) var(--space-6);
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-xl);
-  text-decoration: none;
-  box-shadow: var(--shadow-xs);
-  transition: all var(--transition-base);
-  cursor: pointer;
-}
-
-.quickActionCard:hover {
-  border-color: var(--color-border);
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
-}
-
-.quickActionIcon {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-lg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: transform var(--transition-fast);
-}
-
-.quickActionCard:hover .quickActionIcon {
-  transform: scale(1.08);
-}
-
-.quickActionInfo {
-  flex: 1;
-  min-width: 0;
-}
-
-.quickActionLabel {
-  font-family: var(--font-sans);
-  font-size: var(--text-base);
-  font-weight: var(--weight-semibold);
-  color: var(--color-text-primary);
-  margin-bottom: 2px;
-}
-
-.quickActionDesc {
-  font-size: var(--text-sm);
-  color: var(--color-text-muted);
-  line-height: var(--leading-normal);
-}
-
-.quickActionArrow {
-  font-size: var(--text-lg);
-  color: var(--color-text-muted);
-  transition: all var(--transition-fast);
-  flex-shrink: 0;
-}
-
-.quickActionCard:hover .quickActionArrow {
-  color: var(--color-primary);
-  transform: translateX(4px);
-}
-
-/* Logout Section */
-.logoutSection {
-  margin-top: var(--space-4);
-  margin-bottom: var(--space-8);
-}
-
-.logoutSectionInner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-6) var(--space-8);
-  background: var(--color-bg-card);
-  border: 1px dashed var(--color-border);
-  border-radius: var(--radius-xl);
-}
-
-.logoutTitle {
-  font-family: var(--font-sans);
-  font-size: var(--text-base);
-  font-weight: var(--weight-semibold);
-  color: var(--color-text-primary);
-  margin-bottom: var(--space-1);
-}
-
-.logoutDesc {
-  font-size: var(--text-sm);
-  color: var(--color-text-muted);
-}
-
-.logoutBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: 10px 24px;
-  background: transparent;
-  color: var(--color-primary);
-  border: 1.5px solid var(--color-primary-light);
-  border-radius: var(--radius-md);
-  font-size: 0.875rem;
-  font-weight: var(--weight-semibold);
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  flex-shrink: 0;
-}
-
-.logoutBtn:hover {
-  background: var(--color-primary);
-  color: #fff;
-  border-color: var(--color-primary);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(139, 26, 26, 0.2);
-}
-
-.logoutBtn:active {
-  transform: translateY(0) scale(0.98);
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .profileContent {
-    padding: var(--space-6);
-  }
-
-  .profileHero {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: var(--space-6);
-  }
-
-  .profilePhoto {
-    width: 160px;
-    height: 190px;
-  }
-
-  .profilePhotoInitials {
-    font-size: 2.5rem;
-  }
-
-  .profileName {
-    font-size: 2rem;
-  }
-
-  .profileActions {
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-
-  .infoGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .quickActionsGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .visibilityBanner {
-    flex-direction: column;
-    gap: var(--space-4);
-    text-align: center;
-  }
-
-  .logoutSectionInner {
-    flex-direction: column;
-    gap: var(--space-4);
-    text-align: center;
-  }
 }
