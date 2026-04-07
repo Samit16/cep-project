@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import Navbar from '@/components/layout/Navbar/Navbar';
 import Footer from '@/components/layout/Footer/Footer';
 import styles from './AboutPage.module.css';
@@ -140,8 +141,8 @@ export default function AboutPage() {
             Join KVO Nagpur today and contribute to a legacy that spans generations.
           </p>
           <div className={styles.ctaActions}>
-            <a href="/login" className={styles.ctaBtnPrimary}>Join the Community</a>
-            <a href="/directory" className={styles.ctaBtnOutline}>Browse Directory</a>
+            <Link href="/login" className={styles.ctaBtnPrimary}>Join the Community</Link>
+            <Link href="/directory" className={styles.ctaBtnOutline}>Browse Directory</Link>
           </div>
         </section>
       </main>

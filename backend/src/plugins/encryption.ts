@@ -15,12 +15,17 @@ export function encryptField(plain: string): string {
 
 export function decryptField(cipherText: string): string {
   if (!cipherText) return cipherText;
-  const data = Buffer.from(cipherText, 'base64');
-  const iv = data.slice(0, 12);
-  const tag = data.slice(12, 28);
-  const encrypted = data.slice(28);
-  const decipher = crypto.createDecipheriv(algorithm, key, iv);
-  decipher.setAuthTag(tag);
-  const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
-  return decrypted.toString('utf8');
+  try {
+    const data = Buffer.from(cipherText, 'base64');
+    const iv = data.slice(0, 12);
+    const tag = data.slice(12, 28);
+    const encrypted = data.slice(28);
+    const decipher = crypto.createDecipheriv(algorithm, key, iv);
+    decipher.setAuthTag(tag);
+    const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
+    return decrypted.toString('utf8');
+  } catch {
+    // Return placeholder if decryption fails (wrong key, corrupted data, etc.)
+    return '[encrypted]';
+  }
 }

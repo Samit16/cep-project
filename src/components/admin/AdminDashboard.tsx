@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { 
   LayoutDashboard, Users, Calendar, Wallet, Settings, HelpCircle, LogOut, 
   Search, FileText, Download, UserPlus, TrendingUp, ClipboardList, 
@@ -92,7 +93,7 @@ export default function AdminDashboard() {
 
   const loadMembers = useCallback(async () => {
     try {
-      const data = await ApiClient.get<MemberAdmin[]>('/members', { limit: 100, name: debouncedSearch });
+      const data = await ApiClient.get<MemberAdmin[]>('/admin/members', { limit: 100, name: debouncedSearch });
       setMembers(data);
     } catch (err: any) {
       toast(err.message || 'Failed to fetch directory', 'error');
@@ -244,10 +245,10 @@ export default function AdminDashboard() {
             <Calendar size={18} className={styles.sidebarItemIcon} />
             Manage Events
           </button>
-          <a href="/members" className={styles.sidebarItem}>
+          <Link href="/members" className={styles.sidebarItem}>
             <Users size={18} className={styles.sidebarItemIcon} />
             Member Requests
-          </a>
+          </Link>
         </nav>
 
         <div className={styles.sidebarFooter}>
@@ -266,10 +267,10 @@ export default function AdminDashboard() {
               Committee<br />Overview
             </div>
             <nav className={styles.topBarNav}>
-              <a href="/" className={styles.topBarLink}>Home</a>
-              <a href="/dashboard" className={`${styles.topBarLink} ${styles.topBarLinkActive}`}>Overview</a>
-              <a href="/directory" className={styles.topBarLink}>Directory</a>
-              <a href="/about" className={styles.topBarLink}>About</a>
+              <Link href="/" className={styles.topBarLink}>Home</Link>
+              <Link href="/dashboard" className={`${styles.topBarLink} ${styles.topBarLinkActive}`}>Overview</Link>
+              <Link href="/directory" className={styles.topBarLink}>Directory</Link>
+              <Link href="/about" className={styles.topBarLink}>About</Link>
             </nav>
             <div style={{
               display: 'flex',

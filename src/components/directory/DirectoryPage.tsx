@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Search, LayoutGrid, List, ShieldCheck, MapPin, Settings, Users } from 'lucide-react';
+import Link from 'next/link';
 import styles from './DirectoryPage.module.css';
 import { OverlayBadge } from '@/components/ui/Badge/Badge';
 import Pagination from '@/components/ui/Pagination/Pagination';
@@ -204,9 +205,9 @@ export default function DirectoryPage() {
                     <MapPin size={14} className={styles.locationIcon} />
                     {member.current_place || 'Unknown'}
                   </p>
-                  <a href={`/directory/${member._id}`} className={styles.viewProfileBtn}>
+                  <Link href={`/directory/${member._id}`} className={styles.viewProfileBtn}>
                     View Basic Profile
-                  </a>
+                  </Link>
                 </div>
               </motion.div>
             ))}

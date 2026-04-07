@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { User, Lock, Shield, Landmark } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { ApiClient } from '@/lib/api';
@@ -174,7 +175,7 @@ export default function LoginPage() {
             )}
 
             <p className={styles.joinText}>
-              Not a member? <a href="/about" className={styles.joinLink}>Learn more</a>
+              Not a member? <Link href="/about" className={styles.joinLink}>Learn more</Link>
             </p>
           </div>
 
