@@ -25,11 +25,17 @@ const memberRoutes: FastifyPluginAsync = async (fastify) => {
       .limit(take)
       .lean();
 
-    const result = members.map((m: any) => ({
-      ...m,
-      name: `${m.first_name || ''} ${m.last_name || ''}`.trim(),
-      contact_numbers: (m.contact_numbers || []).map((num: string) => decryptField(num)),
-    }));
+    const result = members.map((m: any) => {
+      const isPublic = m.contact_visibility === 'public';
+      return {
+        ...m,
+        name: `${m.first_name || ''} ${m.last_name || ''}`.trim(),
+        // Only expose contacts if the member opted for public visibility
+        contact_numbers: isPublic
+          ? (m.contact_numbers || []).map((num: string) => decryptField(num))
+          : [],
+      };
+    });
 
     reply.send(result);
   });

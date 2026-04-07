@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { ArrowRight } from 'lucide-react';
+import Link from 'next/link';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { useParallax, useScrollReveal } from '@/hooks/useParallax';
 import styles from './LandingPage.module.css';
@@ -28,9 +29,9 @@ export function HeroSection() {
           generations through unity.
         </p>
         <div className={`${styles.heroCta} ${styles.animateFadeUp} ${styles.delay3}`}>
-          <a href="/login" className={styles.ctaBtnPrimary}>
+          <Link href="/login" className={styles.ctaBtnPrimary}>
             Become a Member
-          </a>
+          </Link>
         </div>
       </div>
       <div ref={heroImageRef} className={`${styles.heroImage} ${styles.parallaxImage}`}>
@@ -133,9 +134,9 @@ export function AchievementsSection() {
                 Connecting business leaders and cultural experts from
                 across 6 continents to discuss our future.
               </p>
-              <a href="/events" className={styles.registerBtn} style={{ display: 'inline-block', textDecoration: 'none' }}>
+              <Link href="/events" className={styles.registerBtn} style={{ display: 'inline-block', textDecoration: 'none' }}>
                 View Event Figures
-              </a>
+              </Link>
             </div>
           </div>
         </div>
@@ -158,9 +159,9 @@ export function EventsSection() {
               Join our community gatherings and celebrate your heritage together.
             </p>
           </div>
-          <a href="/events" className={styles.eventsLink}>
+          <Link href="/events" className={styles.eventsLink}>
             See All Events <ArrowRight size={14} />
-          </a>
+          </Link>
         </div>
         
         <div className={styles.eventCard}>
@@ -199,12 +200,12 @@ export function CTABanner() {
         to our community&apos;s lasting legacy.
       </p>
       <div className={styles.ctaActions}>
-        <a href="/login" className={styles.ctaBtnOutlined} style={{ textDecoration: 'none' }}>
+        <Link href="/login" className={styles.ctaBtnOutlined} style={{ textDecoration: 'none' }}>
           Join the Community
-        </a>
-        <a href="/login" className={styles.ctaBtnOutlined} style={{ textDecoration: 'none' }}>
+        </Link>
+        <Link href="/login" className={styles.ctaBtnOutlined} style={{ textDecoration: 'none' }}>
           Member Login
-        </a>
+        </Link>
       </div>
     </section>
   );
