@@ -399,7 +399,7 @@ export default function AdminDashboard() {
           <div className={styles.dataTable} style={{ marginTop: '2rem' }}>
             <div className={styles.tableHeader}>
               <div className={styles.tableHeaderCell}>Member Details</div>
-              <div className={styles.tableHeaderCell}>ID / Phone</div>
+              <div className={styles.tableHeaderCell}>Mobile Number</div>
               <div className={styles.tableHeaderCell}>Profession</div>
               <div className={styles.tableHeaderCell}>Join Date</div>
               <div className={styles.tableHeaderCell}>Status</div>
@@ -420,7 +420,7 @@ export default function AdminDashboard() {
                       <div className={styles.memberCellEmail}>{member.email}</div>
                     </div>
                   </div>
-                  <div className={styles.cellText}>{member.contact_no || 'Yet to be updated'}</div>
+                  <div className={styles.cellText}>{member.contact_no || 'not updated'}</div>
                   <div>
                     <span className={styles.professionBadge}>{member.occupation || 'N/A'}</span>
                   </div>

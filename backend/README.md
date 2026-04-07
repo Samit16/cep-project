@@ -56,7 +56,7 @@ The new Mongoose schema includes the following fields:
 ## ⚙️ Environment Variables (`.env`)
 
 ```ini
-DATABASE_URL=mongodb://localhost:27017/kjo_samaj
+DATABASE_URL=mongodb://localhost:27017/kvjos_nagpur
 JWT_SECRET=your_jwt_secret
 AES_256_KEY=base64_aes_key
 REDIS_HOST=localhost

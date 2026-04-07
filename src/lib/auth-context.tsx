@@ -36,7 +36,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Decode JWT safely
   const parseJwt = (t: string) => {
     try {
-      return JSON.parse(atob(t.split('.')[1]));
+      const base64Url = t.split('.')[1];
+      let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const pad = base64.length % 4;
+      if (pad) {
+        if (pad === 1) {
+          throw new Error('InvalidLengthError: Input base64url string is the wrong length to determine padding');
+        }
+        base64 += new Array(5 - pad).join('=');
+      }
+      return JSON.parse(atob(base64));
     } catch (e) {
       return null;
     }
@@ -52,6 +61,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const syncAuth = () => {
     const t = localStorage.getItem('kjo_token');
+    // If localStorage has a token but the session cookie is gone (browser was closed), clear it
+    const hasCookie = document.cookie.split(';').some(c => c.trim().startsWith('kjo_token='));
+    if (t && !hasCookie) {
+      localStorage.removeItem('kjo_token');
+      setToken(null);
+      setUser(null);
+      setIsLoading(false);
+      return;
+    }
     if (t) {
       const decoded = parseJwt(t);
       if (decoded && decoded.exp && decoded.exp * 1000 < Date.now()) {
@@ -80,7 +98,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const login = (newToken: string, userDetails?: UserDetails) => {
     localStorage.setItem('kjo_token', newToken);
     // Secure enough for routing. Expiration handled natively if we have explicit timing, but simply dropping session is ok
-    document.cookie = `kjo_token=${newToken}; path=/; max-age=604800; samesite=lax`; 
+    document.cookie = `kjo_token=${newToken}; path=/; samesite=lax`; 
     
     // Fallback if userDetails not provided directly: decode token
     const decoded = parseJwt(newToken);
