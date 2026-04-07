@@ -1,6 +1,5 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
 import crypto from 'crypto';
-import bcrypt from 'bcrypt';
 import { randomInt } from 'crypto';
 import config from '../config/env';
 import { encryptField } from '../plugins/encryption';
@@ -26,8 +25,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     const key = `otp:${contact_no}`;
     await (fastify as any).redis.set(key, hashedOtp, 'EX', 300);
     
-    // Instead of sending OTP to client, log it for development purposes. 
-    // In production, integrate with an SMS gateway here.
+    // Log OTP for development — replace with SMS gateway in production
     (fastify as any).log.info(`[Auth] Generated OTP for ${contact_no}: ${otp}`);
     
     reply.send({ message: 'OTP sent' });
@@ -54,32 +52,31 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     reply.send({ token });
   });
 
-  // Admin login
+  // Admin / Committee login — plain-text password comparison
   fastify.post('/admin/login', async (request: FastifyRequest, reply: FastifyReply) => {
-    const { username, password, remember } = request.body as {
+    const { username, password } = request.body as {
       username: string;
       password: string;
       remember?: boolean;
     };
-    
-    // Check Admin collection
+
+    // 1. Check Admin collection
     const admin = await (fastify as any).models.Admin.findOne({ username }).lean();
     if (admin) {
-      const valid = await bcrypt.compare(password, admin.passwordHash);
-      if (!valid) return reply.code(401).send({ error: 'Invalid credentials' });
-  
+      if ((admin as any).password !== password) {
+        return reply.code(401).send({ error: 'Invalid credentials' });
+      }
       const payload: any = { sub: (admin as any)._id, role: 'admin' };
       const token = (fastify as any).jwt.sign(payload);
       return reply.send({ token });
     }
 
-    // Check User collection for committee member
+    // 2. Check User collection for committee member
     const user = await (fastify as any).models.User.findOne({ username, role: 'committee' });
     if (user) {
-      const valid = await user.comparePassword(password);
-      if (!valid) return reply.code(401).send({ error: 'Invalid credentials' });
-
-      // Always issue a normal session token for committee members
+      if (user.password !== password) {
+        return reply.code(401).send({ error: 'Invalid credentials' });
+      }
       const payload: any = { sub: user.member_id, userId: user._id, role: 'committee' };
       const token = (fastify as any).jwt.sign(payload);
       return reply.send({ token });
@@ -88,7 +85,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     return reply.code(401).send({ error: 'Invalid credentials' });
   });
 
-  // Member login with default credentials mapping
+  // Member login — plain-text password comparison
   fastify.post('/member/login', async (request: FastifyRequest, reply: FastifyReply) => {
     const { username, password } = request.body as { username?: string; password?: string };
     if (!username || !password) return reply.code(400).send({ error: 'Username and password required' });
@@ -96,6 +93,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     let user = await (fastify as any).models.User.findOne({ username });
 
     if (!user) {
+      // Try to auto-create user from member record using default username pattern (firstname_lastname)
       const underscoreIdx = username.lastIndexOf('_');
       if (underscoreIdx !== -1) {
         const firstName = username.substring(0, underscoreIdx);
@@ -108,24 +106,20 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
 
         if (member) {
           const settings = await (fastify as any).models.SystemSetting.findOne();
-          if (settings && settings.default_password_hash) {
-            const valid = await bcrypt.compare(password, settings.default_password_hash);
-            if (valid) {
-              user = await (fastify as any).models.User.create({
-                username,
-                password,
-                role: 'member',
-                member_id: member._id,
-                is_first_login: true,
-                is_active: true
-              });
-            }
+          if (settings && settings.default_password === password) {
+            user = await (fastify as any).models.User.create({
+              username,
+              password,
+              role: 'member',
+              member_id: member._id,
+              is_first_login: true,
+              is_active: true
+            });
           }
         }
       }
     } else {
-      const valid = await user.comparePassword(password);
-      if (!valid) {
+      if (user.password !== password) {
         return reply.code(401).send({ error: 'Invalid credentials' });
       }
     }
@@ -134,12 +128,11 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.code(401).send({ error: 'Invalid credentials' });
     }
 
-    // Always issue a normal session token — no forced credential change
     const token = (fastify as any).jwt.sign({ sub: user.member_id, userId: user._id, role: 'member' });
     reply.send({ token });
   });
 
-  // Member update credentials route
+  // Member update credentials
   fastify.post('/member/update-credentials', { preValidation: [(fastify as any).authenticate] }, async (request: FastifyRequest, reply: FastifyReply) => {
     const payload = (request as any).user;
     if (payload.role !== 'member') {
@@ -163,14 +156,12 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       }
     }
 
-    const hashed_password = await bcrypt.hash(new_password, 10);
-    
     await (fastify as any).models.User.updateOne(
       { _id: user._id },
-      { 
+      {
         $set: {
           username: new_username,
-          password: hashed_password,
+          password: new_password,
           is_first_login: false
         }
       }
@@ -181,10 +172,6 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
 
   // Logout
   fastify.post('/logout', { preValidation: [(fastify as any).authenticate] }, async (request: FastifyRequest, reply: FastifyReply) => {
-    const payload = (request as any).user;
-    if (payload.role === 'admin' && payload.remember) {
-      await (fastify as any).redis.del(`remember:${payload.sub}`);
-    }
     reply.send({ message: 'Logged out' });
   });
 };

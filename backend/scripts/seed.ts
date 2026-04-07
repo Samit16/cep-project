@@ -1,9 +1,9 @@
 import mongoose from 'mongoose';
-import bcrypt from 'bcrypt';
 import dotenv from 'dotenv';
 import Admin from '../src/models/Admin';
 import Member from '../src/models/Member';
 import Event from '../src/models/Event';
+import SystemSetting from '../src/models/SystemSetting';
 import { encryptField } from '../src/plugins/encryption';
 
 dotenv.config();
@@ -14,19 +14,23 @@ async function seed() {
   console.log('Connecting to MongoDB at:', dbUrl);
   await mongoose.connect(dbUrl);
 
-  // Clear existing data (OPTIONAL - uncomment if you want a fresh start)
-  // await Admin.deleteMany({});
-  // await Member.deleteMany({});
-  // await Event.deleteMany({});
-
+  // Seed Admin with plain-text password
   console.log('Seeding Admin...');
-  const passwordHash = await bcrypt.hash('admin123', 10);
   await Admin.findOneAndUpdate(
     { username: 'admin' },
-    { username: 'admin', passwordHash },
+    { username: 'admin', password: 'admin123' },
     { upsert: true, new: true }
   );
   console.log('Admin created/updated: admin / admin123');
+
+  // Seed default member password (plain-text)
+  console.log('Seeding SystemSetting (default member password)...');
+  await SystemSetting.findOneAndUpdate(
+    {},
+    { default_password: 'member123' },
+    { upsert: true, new: true }
+  );
+  console.log('Default member password set to: member123');
 
   console.log('Seeding Sample Members...');
   const sampleMembers = [
@@ -65,7 +69,6 @@ async function seed() {
   ];
 
   for (const m of sampleMembers) {
-    // Search by the first number in the array for upsert matching
     await Member.findOneAndUpdate(
       { contact_numbers: m.contact_numbers[0] },
       m,
