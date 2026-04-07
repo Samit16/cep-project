@@ -6,14 +6,15 @@ const bulkUploadRoutes: FastifyPluginAsync = async (fastify) => {
 
   // POST upload
   fastify.post('/members/bulk-upload', async (request, reply) => {
-    if (!bulkUploadQueue) {
+    const queue = bulkUploadQueue;
+    if (!queue) {
       return reply.code(503).send({ error: 'Bulk upload service is unavailable (Redis not connected)' });
     }
     const parts = request.parts();
     for await (const part of parts as any) {
       if (part.file) {
         const tempPath = (part as any).tempFilePath;
-        const job = await bulkUploadQueue.add('processCsv', { filePath: tempPath });
+        const job = await queue.add('processCsv', { filePath: tempPath });
         return reply.send({ jobId: job.id });
       }
     }
@@ -22,11 +23,12 @@ const bulkUploadRoutes: FastifyPluginAsync = async (fastify) => {
 
   // GET status
   fastify.get('/bulk-upload/:jobId/status', async (request, reply) => {
-    if (!bulkUploadQueue) {
+    const queue = bulkUploadQueue;
+    if (!queue) {
       return reply.code(503).send({ error: 'Bulk upload service is unavailable (Redis not connected)' });
     }
     const { jobId } = request.params as { jobId: string };
-    const job = await bulkUploadQueue.getJob(jobId);
+    const job = await queue.getJob(jobId);
     if (!job) return reply.code(404).send({ error: 'Job not found' });
     const progress = await job.getState();
     const data = job.progress as any;
@@ -35,12 +37,13 @@ const bulkUploadRoutes: FastifyPluginAsync = async (fastify) => {
 
   // POST commit
   fastify.post('/bulk-upload/:jobId/commit', async (request, reply) => {
-    if (!bulkUploadQueue) {
+    const queue = bulkUploadQueue;
+    if (!queue) {
       return reply.code(503).send({ error: 'Bulk upload service is unavailable (Redis not connected)' });
     }
     const { jobId } = request.params as { jobId: string };
     const { dryRun } = request.body as { dryRun?: boolean };
-    const job = await bulkUploadQueue.getJob(jobId);
+    const job = await queue.getJob(jobId);
     if (!job) return reply.code(404).send({ error: 'Job not found' });
     await job.updateData({ ...job.data, commit: !dryRun });
     reply.send({ message: 'Commit flag updated' });
