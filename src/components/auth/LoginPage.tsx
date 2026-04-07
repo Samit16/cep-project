@@ -86,14 +86,14 @@ export default function LoginPage() {
                 className={`${styles.tab} ${activeTab === 'member' ? styles.tabActive : ''}`}
                 onClick={() => { setActiveTab('member'); setOtpSent(false); setOtp(''); }}
               >
-                Member Login
+                Member Login (OTP)
               </button>
               <button
                 type="button"
                 className={`${styles.tab} ${activeTab === 'committee' ? styles.tabActive : ''}`}
                 onClick={() => setActiveTab('committee')}
               >
-                Committee Login
+                Staff Login
               </button>
             </div>
 
