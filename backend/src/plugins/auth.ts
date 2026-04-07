@@ -6,7 +6,6 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
   // Register JWT plugin
   await fastify.register(require('@fastify/jwt'), {
     secret: config.jwtSecret,
-    sign: { expiresIn: '30m' }, // session timeout
   });
 
   // Decorator to verify JWT and attach user payload

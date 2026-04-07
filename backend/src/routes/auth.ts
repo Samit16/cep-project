@@ -61,7 +61,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       if (!valid) return reply.code(401).send({ error: 'Invalid credentials' });
   
       const payload: any = { sub: (admin as any)._id, role: 'admin' };
-      const token = (fastify as any).jwt.sign(payload, { expiresIn: remember ? '7d' : '30m' });
+      const token = (fastify as any).jwt.sign(payload);
       return reply.send({ token });
     }
 
@@ -71,14 +71,9 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       const valid = await user.comparePassword(password);
       if (!valid) return reply.code(401).send({ error: 'Invalid credentials' });
 
-      // If user requires first time password update, handle it
-      if (user.is_first_login) {
-        const token = (fastify as any).jwt.sign({ sub: user.member_id, userId: user._id, role: 'committee', update_required: true }, { expiresIn: '15m' });
-        return reply.send({ token, message: 'Please update your credentials', update_required: true });
-      }
-
+      // Always issue a normal session token for committee members
       const payload: any = { sub: user.member_id, userId: user._id, role: 'committee' };
-      const token = (fastify as any).jwt.sign(payload, { expiresIn: remember ? '7d' : '30m' });
+      const token = (fastify as any).jwt.sign(payload);
       return reply.send({ token });
     }
 
@@ -131,11 +126,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.code(401).send({ error: 'Invalid credentials' });
     }
 
-    if (user.is_first_login) {
-      const token = (fastify as any).jwt.sign({ sub: user.member_id, userId: user._id, role: 'member', update_required: true }, { expiresIn: '15m' });
-      return reply.send({ token, message: 'Please update your credentials', update_required: true });
-    }
-
+    // Always issue a normal session token — no forced credential change
     const token = (fastify as any).jwt.sign({ sub: user.member_id, userId: user._id, role: 'member' });
     reply.send({ token });
   });
