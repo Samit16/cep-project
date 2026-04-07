@@ -6,6 +6,9 @@ const bulkUploadRoutes: FastifyPluginAsync = async (fastify) => {
 
   // POST upload
   fastify.post('/members/bulk-upload', async (request, reply) => {
+    if (!bulkUploadQueue) {
+      return reply.code(503).send({ error: 'Bulk upload service is unavailable (Redis not connected)' });
+    }
     const parts = request.parts();
     for await (const part of parts as any) {
       if (part.file) {
@@ -19,6 +22,9 @@ const bulkUploadRoutes: FastifyPluginAsync = async (fastify) => {
 
   // GET status
   fastify.get('/bulk-upload/:jobId/status', async (request, reply) => {
+    if (!bulkUploadQueue) {
+      return reply.code(503).send({ error: 'Bulk upload service is unavailable (Redis not connected)' });
+    }
     const { jobId } = request.params as { jobId: string };
     const job = await bulkUploadQueue.getJob(jobId);
     if (!job) return reply.code(404).send({ error: 'Job not found' });
@@ -29,6 +35,9 @@ const bulkUploadRoutes: FastifyPluginAsync = async (fastify) => {
 
   // POST commit
   fastify.post('/bulk-upload/:jobId/commit', async (request, reply) => {
+    if (!bulkUploadQueue) {
+      return reply.code(503).send({ error: 'Bulk upload service is unavailable (Redis not connected)' });
+    }
     const { jobId } = request.params as { jobId: string };
     const { dryRun } = request.body as { dryRun?: boolean };
     const job = await bulkUploadQueue.getJob(jobId);

@@ -8,6 +8,10 @@ import { encryptField } from '../plugins/encryption';
 const authRoutes: FastifyPluginAsync = async (fastify) => {
   // OTP request
   fastify.post('/otp/request', async (request: FastifyRequest, reply: FastifyReply) => {
+    if (!(fastify as any).redis) {
+      return reply.code(503).send({ error: 'OTP service is temporarily unavailable (Redis not connected)' });
+    }
+
     const { contact_no } = request.body as { contact_no: string };
 
     // Ensure member exists with this number
@@ -31,6 +35,10 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
 
   // OTP verify
   fastify.post('/otp/verify', async (request: FastifyRequest, reply: FastifyReply) => {
+    if (!(fastify as any).redis) {
+      return reply.code(503).send({ error: 'OTP service is temporarily unavailable (Redis not connected)' });
+    }
+
     const { contact_no, otp } = request.body as { contact_no: string; otp: string };
     const key = `otp:${contact_no}`;
     const stored = await (fastify as any).redis.get(key);

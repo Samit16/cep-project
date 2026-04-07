@@ -9,10 +9,20 @@ export function middleware(request: NextRequest) {
   let role = null;
   if (token) {
     try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      // Also ensure it is not expired
-      if (payload.exp && payload.exp * 1000 > Date.now()) {
-        role = payload.role;
+      const base64Url = token.split('.')[1];
+      let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const pad = base64.length % 4;
+      if (pad) {
+        if (pad !== 1) {
+          base64 += new Array(5 - pad).join('=');
+        }
+      }
+      const payload = JSON.parse(atob(base64));
+      // If token has an exp claim, check it isn't expired. If no exp, accept it.
+      if (payload.exp && payload.exp * 1000 < Date.now()) {
+        // Token is expired — role stays null
+      } else {
+        role = payload.role || null;
       }
     } catch {
       // Invalid token

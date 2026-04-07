@@ -53,7 +53,7 @@ const start = async () => {
 
     // Decorate Fastify instance with shared objects
     server.decorate('models', models);
-    server.decorate('redis', redis);
+    server.decorate('redis', redis as any);
     server.decorate('config', config);
 
     // Register routes (prefixes)
@@ -75,8 +75,8 @@ const start = async () => {
 const shutdown = async () => {
   try {
     await server.close();
-    await bulkUploadQueue.close();
-    await redis.quit();
+    if (bulkUploadQueue) await bulkUploadQueue.close();
+    if (redis) await redis.quit();
     logger.info('Graceful shutdown complete');
     process.exit(0);
   } catch (e) {

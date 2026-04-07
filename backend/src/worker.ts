@@ -1,7 +1,13 @@
 import { createBulkUploadWorker } from './plugins/redisQueue';
 import { logger } from './utils/logger';
+import { isRedisAvailable } from './config/redis';
 
 const worker = createBulkUploadWorker(2);
+
+if (!worker) {
+  logger.error('Cannot start bulk upload worker — Redis is unavailable. Exiting.');
+  process.exit(1);
+}
 
 worker.on('completed', (job) => {
   logger.info(`Job ${job.id} completed`);
