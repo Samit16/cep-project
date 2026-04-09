@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, LayoutGrid, List, ShieldCheck, MapPin, Settings, Users } from 'lucide-react';
+import { Search, LayoutGrid, List, ShieldCheck, MapPin, Users } from 'lucide-react';
 import Link from 'next/link';
 import styles from './DirectoryPage.module.css';
 import { OverlayBadge } from '@/components/ui/Badge/Badge';
@@ -27,8 +27,7 @@ export default function DirectoryPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [professionFilter, setProfessionFilter] = useState('');
-  const [locationFilter, setLocationFilter] = useState('');
+
   
   const [members, setMembers] = useState<Member[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -40,7 +39,10 @@ export default function DirectoryPage() {
 
   // Debounce search
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 500);
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setCurrentPage(1);
+    }, 300);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
@@ -51,8 +53,6 @@ export default function DirectoryPage() {
         page: currentPage,
         limit: itemsPerPage,
         name: debouncedSearch,
-        city: locationFilter,
-        occupation: professionFilter,
       });
       setMembers(response);
       setHasMore(response.length === itemsPerPage);
@@ -61,7 +61,7 @@ export default function DirectoryPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, debouncedSearch, locationFilter, professionFilter, toast]);
+  }, [currentPage, debouncedSearch, toast]);
 
   useEffect(() => {
     loadMembers();
@@ -108,12 +108,6 @@ export default function DirectoryPage() {
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
-    setCurrentPage(1);
-  };
-
-  const handleFilterChange = (setter: React.Dispatch<React.SetStateAction<string>>) => (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setter(e.target.value === 'All Categories' ? '' : e.target.value);
-    setCurrentPage(1);
   };
 
   return (
@@ -155,32 +149,7 @@ export default function DirectoryPage() {
             onChange={handleSearchChange}
           />
         </div>
-        
-        {/* Placeholder dynamic filters - Backend mapping later */}
-        <select 
-          className={styles.filterSelect}
-          value={professionFilter}
-          onChange={handleFilterChange(setProfessionFilter)}
-        >
-          <option value="">All Professions</option>
-          <option value="Business">Business</option>
-          <option value="Software Engineer">Software Engineer</option>
-          <option value="Doctor">Doctor</option>
-        </select>
-        <select 
-          className={styles.filterSelect}
-          value={locationFilter}
-          onChange={handleFilterChange(setLocationFilter)}
-        >
-          <option value="">All Locations</option>
-          <option value="Mumbai">Mumbai</option>
-          <option value="Bhuj">Bhuj</option>
-          <option value="London">London</option>
-          <option value="Dubai">Dubai</option>
-        </select>
-        <button className={styles.filterBtn} aria-label="Advanced filters">
-          <Settings size={18} />
-        </button>
+
       </div>
 
       {/* Privacy Notice */}
@@ -271,7 +240,7 @@ export default function DirectoryPage() {
             <button 
               className="ctaBtnOutlinedHero" 
               style={{ padding: '8px 16px', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)' }}
-              onClick={() => { setSearchQuery(''); setProfessionFilter(''); setLocationFilter(''); }}
+              onClick={() => setSearchQuery('')}
             >
               Clear Filters
             </button>
