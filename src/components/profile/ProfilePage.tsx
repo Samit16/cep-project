@@ -25,9 +25,11 @@ interface ProfilePageProps {
 }
 
 interface MemberDetail {
-  _id: string;
+  _id?: string;
+  id?: string;
   name: string;
   contact_no?: string;
+  contact_numbers?: string[];
   email: string;
   occupation?: string;
   marital_status?: string;
@@ -81,7 +83,7 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
   const lastName = nameParts.slice(1).join(' ');
   const initials = (member.name || '?').split(' ').map(n => n?.[0]).join('');
 
-  const isMyProfile = !memberId || memberId === 'me' || profile?.member_id === member._id;
+  const isMyProfile = !memberId || memberId === 'me' || profile?.member_id === (member._id || member.id);
   const canEdit = isMyProfile || role === 'admin' || role === 'committee';
   
   return (
@@ -219,9 +221,11 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
           <div>
             <div className={styles.contactLabel}>Phone Number</div>
             <div className={styles.contactValue}>
-              {member.contact_no 
-                ? member.contact_no 
-                : <span style={{ fontStyle: 'italic', color: '#666' }}>Number is private</span>
+              {member.contact_numbers?.length 
+                ? member.contact_numbers.join(', ')
+                : member.contact_no 
+                  ? member.contact_no 
+                  : <span style={{ fontStyle: 'italic', color: '#666' }}>Number is private</span>
               }
             </div>
           </div>

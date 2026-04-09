@@ -11,11 +11,28 @@ export class ApiClient {
     };
 
     if (typeof window !== 'undefined') {
-      let token = localStorage.getItem('kjo_token');
+      let token: string | null = null;
+
+      // 1. Check legacy localStorage token
+      token = localStorage.getItem('kjo_token');
+
+      // 2. Check Supabase sessionStorage (where the client actually stores sessions)
+      if (!token) {
+        try {
+          const sessionData = sessionStorage.getItem('sb-uevmyvwbmxqreyukbvkq-auth-token');
+          if (sessionData) {
+            const parsed = JSON.parse(sessionData);
+            token = parsed?.access_token || null;
+          }
+        } catch { /* ignore parse errors */ }
+      }
+
+      // 3. Fallback: check cookie
       if (!token) {
         const match = document.cookie.match(new RegExp('(^| )sb-uevmyvwbmxqreyukbvkq-auth-token=([^;]+)'));
         if (match) token = match[2];
       }
+
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }

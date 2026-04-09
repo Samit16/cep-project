@@ -54,17 +54,49 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
     };
   });
 
-  // Legacy JWT decorator (kept for backward compatibility)
+  // Legacy & Unified Authenticate (works with both Supabase and backwards-compatible JWTs)
   fastify.decorate('authenticate', async (request: any, reply: any) => {
+    const authHeader = request.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.replace('Bearer ', '');
+      
+      // Try Supabase auth first
+      const supabase = getSupabase();
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+
+      if (!error && user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role, member_id, is_first_login, is_active')
+          .eq('id', user.id)
+          .single();
+
+        if (profile && profile.is_active) {
+          request.supabaseUser = {
+            id: user.id,
+            email: user.email,
+            role: profile.role,
+            member_id: profile.member_id,
+            is_first_login: profile.is_first_login,
+          };
+          return; // Supabase authentication successful
+        }
+      }
+    }
+
+    // Fall back to legacy JWT if Supabase fails or token is missing
     try {
       await request.jwtVerify();
+      const payload = request.user as any;
+      request.supabaseUser = {
+        id: payload.userId || payload.sub,
+        email: '',
+        role: payload.role,
+        member_id: payload.sub,
+        is_first_login: false,
+      };
     } catch (err) {
-      // Fall back to Supabase auth
-      try {
-        await (fastify as any).authenticateSupabase(request, reply);
-      } catch {
-        reply.send(err);
-      }
+      reply.code(401).send({ error: 'Authentication required' });
     }
   });
 

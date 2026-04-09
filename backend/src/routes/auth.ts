@@ -9,32 +9,50 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
   // ============================================
   // Supabase Auth - Get current user profile
   // ============================================
-  fastify.get('/me', { preValidation: [(fastify as any).authenticateSupabase] }, async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/me', { preValidation: [(fastify as any).authenticate] }, async (request: FastifyRequest, reply: FastifyReply) => {
     const user = (request as any).supabaseUser;
     const supabase = getSupabase();
 
-    // Fetch profile with member data if linked
-    const { data: profile, error } = await supabase
+    let profile;
+    let autoLinked = false;
+
+    // Fetch profile
+    const { data: initialProfile } = await supabase
       .from('profiles')
-      .select(`
-        id,
-        role,
-        member_id,
-        is_first_login,
-        is_active,
-        members (
-          id,
-          first_name,
-          last_name,
-          email
-        )
-      `)
+      .select('id, role, member_id, is_first_login, is_active')
       .eq('id', user.id)
       .single();
 
-    if (error || !profile) {
+    profile = initialProfile;
+
+    // Auto-link logic if member_id is missing
+    if (profile && !profile.member_id && user.email) {
+      const { data: matchedMember } = await supabase
+        .from('members')
+        .select('id')
+        .ilike('email', user.email)
+        .maybeSingle();
+
+      if (matchedMember) {
+        profile.member_id = matchedMember.id;
+        profile.is_first_login = false;
+        autoLinked = true;
+
+        await supabase
+          .from('profiles')
+          .update({ member_id: matchedMember.id, is_first_login: false })
+          .eq('id', user.id);
+      }
+    }
+
+    if (!profile) {
       return reply.code(404).send({ error: 'Profile not found' });
     }
+
+    // Fetch members block explicitly because the original single query via join might be empty if member_id was missing during evaluation
+    const { data: memberData } = profile.member_id 
+      ? await supabase.from('members').select('id, first_name, last_name, email').eq('id', profile.member_id).single()
+      : { data: null };
 
     reply.send({
       id: user.id,
@@ -42,7 +60,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       role: profile.role,
       member_id: profile.member_id,
       is_first_login: profile.is_first_login,
-      member: (profile as any).members || null,
+      member: memberData || null,
     });
   });
 
@@ -73,7 +91,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
   // ============================================
   // Supabase Auth - Link profile to member record
   // ============================================
-  fastify.put('/link-member', { preValidation: [(fastify as any).authenticateSupabase] }, async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.put('/link-member', { preValidation: [(fastify as any).authenticate] }, async (request: FastifyRequest, reply: FastifyReply) => {
     const user = (request as any).supabaseUser;
     const { member_id } = request.body as { member_id: string };
 
