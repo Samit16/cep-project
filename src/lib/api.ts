@@ -11,7 +11,11 @@ export class ApiClient {
     };
 
     if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('kjo_token');
+      let token = localStorage.getItem('kjo_token');
+      if (!token) {
+        const match = document.cookie.match(new RegExp('(^| )sb-uevmyvwbmxqreyukbvkq-auth-token=([^;]+)'));
+        if (match) token = match[2];
+      }
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }

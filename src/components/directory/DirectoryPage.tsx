@@ -23,7 +23,7 @@ function getAvatarColor(name: string) {
 }
 
 interface Member {
-  _id: string;
+  id: string;
   name: string;
   occupation?: string;
   current_place?: string;
@@ -74,6 +74,45 @@ export default function DirectoryPage() {
   useEffect(() => {
     loadMembers();
   }, [loadMembers]);
+
+  // Treat back button as logout — push one state to absorb the first press,
+  // then on popstate, sign the user out and replace history (kills forward button)
+  useEffect(() => {
+    // 1. Prevent BFCache — pages with beforeunload listeners are excluded from BFCache.
+    //    This ensures that pressing forward to this page makes a fresh HTTP request
+    //    (which the middleware will catch and redirect to /login if unauthenticated).
+    const preventBFCache = () => {};
+    window.addEventListener('beforeunload', preventBFCache);
+
+    // 2. Handle BFCache restoration as a fallback (shouldn't normally happen)
+    const handlePageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) {
+        // Page was restored from cache — check auth immediately
+        const hasAuth = document.cookie.split(';').some(c =>
+          c.trim().startsWith('sb-uevmyvwbmxqreyukbvkq-auth-token=')
+        );
+        if (!hasAuth) window.location.replace('/login');
+      }
+    };
+    window.addEventListener('pageshow', handlePageShow);
+
+    // 3. Back button = logout: push one absorber entry, then on popstate clear session
+    window.history.pushState({ isApp: true }, '', window.location.href);
+    const handleBackButton = () => {
+      Object.keys(localStorage).filter(k => k.startsWith('sb-')).forEach(k => localStorage.removeItem(k));
+      localStorage.removeItem('kjo_token');
+      document.cookie = 'sb-uevmyvwbmxqreyukbvkq-auth-token=; path=/; max-age=0;';
+      document.cookie = 'kjo_token=; Max-Age=0; path=/;';
+      window.location.replace('/');
+    };
+    window.addEventListener('popstate', handleBackButton);
+
+    return () => {
+      window.removeEventListener('beforeunload', preventBFCache);
+      window.removeEventListener('pageshow', handlePageShow);
+      window.removeEventListener('popstate', handleBackButton);
+    };
+  }, []);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
@@ -164,7 +203,7 @@ export default function DirectoryPage() {
       ) : members.length > 0 ? (
         <>
           <motion.div 
-            className={styles.memberGrid}
+            className={viewMode === 'grid' ? styles.memberGrid : styles.memberList}
             initial="hidden"
             animate="show"
             variants={{
@@ -179,7 +218,7 @@ export default function DirectoryPage() {
           >
             {members.map((member) => (
               <motion.div 
-                key={member._id} 
+                key={member.id} 
                 className={styles.memberCard}
                 variants={{
                   hidden: { opacity: 0, y: 20 },
@@ -205,7 +244,7 @@ export default function DirectoryPage() {
                     <MapPin size={14} className={styles.locationIcon} />
                     {member.current_place || 'Unknown'}
                   </p>
-                  <Link href={`/directory/${member._id}`} className={styles.viewProfileBtn}>
+                  <Link href={`/directory/${member.id}`} className={styles.viewProfileBtn}>
                     View Basic Profile
                   </Link>
                 </div>

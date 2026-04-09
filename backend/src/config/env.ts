@@ -12,6 +12,10 @@ interface Config {
   csvBatchSize: number;
   databaseUrl: string;
   port: number;
+  // Supabase
+  supabaseUrl: string;
+  supabaseAnonKey: string;
+  supabaseServiceKey: string;
 }
 
 const config: Config = {
@@ -24,6 +28,10 @@ const config: Config = {
   csvBatchSize: parseInt(process.env.CSV_BATCH_SIZE || '100', 10),
   databaseUrl: process.env.DATABASE_URL || 'mongodb://localhost:27017/kvjos_nagpur',
   port: parseInt(process.env.PORT || '3001', 10),
+  // Supabase
+  supabaseUrl: process.env.SUPABASE_URL || '',
+  supabaseAnonKey: process.env.SUPABASE_ANON_KEY || '',
+  supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
 };
 
 export default config;

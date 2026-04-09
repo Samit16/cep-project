@@ -1,72 +1,137 @@
 import { FastifyPluginAsync } from 'fastify';
-import { encryptField } from '../plugins/encryption';
 import { getPagination } from '../utils/pagination';
+import getSupabase from '../config/supabase';
 
 const adminRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.addHook('preValidation', (fastify as any).requireRole(['admin', 'committee']));
 
-  // List members
+  // List members (Supabase)
   fastify.get('/members', async (request, reply) => {
     const { skip, take } = getPagination(request.query);
     const { name } = request.query as any;
-    const query: any = {};
+    const supabase = getSupabase();
+
+    let query = supabase
+      .from('members')
+      .select('*')
+      .range(skip, skip + take - 1);
+
     if (name) {
-      query.$or = [
-        { first_name: { $regex: name, $options: 'i' } },
-        { last_name: { $regex: name, $options: 'i' } },
-      ];
+      query = query.or(`first_name.ilike.%${name}%,last_name.ilike.%${name}%`);
     }
-    const members = await (fastify as any).models.Member.find(query)
-      .skip(skip)
-      .limit(take)
-      .lean();
-    const result = members.map((m: any) => ({
-      ...m,
-      name: `${m.first_name || ''} ${m.last_name || ''}`.trim(),
-    }));
+
+    const { data: members, error } = await query;
+
+    if (error) {
+      return reply.code(500).send({ error: 'Failed to fetch members' });
+    }
+
+    const result = (members || []).map((m: any) => {
+      const firstName = m.first_name || m.NAME || '';
+      const lastName = m.last_name || m['LAST NAME'] || '';
+      const fullName = `${firstName} ${lastName}`.trim();
+      return {
+        ...m,
+        name: fullName || 'Unknown Member',
+      };
+    });
+
     reply.send(result);
   });
 
-  // Create member
+  // Create member (Supabase)
   fastify.post('/members', async (request, reply) => {
     const data = request.body as any;
-    const encrypted = {
-      ...data,
-      contact_numbers: data.contact_numbers?.map((num: string) => encryptField(num)) || [],
-    };
-    const member = await (fastify as any).models.Member.create(encrypted);
+    const supabase = getSupabase();
+
+    const { data: member, error } = await supabase
+      .from('members')
+      .insert({
+        first_name: data.first_name,
+        last_name: data.last_name,
+        address: data.address,
+        contact_numbers: data.contact_numbers || [],
+        email: data.email,
+        occupation: data.occupation,
+        marital_status: data.marital_status,
+        current_place: data.current_place,
+        kutch_town: data.kutch_town,
+        family_members: data.family_members || [],
+        is_alive: data.is_alive ?? true,
+        active: data.active ?? true,
+        contact_visibility: data.contact_visibility || 'private',
+      })
+      .select()
+      .single();
+
+    if (error) {
+      return reply.code(500).send({ error: 'Failed to create member', details: error.message });
+    }
+
     reply.code(201).send(member);
   });
 
-  // Update member
+  // Update member (Supabase)
   fastify.put('/members/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
     const data = request.body as any;
-    const encrypted = {
-      ...data,
-      contact_numbers: data.contact_numbers ? data.contact_numbers.map((num: string) => encryptField(num)) : undefined,
-    };
-    const member = await (fastify as any).models.Member.findByIdAndUpdate(id, encrypted, { new: true });
+    const supabase = getSupabase();
+
+    const { data: member, error } = await supabase
+      .from('members')
+      .update(data)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      return reply.code(500).send({ error: 'Failed to update member', details: error.message });
+    }
+
     reply.send(member);
   });
 
-  // Deactivate
+  // Deactivate member (Supabase)
   fastify.patch('/members/:id/deactivate', async (request, reply) => {
     const { id } = request.params as { id: string };
-    const member = await (fastify as any).models.Member.findByIdAndUpdate(id, { active: false }, { new: true });
-    await (fastify as any).models.AuditLog.create({
-      memberId: id,
+    const user = (request as any).supabaseUser;
+    const supabase = getSupabase();
+
+    const { data: member, error } = await supabase
+      .from('members')
+      .update({ active: false })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      return reply.code(500).send({ error: 'Failed to deactivate member' });
+    }
+
+    // Log the deactivation
+    await supabase.from('audit_logs').insert({
+      user_id: user?.id || null,
+      member_id: id,
       action: 'deactivate',
-      createdAt: new Date(),
     });
+
     reply.send(member);
   });
 
-  // Export CSV
+  // Export CSV (Supabase)
   fastify.get('/members/export', async (request, reply) => {
-    const members = await (fastify as any).models.Member.find({}).lean();
+    const supabase = getSupabase();
+
+    const { data: members, error } = await supabase
+      .from('members')
+      .select('*');
+
+    if (error) {
+      return reply.code(500).send({ error: 'Failed to export members' });
+    }
+
     const csvHeader = ['First Name', 'Last Name', 'Address', 'Contact Numbers', 'Email', 'Occupation', 'Town', 'Status'].join(',');
-    const csvRows = members
+    const csvRows = (members || [])
       .map((m: any) => [
         `"${m.first_name}"`,
         `"${m.last_name}"`,
@@ -78,24 +143,27 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
         m.is_alive ?? true ? 'Alive' : 'Deceased',
       ].join(','))
       .join('\n');
+
     reply.header('Content-Type', 'text/csv').send(`${csvHeader}\n${csvRows}`);
   });
 
-  // Audit logs
+  // Audit logs (Supabase)
   fastify.get('/audit-logs', async (request, reply) => {
-    const logs = await (fastify as any).models.AuditLog.find({})
-      .sort({ createdAt: -1 })
-      .limit(100)
-      .lean();
+    const supabase = getSupabase();
+
+    const { data: logs, error } = await supabase
+      .from('audit_logs')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(100);
+
+    if (error) {
+      return reply.code(500).send({ error: 'Failed to fetch audit logs' });
+    }
+
     reply.send(logs);
   });
 
-  // Approve update - logic shifted slightly as we don't have a dedicated updateRequest model 
-  // We'll assume these are approved by checking AuditLogs or a similar mechanism 
-  // For now, let's just stub this for Mongoose compatibility
-  fastify.put('/update-requests/:id/approve', async (request, reply) => {
-    reply.code(501).send({ error: 'Update requests feature refactoring in progress' });
-  });
 };
 
 export default adminRoutes;

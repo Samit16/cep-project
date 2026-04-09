@@ -1,29 +1,19 @@
 import Fastify from 'fastify';
 import config from './config/env';
-import redis from './config/redis';
 import { logger } from './utils/logger';
 import authPlugin from './plugins/auth';
 import corsPlugin from './plugins/cors';
 import csrfPlugin from './plugins/csrf';
 import rateLimitPlugin from './plugins/rateLimit';
 import multipartPlugin from './plugins/multipart';
-import { connectDB } from './config/db';
-import Member from './models/Member';
-import Admin from './models/Admin';
-import Event from './models/Event';
-import AuditLog from './models/AuditLog';
-import CsvImportError from './models/CsvImportError';
-import User from './models/User';
-import SystemSetting from './models/SystemSetting';
+import getSupabase from './config/supabase';
 
-import { bulkUploadQueue } from './plugins/redisQueue';
 import authRoutes from './routes/auth';
 import memberRoutes from './routes/members';
 import adminRoutes from './routes/admin';
 import eventRoutes from './routes/events';
-import bulkUploadRoutes from './routes/bulkUpload';
 
-const models = { Member, Admin, Event, AuditLog, CsvImportError, User, SystemSetting };
+
 
 const server = Fastify({
   logger: {
@@ -37,8 +27,15 @@ const server = Fastify({
 
 const start = async () => {
   try {
-    // Connect to MongoDB
-    await connectDB();
+    // Initialize Supabase client
+    try {
+      const supabase = getSupabase();
+      logger.info('Supabase client initialized successfully');
+    } catch (err) {
+      logger.warn({ err }, 'Supabase initialization failed. Supabase features will be unavailable.');
+    }
+
+
 
     // Register plugins
     try {
@@ -51,9 +48,6 @@ const start = async () => {
       logger.warn({ err: pluginErr }, 'Some plugins failed to load. Continuing in manual test mode...');
     }
 
-    // Decorate Fastify instance with shared objects
-    server.decorate('models', models);
-    server.decorate('redis', redis as any);
     server.decorate('config', config);
 
     // Register routes (prefixes)
@@ -61,7 +55,6 @@ const start = async () => {
     await server.register(memberRoutes, { prefix: '/api/members' });
     await server.register(adminRoutes, { prefix: '/api/admin' });
     await server.register(eventRoutes, { prefix: '/api/events' });
-    await server.register(bulkUploadRoutes, { prefix: '/api/admin' });
 
     const addr = await server.listen({ port: 3001, host: '0.0.0.0' });
     logger.info(`Server listening on ${addr}`);
@@ -75,8 +68,6 @@ const start = async () => {
 const shutdown = async () => {
   try {
     await server.close();
-    if (bulkUploadQueue) await bulkUploadQueue.close();
-    if (redis) await redis.quit();
     logger.info('Graceful shutdown complete');
     process.exit(0);
   } catch (e) {

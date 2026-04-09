@@ -1,35 +1,86 @@
 import { FastifyPluginAsync } from 'fastify';
 import { getPagination } from '../utils/pagination';
+import getSupabase from '../config/supabase';
 
 const eventsRoutes: FastifyPluginAsync = async (fastify) => {
-  // Public GET
+  // Public GET (Supabase)
   fastify.get('/', async (request, reply) => {
     const { skip, take } = getPagination(request.query);
-    const events = await (fastify as any).models.Event.find({})
-      .skip(skip)
-      .limit(take)
-      .lean();
+    const supabase = getSupabase();
+
+    const { data: events, error } = await supabase
+      .from('events')
+      .select('*')
+      .order('date', { ascending: false })
+      .range(skip, skip + take - 1);
+
+    if (error) {
+      return reply.code(500).send({ error: 'Failed to fetch events' });
+    }
+
     reply.send(events);
   });
 
-  // Admin writes
-  fastify.post('/', { preValidation: [fastify.requireRole('admin')] }, async (request, reply) => {
+  // Admin creates event (Supabase)
+  fastify.post('/', { preValidation: [(fastify as any).requireRole('admin')] }, async (request, reply) => {
     const data = request.body as any;
-    const event = await (fastify as any).models.Event.create(data);
+    const supabase = getSupabase();
+
+    const { data: event, error } = await supabase
+      .from('events')
+      .insert({
+        title: data.title,
+        description: data.description,
+        date: data.date,
+        location: data.location,
+        is_public: data.isPublic ?? data.is_public ?? true,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      return reply.code(500).send({ error: 'Failed to create event', details: error.message });
+    }
+
     reply.code(201).send(event);
   });
 
-  fastify.put('/:id', { preValidation: [fastify.requireRole('admin')] }, async (request, reply) => {
+  // Admin updates event (Supabase)
+  fastify.put('/:id', { preValidation: [(fastify as any).requireRole('admin')] }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const data = request.body as any;
-    const event = await (fastify as any).models.Event.findByIdAndUpdate(id, data, { new: true });
+    const supabase = getSupabase();
+
+    const { data: event, error } = await supabase
+      .from('events')
+      .update(data)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      return reply.code(500).send({ error: 'Failed to update event', details: error.message });
+    }
+
     reply.send(event);
   });
 
-  fastify.delete('/:id', { preValidation: [fastify.requireRole('admin')] }, async (request, reply) => {
+  // Admin deletes event (Supabase)
+  fastify.delete('/:id', { preValidation: [(fastify as any).requireRole('admin')] }, async (request, reply) => {
     const { id } = request.params as { id: string };
-    await (fastify as any).models.Event.findByIdAndDelete(id);
+    const supabase = getSupabase();
+
+    const { error } = await supabase
+      .from('events')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      return reply.code(500).send({ error: 'Failed to delete event' });
+    }
+
     reply.send({ message: 'Deleted' });
   });
 };
+
 export default eventsRoutes;

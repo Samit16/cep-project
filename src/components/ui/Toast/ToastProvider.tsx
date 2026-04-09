@@ -1,10 +1,10 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import { CheckCircle2, XCircle, X } from 'lucide-react';
+import { CheckCircle2, XCircle, X, Info, AlertTriangle } from 'lucide-react';
 import styles from './Toast.module.css';
 
-type ToastType = 'success' | 'error';
+type ToastType = 'success' | 'error' | 'info' | 'warning';
 
 interface ToastMessage {
   id: string;
@@ -41,7 +41,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {toasts.map((t) => (
           <div key={t.id} className={`${styles.toast} ${styles[t.type]}`}>
             <div className={styles.icon}>
-              {t.type === 'success' ? <CheckCircle2 size={18} /> : <XCircle size={18} />}
+              {t.type === 'success' && <CheckCircle2 size={18} />}
+              {t.type === 'error' && <XCircle size={18} />}
+              {t.type === 'info' && <Info size={18} />}
+              {t.type === 'warning' && <AlertTriangle size={18} />}
             </div>
             <p className={styles.message}>{t.message}</p>
             <button onClick={() => removeToast(t.id)} className={styles.closeBtn}>

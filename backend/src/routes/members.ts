@@ -1,86 +1,117 @@
 import { FastifyPluginAsync } from 'fastify';
 import { getPagination } from '../utils/pagination';
 import { decryptField, encryptField } from '../plugins/encryption';
+import getSupabase from '../config/supabase';
 
 const memberRoutes: FastifyPluginAsync = async (fastify) => {
-  fastify.addHook('preValidation', fastify.authenticate);
+  fastify.addHook('preValidation', (fastify as any).authenticateSupabase);
 
-  // GET paginated list with search filters
+  // GET paginated list with search filters (Supabase)
   fastify.get('/', async (request, reply) => {
     const { skip, take } = getPagination(request.query);
     const { name, city, occupation } = request.query as any;
+    const supabase = getSupabase();
 
-    const query: any = { active: { $ne: false } };
+    let query = supabase
+      .from('members')
+      .select('*')
+      .eq('active', true)
+      .range(skip, skip + take - 1);
+
     if (name) {
-      query.$or = [
-        { first_name: { $regex: name, $options: 'i' } },
-        { last_name: { $regex: name, $options: 'i' } },
-      ];
+      query = query.or(`first_name.ilike.%${name}%,last_name.ilike.%${name}%,NAME.ilike.%${name}%,"LAST NAME".ilike.%${name}%`);
     }
-    if (city) query.current_place = city; 
-    if (occupation) query.occupation = occupation;
+    if (city) {
+      query = query.eq('current_place', city);
+    }
+    if (occupation) {
+      query = query.eq('occupation', occupation);
+    }
 
-    const members = await (fastify as any).models.Member.find(query)
-      .skip(skip)
-      .limit(take)
-      .lean();
+    const { data: members, error } = await query;
 
-    const result = members.map((m: any) => {
+    if (error) {
+      return reply.code(500).send({ error: 'Failed to fetch members' });
+    }
+
+    const result = (members || []).map((m: any) => {
       const isPublic = m.contact_visibility === 'public';
+      const firstName = m.first_name || m.NAME || '';
+      const lastName = m.last_name || m['LAST NAME'] || '';
       return {
         ...m,
-        name: `${m.first_name || ''} ${m.last_name || ''}`.trim(),
-        // Only expose contacts if the member opted for public visibility
-        contact_numbers: isPublic
-          ? (m.contact_numbers || []).map((num: string) => decryptField(num))
-          : [],
+        id: m.id,
+        name: `${firstName} ${lastName}`.trim(),
+        address: m.address || m.ADDRESS || '',
+        contact_numbers: isPublic ? (m.contact_numbers || []) : [],
       };
     });
 
     reply.send(result);
   });
 
-  // GET by ID
+  // GET by ID (Supabase)
   fastify.get('/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
-    const member = await (fastify as any).models.Member.findById(id).lean();
-    if (!member) return reply.code(404).send({ error: 'Not found' });
+    const user = (request as any).supabaseUser;
+    const supabase = getSupabase();
 
-    const payload = request.user as any;
-    const encryptedSub = encryptField(payload.sub);
-    const isOwner = member.contact_numbers.includes(encryptedSub);
+    const { data: member, error } = await supabase
+      .from('members')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error || !member) {
+      return reply.code(404).send({ error: 'Not found' });
+    }
+
+    const isOwner = user.member_id === member.id;
     const visible = member.contact_visibility === 'public' || isOwner;
 
     const response = {
       ...member,
-      contact_numbers: visible ? member.contact_numbers.map((num: string) => decryptField(num)) : [],
+      contact_numbers: visible ? (member.contact_numbers || []) : [],
     };
+
     reply.send(response);
   });
 
-  // GET /me
+  // GET /me (Supabase) - get current user's member profile
   fastify.get('/me', async (request, reply) => {
-    const payload = request.user as any;
-    const encryptedSub = encryptField(payload.sub);
-    const member = await (fastify as any).models.Member.findOne({ contact_numbers: encryptedSub }).lean();
-    if (!member) return reply.code(404).send({ error: 'Not found' });
-    const result = {
-      ...member,
-      contact_numbers: member.contact_numbers.map((num: string) => decryptField(num)),
-    };
-    reply.send(result);
+    const user = (request as any).supabaseUser;
+
+    if (!user.member_id) {
+      return reply.code(404).send({ error: 'No member profile linked to your account' });
+    }
+
+    const supabase = getSupabase();
+    const { data: member, error } = await supabase
+      .from('members')
+      .select('*')
+      .eq('id', user.member_id)
+      .single();
+
+    if (error || !member) {
+      return reply.code(404).send({ error: 'Not found' });
+    }
+
+    reply.send(member);
   });
 
-  // PUT /me/update-request
+  // PUT /me/update-request (Supabase)
   fastify.put('/me/update-request', async (request, reply) => {
-    const payload = request.user as any;
+    const user = (request as any).supabaseUser;
     const changes = request.body;
-    await (fastify as any).models.AuditLog.create({
-      memberId: payload.sub,
+    const supabase = getSupabase();
+
+    await supabase.from('audit_logs').insert({
+      user_id: user.id,
+      member_id: user.member_id,
       action: 'update-request',
-      payload: JSON.stringify(changes),
-      createdAt: new Date(),
+      payload: changes,
     });
+
     reply.send({ message: 'Update request recorded' });
   });
 };

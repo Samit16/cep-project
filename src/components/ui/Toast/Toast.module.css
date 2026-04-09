@@ -32,12 +32,24 @@
   color: var(--color-status-verified);
 }
 
-.error {
-  border-left-color: var(--color-primary);
-}
-
 .error .icon {
   color: var(--color-primary);
+}
+
+.info {
+  border-left-color: #3b82f6;
+}
+
+.info .icon {
+  color: #3b82f6;
+}
+
+.warning {
+  border-left-color: #f59e0b;
+}
+
+.warning .icon {
+  color: #f59e0b;
 }
 
 .message {

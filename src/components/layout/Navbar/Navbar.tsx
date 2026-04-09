@@ -5,6 +5,7 @@ import { Search, User, Home } from 'lucide-react';
 import styles from './Navbar.module.css';
 import { useAuth } from '@/lib/auth-context';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 interface NavbarProps {
   variant?: 'public' | 'admin';
@@ -18,21 +19,26 @@ export default function Navbar({
   showSearch = false,
 }: NavbarProps) {
   const { user, role, logout } = useAuth();
+  const pathname = usePathname();
 
-  const handleLogout = (e: React.MouseEvent) => {
+  const handleLogout = async (e: React.MouseEvent) => {
     e.preventDefault();
-    logout();
+    await logout();
+    window.location.replace('/');
   };
 
   const links = [
-    { label: 'Directory', href: '/directory' },
-    { label: 'About', href: '/about' },
-    { label: 'Archives', href: '/#archives' },
+    ...(pathname !== '/login' ? [
+      { label: 'About', href: '/about', public: true },
+      { label: 'Archives', href: '/home#archives', public: true },
+    ] : []),
+    // Directory is only visible when logged in
+    ...(user ? [{ label: 'Directory', href: '/directory', public: false }] : []),
   ];
 
   return (
     <nav className={styles.navbar} role="navigation" aria-label="Main navigation">
-      <Link href="/" className={styles.logo} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <Link href="/home" className={styles.logo} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <Home size={24} />
         KVO Nagpur
       </Link>
@@ -74,7 +80,7 @@ export default function Navbar({
           <button className={styles.joinBtn} onClick={handleLogout}>
             Logout
           </button>
-        ) : (
+        ) : pathname !== '/login' ? (
           <>
             <Link href="/login" className={styles.memberLoginBtn}>
               Login
@@ -83,7 +89,7 @@ export default function Navbar({
               Join Us
             </Link>
           </>
-        )}
+        ) : null}
       </div>
     </nav>
   );

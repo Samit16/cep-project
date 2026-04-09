@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Pencil, Eye, ShieldCheck, Mail, Phone, MapPin, CheckCircle2 } from 'lucide-react';
+import { Pencil, Eye, ShieldCheck, Mail, Phone, MapPin, CheckCircle2, LogOut } from 'lucide-react';
 import styles from './ProfilePage.module.css';
 import { ApiClient } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
@@ -43,8 +43,14 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   
-  const { user } = useAuth();
+  const { user, profile, role, logout } = useAuth();
   const { toast } = useToast();
+
+  const handleLogout = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    await logout();
+    window.location.replace('/');
+  };
 
   useEffect(() => {
     async function loadData() {
@@ -74,6 +80,9 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
   const firstName = nameParts[0];
   const lastName = nameParts.slice(1).join(' ');
   const initials = (member.name || '?').split(' ').map(n => n?.[0]).join('');
+
+  const isMyProfile = !memberId || memberId === 'me' || profile?.member_id === member._id;
+  const canEdit = isMyProfile || role === 'admin' || role === 'committee';
   
   return (
     <motion.div 
@@ -121,21 +130,25 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
             A valued member of the KVO Nagpur community.
           </motion.p>
           <div className={styles.profileActions}>
-            <motion.button 
-              className={styles.editProfileBtn} 
-              onClick={() => setIsUpdateModalOpen(true)}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <Pencil size={16} /> Request Update
-            </motion.button>
-            <motion.button 
-              className={styles.privacyBtn}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <Eye size={16} /> View Privacy Settings
-            </motion.button>
+            {canEdit && (
+              <motion.button 
+                className={styles.editProfileBtn} 
+                onClick={() => setIsUpdateModalOpen(true)}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Pencil size={16} /> Request Update
+              </motion.button>
+            )}
+            {isMyProfile && (
+              <motion.button 
+                className={styles.privacyBtn}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Eye size={16} /> View Privacy Settings
+              </motion.button>
+            )}
           </div>
         </div>
       </div>
@@ -230,6 +243,26 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
           </p>
         </div>
       </motion.div>
+
+      {/* Logout Button */}
+      {isMyProfile && (
+        <div style={{ marginTop: '3rem', display: 'flex', justifyContent: 'center' }}>
+          <motion.button
+            onClick={handleLogout}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '8px', 
+              padding: '12px 24px', background: 'var(--color-bg-card)', 
+              border: '1px solid var(--color-border)', borderRadius: '8px', 
+              color: '#dc2626', fontWeight: 600, cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <LogOut size={16} /> Logout
+          </motion.button>
+        </div>
+      )}
 
       {isUpdateModalOpen && (
         <ProfileUpdateModal 

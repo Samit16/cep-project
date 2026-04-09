@@ -3,7 +3,7 @@ import fp from 'fastify-plugin';
 
 const rateLimitPlugin: FastifyPluginAsync = async (fastify) => {
   try {
-    // Use in-memory store if Redis is unavailable, Redis store otherwise
+    // Use in-memory store
     const rateOpts: any = {
       max: 100,
       timeWindow: '1 minute',
@@ -11,10 +11,6 @@ const rateLimitPlugin: FastifyPluginAsync = async (fastify) => {
       continueExceeding: true,
       skipOnError: true,
     };
-
-    if ((fastify as any).redis) {
-      rateOpts.redis = (fastify as any).redis;
-    }
 
     await fastify.register(require('@fastify/rate-limit'), rateOpts);
   } catch (err) {
