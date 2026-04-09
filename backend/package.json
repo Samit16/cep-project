@@ -16,7 +16,7 @@
     "@fastify/jwt": "^9.0.0",
     "@fastify/multipart": "^9.0.0",
     "@fastify/rate-limit": "^10.0.0",
-    "@supabase/supabase-js": "^2.102.1",
+    "@supabase/supabase-js": "^2.103.0",
     "bcrypt": "^5.1.0",
     "csv-parse": "^5.5.0",
     "dotenv": "^16.4.5",
@@ -26,7 +26,6 @@
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.0",
-
     "@types/node": "^20.11.30",
     "@types/pino": "^7.0.5",
     "pino-pretty": "^11.0.0",

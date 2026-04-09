@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
   LayoutDashboard, Users, Calendar, LogOut, 
   Search, Download, UserPlus, TrendingUp, ClipboardList, 
-  ShieldCheck, Pencil, MoreVertical, User, Plus, Trash2, X, MapPin
+  ShieldCheck, Pencil, MoreVertical, User, Plus, Trash2, X, MapPin, Activity
 } from 'lucide-react';
 import styles from './AdminDashboard.module.css';
 import Footer from '@/components/layout/Footer/Footer';
@@ -65,6 +65,8 @@ export default function AdminDashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   
   const [events, setEvents] = useState<EventItem[]>(defaultEvents);
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
@@ -121,9 +123,22 @@ export default function AdminDashboard() {
 
   // Debounce search
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 500);
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300);
     return () => clearTimeout(timer);
   }, [searchQuery]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpenMenuId(null);
+      }
+    };
+    if (openMenuId) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openMenuId]);
 
   const loadMembers = useCallback(async () => {
     if (role !== 'admin' && role !== 'committee') return;
@@ -136,7 +151,6 @@ export default function AdminDashboard() {
   }, [role, debouncedSearch, toast]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadMembers();
   }, [loadMembers]);
 
@@ -196,7 +210,12 @@ export default function AdminDashboard() {
     return <div style={{ padding: '4rem', textAlign: 'center' }}>Loading Workspace...</div>;
   }
 
-  const tableMembers = members;
+  // Client-side filter as a fallback in case backend search doesn't respond to query changes
+  const tableMembers = useMemo(() => {
+    if (!debouncedSearch) return members;
+    const q = debouncedSearch.toLowerCase();
+    return members.filter(m => m.name?.toLowerCase().includes(q) || m.email?.toLowerCase().includes(q));
+  }, [members, debouncedSearch]);
 
   return (
     <div className={styles.adminLayout}>
@@ -309,6 +328,9 @@ export default function AdminDashboard() {
               <div className={styles.statIconWrapper} style={{ backgroundColor: '#f0fdf4' }}>
                 <ShieldCheck size={20} color="#16a34a" />
               </div>
+              <span className={`${styles.statTrend} ${styles.statTrendNeutral}`}>
+                {members.length > 0 ? Math.round((members.filter(m => m.active).length / members.length) * 100) : 0}%
+              </span>
             </div>
             <div className={styles.statValue}>
               {members.filter(m => m.active).length}
@@ -319,13 +341,90 @@ export default function AdminDashboard() {
           <div className={styles.statCard}>
             <div className={styles.statCardHeader}>
               <div className={styles.statIconWrapper} style={{ backgroundColor: '#eff6ff' }}>
-                <Calendar size={20} color="#2563eb" />
+                <MapPin size={20} color="#2563eb" />
               </div>
             </div>
             <div className={styles.statValue}>
               {new Set(members.map(m => m.current_place).filter(Boolean)).size}
             </div>
             <div className={styles.statLabel}>Global Cities Represented</div>
+          </div>
+
+          <div className={styles.statCard}>
+            <div className={styles.statCardHeader}>
+              <div className={styles.statIconWrapper} style={{ backgroundColor: '#faf5ff' }}>
+                <Activity size={20} color="#7c3aed" />
+              </div>
+            </div>
+            <div className={styles.statValue}>
+              {members.length > 0
+                ? Math.round((members.filter(m => m.updated_at && m.created_at && m.updated_at !== m.created_at).length / members.length) * 100)
+                : 0}%
+            </div>
+            <div className={styles.statLabel}>Profile Completion Rate</div>
+          </div>
+        </div>
+        )}
+
+        {/* Member Insights */}
+        {activeTab === 'members' && members.length > 0 && (
+        <div className={styles.insightsSection}>
+          <div className={styles.insightCard}>
+            <h3 className={styles.insightTitle}>Activity Overview</h3>
+            <div className={styles.insightBody}>
+              <div className={styles.insightRow}>
+                <span className={styles.insightLabel}>Active members</span>
+                <span className={styles.insightValue}>{members.filter(m => m.active).length}</span>
+              </div>
+              <div className={styles.insightRow}>
+                <span className={styles.insightLabel}>Profiles updated</span>
+                <span className={styles.insightValue}>
+                  {members.filter(m => m.updated_at && m.created_at && m.updated_at !== m.created_at).length}
+                </span>
+              </div>
+              <div className={styles.insightRow}>
+                <span className={styles.insightLabel}>With contact info</span>
+                <span className={styles.insightValue}>
+                  {members.filter(m => m.contact_numbers && m.contact_numbers.length > 0).length}
+                </span>
+              </div>
+              <div className={styles.insightRow}>
+                <span className={styles.insightLabel}>Pending updates</span>
+                <span className={styles.insightValue}>
+                  {members.filter(m => !m.updated_at || m.updated_at === m.created_at).length}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className={styles.insightCard}>
+            <h3 className={styles.insightTitle}>Top Cities</h3>
+            <div className={styles.insightBody}>
+              {(() => {
+                const cityCount: Record<string, number> = {};
+                members.forEach(m => {
+                  const city = m.current_place || 'Unknown';
+                  cityCount[city] = (cityCount[city] || 0) + 1;
+                });
+                return Object.entries(cityCount)
+                  .sort(([,a], [,b]) => b - a)
+                  .slice(0, 5)
+                  .map(([city, count]) => (
+                    <div key={city} className={styles.insightRow}>
+                      <span className={styles.insightLabel}>
+                        <MapPin size={12} style={{ opacity: 0.5 }} /> {city}
+                      </span>
+                      <div className={styles.insightBarWrapper}>
+                        <div
+                          className={styles.insightBar}
+                          style={{ width: `${Math.min(100, (count / members.length) * 100 * 3)}%` }}
+                        />
+                        <span className={styles.insightValue}>{count}</span>
+                      </div>
+                    </div>
+                  ));
+              })()}
+            </div>
           </div>
         </div>
         )}
@@ -406,10 +505,41 @@ export default function AdminDashboard() {
                       );
                     })()}
                   </div>
-                  <div>
-                    <button className={styles.actionsBtn} aria-label="More actions">
+                  <div style={{ position: 'relative' }}>
+                    <button
+                      className={styles.actionsBtn}
+                      aria-label="More actions"
+                      aria-expanded={openMenuId === member.id}
+                      aria-haspopup="true"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenMenuId(prev => prev === member.id ? null : member.id);
+                      }}
+                    >
                       <MoreVertical size={16} />
                     </button>
+                    {openMenuId === member.id && (
+                      <div ref={menuRef} className={styles.dropdownMenu}>
+                        <button
+                          className={styles.dropdownItem}
+                          onClick={() => {
+                            setOpenMenuId(null);
+                            toast('Edit member feature coming soon.', 'info');
+                          }}
+                        >
+                          <Pencil size={14} /> Edit Member
+                        </button>
+                        <button
+                          className={`${styles.dropdownItem} ${styles.dropdownItemDanger}`}
+                          onClick={() => {
+                            setOpenMenuId(null);
+                            toast('Delete member feature coming soon.', 'info');
+                          }}
+                        >
+                          <Trash2 size={14} /> Delete Member
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))

@@ -39,11 +39,8 @@
   text-decoration: none;
   text-transform: uppercase;
   letter-spacing: var(--tracking-wide);
-  transition: color var(--transition-fast);
-}
-
-.footerLink:hover {
-  color: var(--color-primary);
+  cursor: default;
+  user-select: none;
 }
 
 .footerBottom {

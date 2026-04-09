@@ -16,9 +16,9 @@ export default function Footer() {
           <span className={styles.footerLogo}>KVO Nagpur</span>
           <div className={styles.footerLinks}>
             {links.map((link) => (
-              <a key={link.href} href={link.href} className={styles.footerLink}>
+              <span key={link.href} className={styles.footerLink}>
                 {link.label}
-              </a>
+              </span>
             ))}
           </div>
         </div>

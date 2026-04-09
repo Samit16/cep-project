@@ -260,6 +260,30 @@
   cursor: not-allowed;
 }
 
+/* Password visibility toggle */
+.passwordToggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  padding: 2px;
+  flex-shrink: 0;
+  transition: color var(--transition-fast);
+  border-radius: var(--radius-sm);
+}
+
+.passwordToggle:hover {
+  color: var(--color-text-primary);
+}
+
+.passwordToggle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 .googleIcon {
   width: 20px;
   height: 20px;
