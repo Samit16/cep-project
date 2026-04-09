@@ -5,14 +5,7 @@ import { X, Save, AlertCircle } from 'lucide-react';
 import styles from './ProfileUpdateModal.module.css';
 import { ApiClient } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
-
-interface Member {
-  _id: string;
-  occupation?: string;
-  marital_status?: string;
-  current_place?: string;
-  kutch_town?: string;
-}
+import { Member } from '@/types';
 
 interface ProfileUpdateModalProps {
   member: Member;
@@ -36,8 +29,8 @@ export default function ProfileUpdateModal({ member, onClose }: ProfileUpdateMod
       await ApiClient.put('/members/me/update-request', formData);
       toast('Update request submitted successfully. Awaiting committee approval.', 'success');
       onClose();
-    } catch (err: any) {
-      toast(err.message || 'Failed to submit update request', 'error');
+    } catch (err: unknown) {
+      toast((err as Error).message || 'Failed to submit update request', 'error');
     } finally {
       setIsSubmitting(false);
     }

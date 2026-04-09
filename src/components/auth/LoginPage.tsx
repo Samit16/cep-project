@@ -21,12 +21,9 @@ const GoogleIcon = () => (
 
 export default function LoginPage() {
   const [activeTab, setActiveTab] = useState<'member' | 'committee'>('member');
-  const [contactNo, setContactNo] = useState('');
-  const [otp, setOtp] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   
-  const [otpSent, setOtpSent] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   
@@ -67,8 +64,8 @@ export default function LoginPage() {
     try {
       await signInWithGoogle();
       // Redirect is handled by Supabase OAuth flow
-    } catch (err: any) {
-      toast(err.message || 'Google sign-in failed', 'error');
+    } catch (err: unknown) {
+      toast((err as Error).message || 'Google sign-in failed', 'error');
       setIsGoogleLoading(false);
     }
   };
@@ -85,8 +82,8 @@ export default function LoginPage() {
       await signInWithEmail(`${username}@kvonagpur.com`, password);
       toast('Login Successful!', 'success');
       router.push('/home');
-    } catch (err: any) {
-      toast(err.message || 'Invalid credentials', 'error');
+    } catch (err: unknown) {
+      toast((err as Error).message || 'Invalid credentials', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -104,8 +101,8 @@ export default function LoginPage() {
       await signInWithEmail(`${username}@kvonagpur.com`, password);
       toast('Login Successful: Welcome back', 'success');
       router.push('/home');
-    } catch (err: any) {
-      toast(err.message || 'Invalid credentials', 'error');
+    } catch (err: unknown) {
+      toast((err as Error).message || 'Invalid credentials', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -253,6 +250,7 @@ export default function LoginPage() {
       
       {/* Visual Identity Side */}
       <div className={styles.imageSide}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/images/history.png" alt="KVO Nagpur Heritage" className={styles.heritageImage} />
         <div className={styles.imageOverlay}>
           <h2>A Century of Unity</h2>

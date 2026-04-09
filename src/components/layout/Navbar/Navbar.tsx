@@ -14,7 +14,6 @@ interface NavbarProps {
 }
 
 export default function Navbar({
-  variant = 'public',
   activeLink = '',
   showSearch = false,
 }: NavbarProps) {

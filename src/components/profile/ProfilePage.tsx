@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Pencil, Eye, ShieldCheck, Mail, Phone, MapPin, CheckCircle2, LogOut } from 'lucide-react';
+import { Pencil, Eye, ShieldCheck, Mail, Phone, CheckCircle2, LogOut } from 'lucide-react';
 import styles from './ProfilePage.module.css';
 import { ApiClient } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
@@ -9,6 +9,7 @@ import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { ProfileSkeleton } from '@/components/ui/Skeleton/Skeleton';
 import ProfileUpdateModal from './ProfileUpdateModal';
 import { motion } from 'framer-motion';
+import { Member } from '@/types';
 
 const AVATAR_COLORS = ['#8B1A1A', '#C8956C', '#2D5F8B', '#4A7C59', '#7B5EA7', '#D4763C', '#3B8686', '#9B5DE5', '#E07A5F'];
 
@@ -24,28 +25,12 @@ interface ProfilePageProps {
   memberId?: string;
 }
 
-interface MemberDetail {
-  _id?: string;
-  id?: string;
-  name: string;
-  contact_no?: string;
-  contact_numbers?: string[];
-  email: string;
-  occupation?: string;
-  marital_status?: string;
-  current_place?: string;
-  kutch_town?: string;
-  family_members?: string[];
-  contact_visibility?: string;
-  active?: boolean;
-}
-
 export default function ProfilePage({ memberId }: ProfilePageProps) {
-  const [member, setMember] = useState<MemberDetail | null>(null);
+  const [member, setMember] = useState<Member | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   
-  const { user, profile, role, logout } = useAuth();
+  const { profile, role, logout } = useAuth();
   const { toast } = useToast();
 
   const handleLogout = async (e: React.MouseEvent) => {
@@ -59,10 +44,10 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
       setIsLoading(true);
       try {
         const endpoint = memberId ? `/members/${memberId}` : '/members/me';
-        const data = await ApiClient.get<MemberDetail>(endpoint);
+        const data = await ApiClient.get<Member>(endpoint);
         setMember(data);
-      } catch (err: any) {
-        toast(err.message || 'Failed to load profile', 'error');
+      } catch (err: unknown) {
+        toast((err as Error).message || 'Failed to load profile', 'error');
       } finally {
         setIsLoading(false);
       }

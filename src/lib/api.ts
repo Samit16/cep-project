@@ -78,7 +78,7 @@ export class ApiClient {
     return this.handleResponse<T>(response);
   }
 
-  static async post<T>(endpoint: string, body: any): Promise<T> {
+  static async post<T>(endpoint: string, body: unknown): Promise<T> {
     const isFormData = body instanceof FormData;
     const headers = this.getHeaders();
     if (isFormData) {
@@ -97,12 +97,12 @@ export class ApiClient {
       });
       clearTimeout(timeoutId);
       return await this.handleResponse<T>(response);
-    } catch (err: any) {
-      throw new Error(err.message || 'Network error or backend unreachable.');
+    } catch (err: unknown) {
+      throw new Error((err as Error).message || 'Network error or backend unreachable.');
     }
   }
 
-  static async put<T>(endpoint: string, body: any): Promise<T> {
+  static async put<T>(endpoint: string, body: unknown): Promise<T> {
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method: 'PUT',
       headers: this.getHeaders(),
