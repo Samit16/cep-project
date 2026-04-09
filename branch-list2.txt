@@ -1,6 +1,0 @@
-﻿* main
-  remotes/origin/HEAD -> origin/main
-  remotes/origin/backend
-  remotes/origin/database
-  remotes/origin/frontend
-  remotes/origin/main

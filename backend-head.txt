@@ -1,5 +1,0 @@
-﻿812aa48 changes in databse, addded indexes and user login credentials
-2ffbff4 Merge branch 'main' of https://github.com/Samit16/cep-project into backend
-4a0f4d3 feat(backend): connect Upstash Redis, patch member filter bug, and finalize dashboard
-d710ca8 Merge pull request #12 from Samit16/frontend
-af23830 Feat: Add member profile page, enhance navbar with auth states, premium microinteractions, and sticky scroll effects

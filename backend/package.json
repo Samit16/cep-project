@@ -16,19 +16,17 @@
     "@fastify/jwt": "^9.0.0",
     "@fastify/multipart": "^9.0.0",
     "@fastify/rate-limit": "^10.0.0",
+    "@supabase/supabase-js": "^2.102.1",
     "bcrypt": "^5.1.0",
-    "bullmq": "^5.0.0",
     "csv-parse": "^5.5.0",
     "dotenv": "^16.4.5",
     "fastify": "^5.0.0",
-    "ioredis": "^5.3.2",
-    "mongoose": "^9.3.3",
     "pino": "^9.2.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.0",
-    "@types/mongoose": "^5.11.96",
+
     "@types/node": "^20.11.30",
     "@types/pino": "^7.0.5",
     "pino-pretty": "^11.0.0",

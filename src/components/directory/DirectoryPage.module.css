@@ -170,12 +170,68 @@
   flex-shrink: 0;
 }
 
-/* Member Card Grid */
+/* Member Card Grid & List */
 .memberGrid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: var(--space-6);
   margin-bottom: var(--space-10);
+}
+
+.memberList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-bottom: var(--space-10);
+}
+
+.memberList .memberCard {
+  flex-direction: row;
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  gap: var(--space-4);
+}
+
+.memberList .memberCard:hover {
+  transform: translateY(-2px);
+}
+
+.memberList .memberCardImage {
+  width: 60px;
+  height: 60px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+  background: transparent;
+}
+
+.memberList .memberCardInitials {
+  border-radius: var(--radius-full);
+  font-size: var(--text-2xl);
+}
+
+.memberList .memberCardBody {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0;
+}
+
+.memberList .memberCardName {
+  margin-bottom: 0px;
+  min-width: 150px;
+}
+
+.memberList .memberCardProfession,
+.memberList .memberCardLocation {
+  margin-bottom: 0px;
+  width: 150px;
+}
+
+.memberList .viewProfileBtn {
+  width: auto;
+  padding: 8px 16px;
 }
 
 .memberCard {

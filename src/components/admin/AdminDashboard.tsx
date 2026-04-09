@@ -20,7 +20,7 @@ import { useAuth } from '@/lib/auth-context';
 const avatarColors = ['#8B1A1A', '#C8956C', '#2D5F8B', '#4A7C59', '#7B5EA7'];
 
 interface MemberAdmin {
-  _id: string;
+  id: string;
   name: string;
   contact_no?: string;
   email: string;
@@ -28,6 +28,9 @@ interface MemberAdmin {
   current_place?: string;
   active: boolean;
   createdAt?: string;
+  updated_at?: string;
+  created_at?: string;
+  contact_numbers?: string[];
 }
 
 interface EventItem {
@@ -70,9 +73,6 @@ export default function AdminDashboard() {
   const [eventForm, setEventForm] = useState({ title: '', date: '', time: '', location: '', description: '' });
   const [activeTab, setActiveTab] = useState<'members' | 'events'>('members');
   
-  const [uploadJobId, setUploadJobId] = useState<string | null>(null);
-  const [uploadStatus, setUploadStatus] = useState<any>(null);
-  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const { toast } = useToast();
@@ -84,6 +84,41 @@ export default function AdminDashboard() {
       router.push('/login');
     }
   }, [isLoading, role, router]);
+
+  // Treat back button as logout, prevent BFCache on this protected page
+  useEffect(() => {
+    // 1. Prevent BFCache — fresh HTTP request on forward navigation
+    const preventBFCache = () => {};
+    window.addEventListener('beforeunload', preventBFCache);
+
+    // 2. Handle BFCache restoration as fallback
+    const handlePageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) {
+        const hasAuth = document.cookie.split(';').some(c =>
+          c.trim().startsWith('sb-uevmyvwbmxqreyukbvkq-auth-token=')
+        );
+        if (!hasAuth) window.location.replace('/login');
+      }
+    };
+    window.addEventListener('pageshow', handlePageShow);
+
+    // 3. Back button = logout
+    window.history.pushState({ isApp: true }, '', window.location.href);
+    const handleBackButton = () => {
+      Object.keys(localStorage).filter(k => k.startsWith('sb-')).forEach(k => localStorage.removeItem(k));
+      localStorage.removeItem('kjo_token');
+      document.cookie = 'sb-uevmyvwbmxqreyukbvkq-auth-token=; path=/; max-age=0;';
+      document.cookie = 'kjo_token=; Max-Age=0; path=/;';
+      window.location.replace('/');
+    };
+    window.addEventListener('popstate', handleBackButton);
+
+    return () => {
+      window.removeEventListener('beforeunload', preventBFCache);
+      window.removeEventListener('pageshow', handlePageShow);
+      window.removeEventListener('popstate', handleBackButton);
+    };
+  }, []);
 
   // Debounce search
   useEffect(() => {
@@ -104,31 +139,6 @@ export default function AdminDashboard() {
     if (role === 'admin' || role === 'committee') loadMembers();
   }, [role, loadMembers]);
 
-  // Polling for CSV Upload
-  useEffect(() => {
-    let interval: any;
-    if (uploadJobId) {
-      interval = setInterval(async () => {
-        try {
-          const status = await ApiClient.get<any>(`/admin/bulk-upload/${uploadJobId}/status`);
-          setUploadStatus(status);
-          
-          if (status.status === 'completed' || status.status === 'failed') {
-            clearInterval(interval);
-            setUploadJobId(null);
-            toast(`Job finished. Processed: ${status.processed}, Success: ${status.success}, Errors: ${status.errors}`, status.status === 'completed' ? 'success' : 'error');
-            loadMembers();
-          }
-        } catch (err) {
-          clearInterval(interval);
-          setUploadJobId(null);
-          setUploadStatus(null);
-        }
-      }, 2000);
-    }
-    return () => clearInterval(interval);
-  }, [uploadJobId, toast, loadMembers]);
-
 
   const handleLogout = () => {
     logout();
@@ -139,32 +149,7 @@ export default function AdminDashboard() {
     toast('Exporting Directory Data... Feature coming soon matching filters.', 'success');
   };
 
-  const handleBulkUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      toast(`Uploading ${file.name}...`, 'success');
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      try {
-        const res = await ApiClient.post<{ jobId: string }>('/admin/members/bulk-upload', formData);
-        setUploadJobId(res.jobId);
-        toast('Upload started. Check polling status.', 'success');
-      } catch (err: any) {
-        toast(err.message || 'Upload failed', 'error');
-      }
-    }
-  };
 
-  const handleCommitImport = async () => {
-    if (!uploadJobId) return;
-    try {
-      await ApiClient.post(`/admin/bulk-upload/${uploadJobId}/commit`, { dryRun: false });
-      toast('Commit processing...', 'success');
-    } catch (err: any) {
-      toast(err.message || 'Commit failed', 'error');
-    }
-  };
 
   const handleAddMember = (newMember: any) => {
     toast('Member record creation directly via UI coming soon (use CSV now).', 'success');
@@ -245,10 +230,6 @@ export default function AdminDashboard() {
             <Calendar size={18} className={styles.sidebarItemIcon} />
             Manage Events
           </button>
-          <Link href="/members" className={styles.sidebarItem}>
-            <Users size={18} className={styles.sidebarItemIcon} />
-            Member Requests
-          </Link>
         </nav>
 
         <div className={styles.sidebarFooter}>
@@ -267,7 +248,6 @@ export default function AdminDashboard() {
               Committee<br />Overview
             </div>
             <nav className={styles.topBarNav}>
-              <Link href="/" className={styles.topBarLink}>Home</Link>
               <Link href="/dashboard" className={`${styles.topBarLink} ${styles.topBarLinkActive}`}>Overview</Link>
               <Link href="/directory" className={styles.topBarLink}>Directory</Link>
               <Link href="/about" className={styles.topBarLink}>About</Link>
@@ -367,33 +347,14 @@ export default function AdminDashboard() {
                 </p>
               </div>
               <div className={styles.pageActions}>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleBulkUpload}
-                  style={{ display: 'none' }}
-                  accept=".csv"
-                />
-                <button className={styles.actionBtn} onClick={() => fileInputRef.current?.click()} disabled={!!uploadJobId}>
-                  <FileText size={16} /> Bulk Upload (CSV)
+                <button className={styles.actionBtn} onClick={() => toast('Direct member creation coming soon.', 'info')}>
+                  <UserPlus size={16} /> Add Member
                 </button>
                 <button className={styles.actionBtn} onClick={handleExportCSV}>
                   <Download size={16} /> Export Data
                 </button>
               </div>
             </div>
-            
-            {uploadJobId && uploadStatus && (
-              <div style={{ marginTop: '1rem', padding: '1rem', background: '#ffecc9', border: '1px solid #f59e0b', borderRadius: '8px' }}>
-                <p><strong>Job Processing {uploadStatus.status}...</strong></p>
-                <p>Processed: {uploadStatus.processed || 0} | Success: {uploadStatus.success || 0} | Errors: {uploadStatus.errors || 0}</p>
-                {uploadStatus.status !== 'completed' && uploadStatus.status !== 'failed' && (
-                   <button onClick={handleCommitImport} style={{ marginTop: '8px', padding: '4px 12px', background: '#1c1c1c', color: 'white', borderRadius: '4px', cursor: 'pointer' }}>
-                     Commit Import Now
-                   </button>
-                )}
-              </div>
-            )}
           </div>
 
           {/* Data Table */}
@@ -408,13 +369,13 @@ export default function AdminDashboard() {
             </div>
             {tableMembers.length > 0 ? (
               tableMembers.map((member, index) => (
-                <div key={member._id} className={styles.tableRow}>
+                <div key={member.id} className={styles.tableRow}>
                   <div className={styles.memberCell}>
                     <div
                       className={styles.memberAvatar}
                       style={{ backgroundColor: avatarColors[index % avatarColors.length] }}
                     >
-                      {(member.name || '?').split(' ').map(n => n?.[0]).join('')}
+                      {(member.name || '?').split(' ').filter(Boolean).map(n => n?.[0]).join('').substring(0, 2).toUpperCase()}
                     </div>
                     <div>
                       <div className={styles.memberCellName}>{member.name}</div>
@@ -427,10 +388,17 @@ export default function AdminDashboard() {
                   </div>
                   <div className={styles.cellText}>{member.createdAt ? member.createdAt.slice(0, 10) : 'Recent'}</div>
                   <div>
-                    <span className={`${styles.statusBadge} ${member.active ? styles.statusVerified : styles.statusPending}`}>
-                      <span className={styles.statusDot} />
-                      {member.active ? 'VERIFIED' : 'PENDING'}
-                    </span>
+                    {(() => {
+                      const isUpdated = member.updated_at && member.created_at && member.updated_at !== member.created_at;
+                      const hasContacts = member.contact_numbers && member.contact_numbers.length > 0;
+                      const isProfileUpdated = isUpdated || hasContacts;
+                      return (
+                        <span className={`${styles.statusBadge} ${isProfileUpdated ? styles.statusVerified : styles.statusPending}`}>
+                          <span className={styles.statusDot} />
+                          {isProfileUpdated ? 'UPDATED' : 'NOT UPDATED'}
+                        </span>
+                      );
+                    })()}
                   </div>
                   <div>
                     <button className={styles.actionsBtn} aria-label="More actions">
