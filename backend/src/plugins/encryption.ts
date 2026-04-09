@@ -1,8 +1,14 @@
 import crypto from 'crypto';
 import config from '../config/env';
+import { logger } from '../utils/logger';
 
 const algorithm = 'aes-256-gcm';
-const key = Buffer.from(config.aesKey, 'base64');
+let key = Buffer.from(config.aesKey, 'base64');
+
+if (key.length !== 32) {
+  logger.warn('AES_256_KEY is invalid or missing. Falling back to a temporary default key. Do NOT use this in production!');
+  key = Buffer.from('Q1D22lO84uRYwC4EX4eTfmh9y1HhS2Be1m0YWg7ZNvI=', 'base64');
+}
 
 export function encryptField(plain: string): string {
   if (!plain) return plain;

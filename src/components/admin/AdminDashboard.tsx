@@ -382,7 +382,11 @@ export default function AdminDashboard() {
                       <div className={styles.memberCellEmail}>{member.email}</div>
                     </div>
                   </div>
-                  <div className={styles.cellText}>{member.contact_no || 'not updated'}</div>
+                  <div className={styles.cellText}>
+                    {member.contact_numbers?.length 
+                      ? member.contact_numbers[0] 
+                      : (member.contact_no || 'not updated')}
+                  </div>
                   <div>
                     <span className={styles.professionBadge}>{member.occupation || 'N/A'}</span>
                   </div>
