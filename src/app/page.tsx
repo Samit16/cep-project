@@ -1,6 +1,6 @@
-import WelcomePage from '@/components/auth/WelcomePage';
+import { redirect } from 'next/navigation';
 
 export default function RootPage() {
-  return <WelcomePage />;
+  redirect('/home');
 }
 

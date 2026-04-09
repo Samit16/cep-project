@@ -29,8 +29,11 @@ export function HeroSection() {
           generations through unity.
         </p>
         <div className={`${styles.heroCta} ${styles.animateFadeUp} ${styles.delay3}`}>
-          <Link href="/login" className={styles.ctaBtnPrimary}>
-            Become a Member
+          <Link href="/login?tab=member" className={styles.ctaBtnPrimary}>
+            Member Login
+          </Link>
+          <Link href="/login?tab=committee" className={styles.ctaBtnOutlinedHero}>
+            Committee Login
           </Link>
         </div>
       </div>
