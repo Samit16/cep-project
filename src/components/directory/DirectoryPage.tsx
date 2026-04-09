@@ -5,12 +5,12 @@ import { Search, LayoutGrid, List, ShieldCheck, MapPin, Settings, Users } from '
 import Link from 'next/link';
 import styles from './DirectoryPage.module.css';
 import { OverlayBadge } from '@/components/ui/Badge/Badge';
-import Pagination from '@/components/ui/Pagination/Pagination';
 import EmptyState from '@/components/ui/EmptyState/EmptyState';
 import { ApiClient } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { DirectorySkeleton } from '@/components/ui/Skeleton/Skeleton';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { Member } from '@/types';
 
 const AVATAR_COLORS = ['#8B1A1A', '#C8956C', '#2D5F8B', '#4A7C59', '#7B5EA7', '#D4763C', '#3B8686', '#9B5DE5', '#E07A5F'];
 
@@ -22,13 +22,6 @@ function getAvatarColor(name: string) {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
-interface Member {
-  id: string;
-  name: string;
-  occupation?: string;
-  current_place?: string;
-  contact_visibility?: string;
-}
 
 export default function DirectoryPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -39,7 +32,6 @@ export default function DirectoryPage() {
   
   const [members, setMembers] = useState<Member[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1); 
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -64,8 +56,8 @@ export default function DirectoryPage() {
       });
       setMembers(response);
       setHasMore(response.length === itemsPerPage);
-    } catch (err: any) {
-      toast(err.message || 'Failed to load directory', 'error');
+    } catch (err: unknown) {
+      toast((err as Error).message || 'Failed to load directory', 'error');
     } finally {
       setIsLoading(false);
     }

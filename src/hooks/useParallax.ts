@@ -15,7 +15,7 @@ interface ParallaxOptions {
 export function useParallax<T extends HTMLElement = HTMLDivElement>(
   options: ParallaxOptions = {}
 ) {
-  const { speed = 0.3, direction = 'vertical', viewportOnly = true } = options;
+  const { speed = 0.3, viewportOnly = true } = options;
   const ref = useRef<T>(null);
   const isVisible = useRef(true);
   const rafId = useRef<number>(0);

@@ -4,12 +4,11 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
-  LayoutDashboard, Users, Calendar, Wallet, Settings, HelpCircle, LogOut, 
-  Search, FileText, Download, UserPlus, TrendingUp, ClipboardList, 
-  ShieldCheck, Pencil, MoreVertical, User, ChevronDown, Plus, Trash2, X, MapPin, Clock
+  LayoutDashboard, Users, Calendar, LogOut, 
+  Search, Download, UserPlus, TrendingUp, ClipboardList, 
+  ShieldCheck, Pencil, MoreVertical, User, Plus, Trash2, X, MapPin
 } from 'lucide-react';
 import styles from './AdminDashboard.module.css';
-import Pagination from '@/components/ui/Pagination/Pagination';
 import Footer from '@/components/layout/Footer/Footer';
 import MemberFormModal from './MemberFormModal';
 import EmptyState from '@/components/ui/EmptyState/EmptyState';
@@ -73,7 +72,7 @@ export default function AdminDashboard() {
   const [eventForm, setEventForm] = useState({ title: '', date: '', time: '', location: '', description: '' });
   const [activeTab, setActiveTab] = useState<'members' | 'events'>('members');
   
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null); // eslint-disable-line @typescript-eslint/no-unused-vars
   const router = useRouter();
   const { toast } = useToast();
   const { role, logout, isLoading } = useAuth();
@@ -127,17 +126,19 @@ export default function AdminDashboard() {
   }, [searchQuery]);
 
   const loadMembers = useCallback(async () => {
+    if (role !== 'admin' && role !== 'committee') return;
     try {
       const data = await ApiClient.get<MemberAdmin[]>('/admin/members', { limit: 100, name: debouncedSearch });
       setMembers(data);
-    } catch (err: any) {
-      toast(err.message || 'Failed to fetch directory', 'error');
+    } catch (err: unknown) {
+      toast((err as Error).message || 'Failed to fetch directory', 'error');
     }
-  }, [debouncedSearch, toast]);
+  }, [role, debouncedSearch, toast]);
 
   useEffect(() => {
-    if (role === 'admin' || role === 'committee') loadMembers();
-  }, [role, loadMembers]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadMembers();
+  }, [loadMembers]);
 
 
   const handleLogout = () => {
@@ -151,7 +152,8 @@ export default function AdminDashboard() {
 
 
 
-  const handleAddMember = (newMember: any) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleAddMember = (_newMember: { name: string; email: string; profession: string; city: string; phone: string; role: string }) => {
     toast('Member record creation directly via UI coming soon (use CSV now).', 'success');
     setIsModalOpen(false);
   };

@@ -1,28 +1,38 @@
 
 
 export interface Member {
-  id: string;
+  id?: string;
+  _id?: string;
   name: string;
   email: string;
   phone?: string;
-  profession: string;
+  contact_no?: string;
+  contact_numbers?: string[];
+  profession?: string;
+  occupation?: string;
   company?: string;
-  city: string;
+  city?: string;
+  current_place?: string;
+  kutch_town?: string;
   state?: string;
   country?: string;
   photoUrl?: string;
   dateOfBirth?: string;
   education?: string;
-  joinDate: string;
-  status: 'verified' | 'pending' | 'inactive';
-  role: 'member' | 'committee' | 'admin';
-  contactVisible: boolean;
+  marital_status?: string;
+  family_members?: string[];
+  joinDate?: string;
+  status?: 'verified' | 'pending' | 'inactive' | string;
+  active?: boolean;
+  role?: 'member' | 'committee' | 'admin' | string;
+  contactVisible?: boolean;
+  contact_visibility?: string;
   address?: string;
   bio?: string;
   expertise?: string[];
   officePhotoUrl?: string;
   officeLocation?: string;
-  idNumber: string;
+  idNumber?: string;
 }
 
 export interface Event {

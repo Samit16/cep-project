@@ -1,25 +1,50 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, User, Briefcase, Mail, Phone, MapPin } from 'lucide-react';
 import styles from './MemberFormModal.module.css';
+
+interface MemberFormData {
+  name: string;
+  email: string;
+  profession: string;
+  city: string;
+  phone: string;
+  role: string;
+}
 
 interface MemberFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: any) => void;
-  initialData?: any;
+  onSave: (data: MemberFormData) => void;
+  initialData?: Partial<MemberFormData>;
 }
 
+const defaultValues: MemberFormData = {
+  name: '',
+  email: '',
+  profession: '',
+  city: '',
+  phone: '',
+  role: 'member',
+};
+
 export default function MemberFormModal({ isOpen, onClose, onSave, initialData }: MemberFormModalProps) {
-  const [formData, setFormData] = useState(initialData || {
-    name: '',
-    email: '',
-    profession: '',
-    city: '',
-    phone: '',
-    role: 'member',
+  const [formData, setFormData] = useState<MemberFormData>({
+    ...defaultValues,
+    ...initialData,
   });
+
+  // Sync state if initialData changes (e.g., switching between editing different members)
+  useEffect(() => {
+    if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setFormData({
+        ...defaultValues,
+        ...initialData,
+      });
+    }
+  }, [initialData, isOpen]);
 
   if (!isOpen) return null;
 

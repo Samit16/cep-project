@@ -35,6 +35,7 @@ export function HeroSection() {
         </div>
       </div>
       <div ref={heroImageRef} className={`${styles.heroImage} ${styles.parallaxImage}`}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/images/hero.png" alt="Heritage architecture of the KVO Nagpur community" />
       </div>
     </section>
@@ -49,6 +50,7 @@ export function HistoryMissionSection() {
     <section className={styles.historySection}>
       <div className={styles.historySectionInner} id="history">
         <div ref={imageRef} className={`${styles.historyImage} ${styles.parallaxImageContainer}`}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/images/history.png" alt="Historical photograph of community founders" className={styles.parallaxInnerImage} />
         </div>
         <div ref={contentRef} className={`${styles.historyContent} ${styles.scrollReveal}`}>
@@ -99,6 +101,7 @@ export function AchievementsSection() {
         <div className={styles.bentoGrid}>
           {/* Card 1 - Top Left */}
           <div className={styles.bentoCard}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img className={styles.bentoCardImage} src="/images/hero.png" alt="Excellence in Education Grant" />
             <span className={styles.bentoCardLabel}>Education</span>
             <h3 className={styles.bentoCardTitle}>Excellence in Education Grant</h3>
@@ -125,6 +128,7 @@ export function AchievementsSection() {
           {/* Banner - Right column spanning both rows */}
           <div ref={bannerRef} className={`${styles.bentoBanner} ${styles.parallaxBanner}`}>
             <div className={styles.bentoBannerBg}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/images/history.png" alt="" />
             </div>
             <div className={styles.bentoBannerContent}>
@@ -165,6 +169,7 @@ export function EventsSection() {
         </div>
         
         <div className={styles.eventCard}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/images/events/event1.png"
             alt="Heritage Gala & Cultural Night"

@@ -29,7 +29,7 @@ export default function WelcomePage() {
         </h1>
         <p className={styles.subtitle}>
           A century of preserving heritage, building futures, and connecting our
-          community across the globe. Please select how you'd like to sign in.
+          community across the globe. Please select how you&apos;d like to sign in.
         </p>
 
         <div className={styles.cards}>

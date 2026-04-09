@@ -32,7 +32,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
 
   // Legacy login (kept for backward compatibility)
-  login: (token: string, userDetails?: any) => void;
+  login: (token: string, userDetails?: { role?: Role; sub?: string }) => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -56,7 +56,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Legacy token state (backward compatibility)
   const [legacyToken, setLegacyToken] = useState<string | null>(null);
-  const [legacyUser, setLegacyUser] = useState<any>(null);
+  const [legacyUser, setLegacyUser] = useState<{ role?: Role; sub?: string } | null>(null);
 
   // Fetch user profile (role, member_id, etc.)
   const fetchProfile = async (userId: string, email?: string) => {
@@ -160,7 +160,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         base64 += new Array(5 - pad).join('=');
       }
       return JSON.parse(atob(base64));
-    } catch (e) {
+    } catch {
       return null;
     }
   };
@@ -233,7 +233,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   // Legacy login method (backward compatibility)
-  const login = (newToken: string, userDetails?: any) => {
+  const login = (newToken: string, userDetails?: { role?: Role; sub?: string }) => {
     localStorage.setItem('kjo_token', newToken);
     document.cookie = `kjo_token=${newToken}; path=/; samesite=lax`;
     const decoded = parseJwt(newToken);

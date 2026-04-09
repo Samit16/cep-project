@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Navbar from '@/components/layout/Navbar/Navbar';
 import Footer from '@/components/layout/Footer/Footer';
-import { Calendar, MapPin, Clock, Info, Phone } from 'lucide-react';
+import { MapPin, Clock, Info, Phone } from 'lucide-react';
 import { mockEvents } from '@/data/mock';
 import styles from './EventsPage.module.css';
 
@@ -51,6 +51,7 @@ export default function EventsPage() {
             {mockEvents.map((event) => (
               <div key={event.id} className={styles.eventCard}>
                 <div className={styles.eventImage}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={event.imageUrl || `/images/events/event${event.id}.png`} alt={event.title} />
                   <div className={styles.eventDateBadge}>
                     <span className={styles.day}>{new Date(event.date).getDate()}</span>
