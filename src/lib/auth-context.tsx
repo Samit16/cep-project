@@ -193,15 +193,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setSession(null);
       setProfile(null);
 
-      // Clear all Supabase localStorage keys (sb-* pattern)
-      Object.keys(localStorage)
-        .filter(k => k.startsWith('sb-'))
-        .forEach(k => localStorage.removeItem(k));
-      localStorage.removeItem('kjo_token');
+      // Clear all Supabase keys from both localStorage and sessionStorage
+      if (typeof window !== 'undefined') {
+        Object.keys(localStorage)
+          .filter(k => k.startsWith('sb-'))
+          .forEach(k => localStorage.removeItem(k));
+        localStorage.removeItem('kjo_token');
 
-      // Clear all auth cookies
-      document.cookie = 'kjo_token=; Max-Age=0; path=/;';
-      document.cookie = 'sb-uevmyvwbmxqreyukbvkq-auth-token=; path=/; max-age=0;';
+        Object.keys(sessionStorage)
+          .filter(k => k.startsWith('sb-'))
+          .forEach(k => sessionStorage.removeItem(k));
+        sessionStorage.removeItem('kjo_token');
+      }
+
+      // Clear all auth cookies explicitly
+      const pastDate = 'Thu, 01 Jan 1970 00:00:00 GMT';
+      document.cookie = `kjo_token=; expires=${pastDate}; path=/; samesite=lax`;
+      document.cookie = `sb-uevmyvwbmxqreyukbvkq-auth-token=; expires=${pastDate}; path=/; samesite=lax`;
 
       window.dispatchEvent(new Event('kjo_auth_change'));
     }

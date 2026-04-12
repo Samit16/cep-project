@@ -6,6 +6,7 @@ import styles from './Navbar.module.css';
 import { useAuth } from '@/lib/auth-context';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import LinkGooglePrompt from '@/components/auth/LinkGooglePrompt';
 
 interface NavbarProps {
   variant?: 'public' | 'admin';
@@ -127,6 +128,7 @@ export default function Navbar({
           </div>
         )}
       </div>
+      <LinkGooglePrompt />
     </nav>
   );
 }
