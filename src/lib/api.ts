@@ -1,6 +1,6 @@
 export class ApiClient {
   private static get baseUrl() {
-    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+    return '/api';
   }
 
   private static getHeaders(customHeaders: Record<string, string> = {}) {
@@ -13,39 +13,16 @@ export class ApiClient {
     if (typeof window !== 'undefined') {
       let token: string | null = null;
 
-      // 1. Check legacy localStorage token
-      token = localStorage.getItem('kjo_token');
+      // 1. Check Supabase sessionStorage (where the client actually stores sessions)
+      try {
+        const sessionData = sessionStorage.getItem('sb-uevmyvwbmxqreyukbvkq-auth-token');
+        if (sessionData) {
+          const parsed = JSON.parse(sessionData);
+          token = parsed?.access_token || parsed?.currentSession?.access_token || null;
+        }
+      } catch { /* ignore parse errors */ }
 
-      // 2. Check Supabase sessionStorage (where the client actually stores sessions)
-      if (!token) {
-        try {
-          const sessionData = sessionStorage.getItem('sb-uevmyvwbmxqreyukbvkq-auth-token');
-          if (sessionData) {
-            const parsed = JSON.parse(sessionData);
-            // Supabase stores session as { access_token, ... } or nested under a key
-            token = parsed?.access_token || parsed?.currentSession?.access_token || null;
-          }
-        } catch { /* ignore parse errors */ }
-      }
-
-      // 3. Check Supabase localStorage keys (some configs store here)
-      if (!token) {
-        try {
-          for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
-              const data = localStorage.getItem(key);
-              if (data) {
-                const parsed = JSON.parse(data);
-                token = parsed?.access_token || parsed?.currentSession?.access_token || null;
-                if (token) break;
-              }
-            }
-          }
-        } catch { /* ignore */ }
-      }
-
-      // 4. Fallback: check cookie
+      // 2. Fallback: check cookie
       if (!token) {
         const match = document.cookie.match(new RegExp('(^| )sb-uevmyvwbmxqreyukbvkq-auth-token=([^;]+)'));
         if (match) token = match[2];
@@ -61,7 +38,6 @@ export class ApiClient {
   private static async handleResponse<T>(response: Response): Promise<T> {
     if (response.status === 401) {
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('kjo_token');
         window.dispatchEvent(new Event('kjo_auth_change'));
         // Optional: window.location.href = '/login';
       }
