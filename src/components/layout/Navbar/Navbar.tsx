@@ -43,9 +43,6 @@ export default function Navbar({
   };
 
   const links = [
-    ...(pathname !== '/login' ? [
-      { label: 'About', href: '/about', public: true },
-    ] : []),
     // Directory and Archives are only visible when logged in
     ...(user ? [
       { label: 'Archives', href: '/archives', public: false },
@@ -84,6 +81,15 @@ export default function Navbar({
           <Link href="/directory/me" className={styles.profileLink}>
             <User size={18} />
             <span>My Profile</span>
+          </Link>
+        )}
+
+        {pathname !== '/login' && (
+          <Link
+            href="/about"
+            className={styles.navLink}
+          >
+            About
           </Link>
         )}
 

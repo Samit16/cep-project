@@ -75,7 +75,7 @@
 .navActions {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: 10px;
 }
 
 .searchBar {
@@ -177,6 +177,7 @@
 
 .loginDropdownWrapper {
   position: relative;
+  margin-left: 8px;
 }
 
 .loginDropdownMenu {
