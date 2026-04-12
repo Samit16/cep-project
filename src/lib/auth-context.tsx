@@ -21,8 +21,6 @@ interface AuthContextType {
   profile: UserProfile | null;
   role: Role;
   isLoading: boolean;
-
-  // Legacy token support (for backward compatibility during transition)
   token: string | null;
 
   // Auth methods
@@ -30,9 +28,6 @@ interface AuthContextType {
   signInWithEmail: (email: string, password: string, expectedTab?: 'member' | 'committee') => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-
-  // Legacy login (kept for backward compatibility)
-  login: (token: string, userDetails?: { role?: Role; sub?: string }) => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -46,17 +41,12 @@ const AuthContext = createContext<AuthContextType>({
   signInWithEmail: async () => {},
   signUp: async () => {},
   logout: async () => {},
-  login: () => {},
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-
-  // Legacy token state (backward compatibility)
-  const [legacyToken, setLegacyToken] = useState<string | null>(null);
-  const [legacyUser, setLegacyUser] = useState<{ role?: Role; sub?: string } | null>(null);
 
   // Fetch user profile (role, member_id, etc.)
   const fetchProfile = async (userId: string, email?: string) => {
@@ -98,21 +88,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (currentSession) {
           setSession(currentSession);
           await fetchProfile(currentSession.user.id, currentSession.user.email);
-        } else {
-          // Check for legacy token
-          const t = localStorage.getItem('kjo_token');
-          if (t) {
-            const hasCookie = document.cookie.split(';').some(c => c.trim().startsWith('kjo_token='));
-            if (!hasCookie) {
-              localStorage.removeItem('kjo_token');
-            } else {
-              setLegacyToken(t);
-              const decoded = parseJwt(t);
-              if (decoded && (!decoded.exp || decoded.exp * 1000 > Date.now())) {
-                setLegacyUser({ sub: decoded.sub, role: decoded.role || null });
-              }
-            }
-          }
         }
       } catch (err) {
         console.error('Auth init error:', err);
@@ -146,24 +121,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       subscription.unsubscribe();
     };
   }, []);
-
-  // Decode JWT safely (for legacy tokens)
-  const parseJwt = (t: string) => {
-    try {
-      const base64Url = t.split('.')[1];
-      let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      const pad = base64.length % 4;
-      if (pad) {
-        if (pad === 1) {
-          throw new Error('InvalidLengthError');
-        }
-        base64 += new Array(5 - pad).join('=');
-      }
-      return JSON.parse(atob(base64));
-    } catch {
-      return null;
-    }
-  };
 
   const signInWithGoogle = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
@@ -235,8 +192,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } finally {
       setSession(null);
       setProfile(null);
-      setLegacyToken(null);
-      setLegacyUser(null);
 
       // Clear all Supabase localStorage keys (sb-* pattern)
       Object.keys(localStorage)
@@ -252,20 +207,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // Legacy login method (backward compatibility)
-  const login = (newToken: string, userDetails?: { role?: Role; sub?: string }) => {
-    localStorage.setItem('kjo_token', newToken);
-    document.cookie = `kjo_token=${newToken}; path=/; samesite=lax`;
-    const decoded = parseJwt(newToken);
-    const resolvedUser = userDetails || { sub: decoded?.sub, role: decoded?.role || null };
-    setLegacyToken(newToken);
-    setLegacyUser(resolvedUser);
-    window.dispatchEvent(new Event('kjo_auth_change'));
-  };
-
   // Determine the effective role and token
-  const effectiveRole: Role = profile?.role || legacyUser?.role || null;
-  const effectiveToken = session?.access_token || legacyToken;
+  const effectiveRole: Role = profile?.role || null;
+  const effectiveToken = session?.access_token || null;
 
   return (
     <AuthContext.Provider
@@ -280,7 +224,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         signInWithEmail,
         signUp,
         logout,
-        login,
       }}
     >
       {children}
@@ -289,3 +232,4 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 };
 
 export const useAuth = () => useContext(AuthContext);
+
