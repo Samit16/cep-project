@@ -27,7 +27,7 @@ interface AuthContextType {
 
   // Auth methods
   signInWithGoogle: () => Promise<void>;
-  signInWithEmail: (email: string, password: string) => Promise<void>;
+  signInWithEmail: (email: string, password: string, expectedTab?: 'member' | 'committee') => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 
@@ -184,14 +184,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   // Sign in with email/password
-  const signInWithEmail = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+  const signInWithEmail = async (email: string, password: string, expectedTab?: 'member' | 'committee') => {
+    const { data: authData, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
     if (error) {
       throw new Error(error.message);
+    }
+
+    if (expectedTab && authData.user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', authData.user.id)
+        .single();
+        
+      if (profile) {
+        const userRole = profile.role;
+        if (expectedTab === 'committee' && userRole !== 'admin' && userRole !== 'committee') {
+          await supabase.auth.signOut();
+          throw new Error("You are a member. Please log in via Member Login.");
+        }
+        if (expectedTab === 'member' && (userRole === 'admin' || userRole === 'committee')) {
+          await supabase.auth.signOut();
+          throw new Error("You are a committee member. Please log in via Committee Login.");
+        }
+      }
     }
   };
 
