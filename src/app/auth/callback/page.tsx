@@ -26,19 +26,31 @@ export default function AuthCallbackPage() {
           // Fetch the user's profile to determine redirect
           const { data: profile } = await supabase
             .from('profiles')
-            .select('role')
+            .select('role, is_first_login')
             .eq('id', session.user.id)
             .single();
 
           const role = profile?.role;
-          
+
+          // If they connected google, clear the first login flag
+          const hasGoogle = session.user.identities?.some((i: any) => i.provider === 'google');
+          if (profile?.is_first_login && hasGoogle) {
+            await supabase.from('profiles').update({ is_first_login: false }).eq('id', session.user.id);
+          }
+
           const intent = localStorage.getItem('kjo_login_intent');
           localStorage.removeItem('kjo_login_intent');
 
           if (intent === 'member' && (role === 'committee' || role === 'admin')) {
             // Log out immediately and return to login page
             await supabase.auth.signOut();
-            document.cookie = 'sb-uevmyvwbmxqreyukbvkq-auth-token=; path=/; max-age=0;';
+            
+            if (typeof window !== 'undefined') {
+              Object.keys(sessionStorage).filter(k => k.startsWith('sb-')).forEach(k => sessionStorage.removeItem(k));
+              Object.keys(localStorage).filter(k => k.startsWith('sb-')).forEach(k => localStorage.removeItem(k));
+            }
+            document.cookie = 'sb-uevmyvwbmxqreyukbvkq-auth-token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; samesite=lax';
+            
             router.replace('/login?tab=committee&error=committee_as_member');
             return;
           }
