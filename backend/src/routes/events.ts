@@ -18,13 +18,25 @@ const eventsRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.code(500).send({ error: 'Failed to fetch events' });
     }
 
-    reply.send(events);
+    // Extract virtual time property from location (stored as "location|time")
+    const mappedEvents = (events || []).map(event => {
+      const parts = (event.location || '').split('|');
+      return {
+        ...event,
+        location: parts[0],
+        time: parts[1] || '',
+      };
+    });
+
+    reply.send(mappedEvents);
   });
 
   // Admin creates event (Supabase)
-  fastify.post('/', { preValidation: [(fastify as any).requireRole('admin')] }, async (request, reply) => {
+  fastify.post('/', { preValidation: [(fastify as any).requireRole(['admin', 'committee'])] }, async (request, reply) => {
     const data = request.body as any;
     const supabase = getSupabase();
+
+    const combinedLocation = data.time ? `${data.location || ''}|${data.time}` : data.location;
 
     const { data: event, error } = await supabase
       .from('events')
@@ -32,41 +44,55 @@ const eventsRoutes: FastifyPluginAsync = async (fastify) => {
         title: data.title,
         description: data.description,
         date: data.date,
-        location: data.location,
+        location: combinedLocation,
         is_public: data.isPublic ?? data.is_public ?? true,
       })
       .select()
       .single();
 
     if (error) {
-      return reply.code(500).send({ error: 'Failed to create event', details: error.message });
+      fastify.log.error(error);
+      return reply.code(400).send({ error: error.message || 'Failed to create event' });
     }
 
-    reply.code(201).send(event);
+    // map back for response
+    const parts = (event.location || '').split('|');
+    reply.code(201).send({ ...event, location: parts[0], time: parts[1] || '' });
   });
 
   // Admin updates event (Supabase)
-  fastify.put('/:id', { preValidation: [(fastify as any).requireRole('admin')] }, async (request, reply) => {
+  fastify.put('/:id', { preValidation: [(fastify as any).requireRole(['admin', 'committee'])] }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const data = request.body as any;
     const supabase = getSupabase();
 
+    const updatePayload: any = { ...data };
+    if (data.location !== undefined || data.time !== undefined) {
+      const parts = (updatePayload.location || '').split('|');
+      const baseLoc = data.location !== undefined ? data.location : parts[0];
+      const newTime = data.time !== undefined ? data.time : (parts[1] || '');
+      updatePayload.location = newTime ? `${baseLoc}|${newTime}` : baseLoc;
+      delete updatePayload.time; // prevent DB failure
+    }
+
     const { data: event, error } = await supabase
       .from('events')
-      .update(data)
+      .update(updatePayload)
       .eq('id', id)
       .select()
       .single();
 
     if (error) {
-      return reply.code(500).send({ error: 'Failed to update event', details: error.message });
+      fastify.log.error(error);
+      return reply.code(400).send({ error: error.message || 'Failed to update event' });
     }
 
-    reply.send(event);
+    const resParts = (event.location || '').split('|');
+    reply.send({ ...event, location: resParts[0], time: resParts[1] || '' });
   });
 
   // Admin deletes event (Supabase)
-  fastify.delete('/:id', { preValidation: [(fastify as any).requireRole('admin')] }, async (request, reply) => {
+  fastify.delete('/:id', { preValidation: [(fastify as any).requireRole(['admin', 'committee'])] }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const supabase = getSupabase();
 
@@ -76,7 +102,8 @@ const eventsRoutes: FastifyPluginAsync = async (fastify) => {
       .eq('id', id);
 
     if (error) {
-      return reply.code(500).send({ error: 'Failed to delete event' });
+      fastify.log.error(error);
+      return reply.code(400).send({ error: error.message || 'Failed to delete event' });
     }
 
     reply.send({ message: 'Deleted' });

@@ -41,24 +41,6 @@ interface EventItem {
   description: string;
 }
 
-const defaultEvents: EventItem[] = [
-  {
-    id: '1',
-    title: 'Heritage Gala & Cultural Night',
-    date: '2024-04-15',
-    time: '6:00 PM',
-    location: 'Grand Ballroom, Samaj Center, Dadar',
-    description: 'An evening of culture, tradition, and connecting with the community.',
-  },
-  {
-    id: '2',
-    title: 'Annual General Meeting 2024',
-    date: '2024-05-20',
-    time: '10:00 AM',
-    location: 'Convention Hall, Andheri East, Mumbai',
-    description: 'Annual meeting to discuss community progress, finances, and upcoming initiatives.',
-  },
-];
 
 export default function AdminDashboard() {
   const [members, setMembers] = useState<MemberAdmin[]>([]);
@@ -68,7 +50,7 @@ export default function AdminDashboard() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   
-  const [events, setEvents] = useState<EventItem[]>(defaultEvents);
+  const [events, setEvents] = useState<EventItem[]>([]);
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<EventItem | null>(null);
   const [eventForm, setEventForm] = useState({ title: '', date: '', time: '', location: '', description: '' });
@@ -86,40 +68,7 @@ export default function AdminDashboard() {
     }
   }, [isLoading, role, router]);
 
-  // Treat back button as logout, prevent BFCache on this protected page
-  useEffect(() => {
-    // 1. Prevent BFCache — fresh HTTP request on forward navigation
-    const preventBFCache = () => {};
-    window.addEventListener('beforeunload', preventBFCache);
 
-    // 2. Handle BFCache restoration as fallback
-    const handlePageShow = (e: PageTransitionEvent) => {
-      if (e.persisted) {
-        const hasAuth = document.cookie.split(';').some(c =>
-          c.trim().startsWith('sb-uevmyvwbmxqreyukbvkq-auth-token=')
-        );
-        if (!hasAuth) window.location.replace('/login');
-      }
-    };
-    window.addEventListener('pageshow', handlePageShow);
-
-    // 3. Back button = logout
-    window.history.pushState({ isApp: true }, '', window.location.href);
-    const handleBackButton = () => {
-      Object.keys(localStorage).filter(k => k.startsWith('sb-')).forEach(k => localStorage.removeItem(k));
-      localStorage.removeItem('kjo_token');
-      document.cookie = 'sb-uevmyvwbmxqreyukbvkq-auth-token=; path=/; max-age=0;';
-      document.cookie = 'kjo_token=; Max-Age=0; path=/;';
-      window.location.replace('/');
-    };
-    window.addEventListener('popstate', handleBackButton);
-
-    return () => {
-      window.removeEventListener('beforeunload', preventBFCache);
-      window.removeEventListener('pageshow', handlePageShow);
-      window.removeEventListener('popstate', handleBackButton);
-    };
-  }, []);
 
   // Debounce search
   useEffect(() => {
@@ -134,29 +83,50 @@ export default function AdminDashboard() {
         setOpenMenuId(null);
       }
     };
-    if (openMenuId) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
+    document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [openMenuId]);
-
-  const loadMembers = useCallback(async () => {
-    if (role !== 'admin' && role !== 'committee') return;
-    try {
-      const data = await ApiClient.get<MemberAdmin[]>('/admin/members', { limit: 100, name: debouncedSearch });
-      setMembers(data);
-    } catch (err: unknown) {
-      toast((err as Error).message || 'Failed to fetch directory', 'error');
-    }
-  }, [role, debouncedSearch, toast]);
+  }, []);
 
   useEffect(() => {
-    loadMembers();
-  }, [loadMembers]);
+    (async () => {
+      try {
+        const response = await ApiClient.get<MemberAdmin[]>('/members', {
+          page: 1, limit: 200, name: debouncedSearch,
+        });
+        setMembers(response);
+      } catch (err: unknown) {
+        toast((err as Error).message || 'Failed to load members', 'error');
+      }
+    })();
+  }, [debouncedSearch, toast]);
+
+  // Load events from API
+  const loadEvents = useCallback(async () => {
+    try {
+      const response = await ApiClient.get<EventItem[]>('/events');
+      setEvents(response);
+    } catch {
+      // Fallback to empty if events API not available
+      setEvents([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const response = await ApiClient.get<EventItem[]>('/events');
+        setEvents(response);
+      } catch {
+        setEvents([]);
+      }
+    })();
+  }, []);
 
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    if (!window.confirm('Are you sure you want to log out?')) return;
+    await logout();
+    window.location.replace('/home');
   };
 
   const handleExportCSV = () => {
@@ -180,42 +150,64 @@ export default function AdminDashboard() {
 
   const openEditEvent = (event: EventItem) => {
     setEditingEvent(event);
-    setEventForm({ title: event.title, date: event.date, time: event.time, location: event.location, description: event.description });
+    setEventForm({ title: event.title, date: event.date, time: event.time || '', location: event.location || '', description: event.description || '' });
     setIsEventModalOpen(true);
   };
 
-  const handleSaveEvent = () => {
+  const handleSaveEvent = async () => {
     if (!eventForm.title || !eventForm.date) {
       toast('Please fill in at least the event title and date.', 'error');
       return;
     }
-    if (editingEvent) {
-      setEvents(prev => prev.map(e => e.id === editingEvent.id ? { ...e, ...eventForm } : e));
-      toast('Event updated successfully.', 'success');
-    } else {
-      const newEvent: EventItem = { id: Date.now().toString(), ...eventForm };
-      setEvents(prev => [...prev, newEvent]);
-      toast('Event created successfully.', 'success');
+    try {
+      if (editingEvent) {
+        await ApiClient.put<EventItem>(`/events/${editingEvent.id}`, {
+          title: eventForm.title,
+          date: eventForm.date,
+          time: eventForm.time,
+          location: eventForm.location,
+          description: eventForm.description,
+        });
+        toast('Event updated successfully.', 'success');
+      } else {
+        await ApiClient.post<EventItem>('/events', {
+          title: eventForm.title,
+          date: eventForm.date,
+          time: eventForm.time,
+          location: eventForm.location,
+          description: eventForm.description,
+          is_public: true,
+        });
+        toast('Event created successfully.', 'success');
+      }
+      setIsEventModalOpen(false);
+      setEditingEvent(null);
+      await loadEvents(); // Refresh from backend
+    } catch (err: unknown) {
+      toast((err as Error).message || 'Failed to save event.', 'error');
     }
-    setIsEventModalOpen(false);
-    setEditingEvent(null);
   };
 
-  const handleDeleteEvent = (id: string) => {
-    setEvents(prev => prev.filter(e => e.id !== id));
-    toast('Event deleted.', 'success');
+  const handleDeleteEvent = async (id: string) => {
+    try {
+      await ApiClient.delete(`/events/${id}`);
+      toast('Event deleted.', 'success');
+      await loadEvents(); // Refresh from backend
+    } catch (err: unknown) {
+      toast((err as Error).message || 'Failed to delete event.', 'error');
+    }
   };
 
-  if (isLoading || (role !== 'admin' && role !== 'committee')) {
-    return <div style={{ padding: '4rem', textAlign: 'center' }}>Loading Workspace...</div>;
-  }
-
-  // Client-side filter as a fallback in case backend search doesn't respond to query changes
+  // Client-side filter (moved before early return to satisfy rules-of-hooks)
   const tableMembers = useMemo(() => {
     if (!debouncedSearch) return members;
     const q = debouncedSearch.toLowerCase();
     return members.filter(m => m.name?.toLowerCase().includes(q) || m.email?.toLowerCase().includes(q));
   }, [members, debouncedSearch]);
+
+  if (isLoading || (role !== 'admin' && role !== 'committee')) {
+    return <div style={{ padding: '4rem', textAlign: 'center' }}>Loading Workspace...</div>;
+  }
 
   return (
     <div className={styles.adminLayout}>
@@ -301,9 +293,6 @@ export default function AdminDashboard() {
           </div>
           <div className={styles.topBarRight}>
             <div className={styles.adminBadge}>{role === 'admin' ? 'Admin Session' : 'Committee Session'}</div>
-            <button className={styles.logoutBtnSmall} onClick={handleLogout}>
-              <LogOut size={16} />
-            </button>
           </div>
         </div>
 
@@ -602,14 +591,14 @@ export default function AdminDashboard() {
                   <div key={event.id} className={styles.tableRow} style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 0.8fr' }}>
                     <div>
                       <div className={styles.memberCellName}>{event.title}</div>
-                      <div className={styles.memberCellEmail} style={{ marginTop: '2px' }}>{event.description.slice(0, 60)}...</div>
+                      <div className={styles.memberCellEmail} style={{ marginTop: '2px' }}>{(event.description || '').slice(0, 60)}...</div>
                     </div>
                     <div className={styles.cellText}>
                       {new Date(event.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </div>
                     <div className={styles.cellText}>{event.time}</div>
                     <div className={styles.cellText} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <MapPin size={12} color="var(--color-text-muted)" /> {event.location.split(',')[0]}
+                      <MapPin size={12} color="var(--color-text-muted)" /> {(event.location || '').split(',')[0] || '—'}
                     </div>
                     <div style={{ display: 'flex', gap: '4px' }}>
                       <button
@@ -691,13 +680,30 @@ export default function AdminDashboard() {
                   </div>
                   <div>
                     <label style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-secondary)', marginBottom: '4px', display: 'block' }}>Time</label>
-                    <input
-                      type="text"
-                      value={eventForm.time}
-                      onChange={(e) => setEventForm(f => ({ ...f, time: e.target.value }))}
-                      placeholder="6:00 PM"
-                      style={{ width: '100%', padding: '10px 14px', border: '1.5px solid var(--color-border)', borderRadius: '8px', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }}
-                    />
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input
+                        type="text"
+                        value={eventForm.time.replace(/ (AM|PM)$/, '')}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const currentPeriod = eventForm.time.match(/AM|PM/)?.[0] || 'PM';
+                          setEventForm(f => ({ ...f, time: val ? `${val} ${currentPeriod}` : '' }));
+                        }}
+                        placeholder="e.g. 6:30"
+                        style={{ width: '100%', padding: '10px 14px', border: '1.5px solid var(--color-border)', borderRadius: '8px', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }}
+                      />
+                      <select
+                        value={eventForm.time.match(/AM|PM/)?.[0] || 'PM'}
+                        onChange={(e) => {
+                          const val = eventForm.time.replace(/ (AM|PM)$/, '') || '12:00';
+                          setEventForm(f => ({ ...f, time: `${val} ${e.target.value}` }));
+                        }}
+                        style={{ padding: '10px', border: '1.5px solid var(--color-border)', borderRadius: '8px', background: '#fff', fontSize: '0.9375rem', cursor: 'pointer' }}
+                      >
+                        <option value="AM">AM</option>
+                        <option value="PM">PM</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
                 <div>

@@ -22,12 +22,30 @@ export class ApiClient {
           const sessionData = sessionStorage.getItem('sb-uevmyvwbmxqreyukbvkq-auth-token');
           if (sessionData) {
             const parsed = JSON.parse(sessionData);
-            token = parsed?.access_token || null;
+            // Supabase stores session as { access_token, ... } or nested under a key
+            token = parsed?.access_token || parsed?.currentSession?.access_token || null;
           }
         } catch { /* ignore parse errors */ }
       }
 
-      // 3. Fallback: check cookie
+      // 3. Check Supabase localStorage keys (some configs store here)
+      if (!token) {
+        try {
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
+              const data = localStorage.getItem(key);
+              if (data) {
+                const parsed = JSON.parse(data);
+                token = parsed?.access_token || parsed?.currentSession?.access_token || null;
+                if (token) break;
+              }
+            }
+          }
+        } catch { /* ignore */ }
+      }
+
+      // 4. Fallback: check cookie
       if (!token) {
         const match = document.cookie.match(new RegExp('(^| )sb-uevmyvwbmxqreyukbvkq-auth-token=([^;]+)'));
         if (match) token = match[2];
@@ -112,9 +130,11 @@ export class ApiClient {
   }
 
   static async delete<T>(endpoint: string): Promise<T> {
+    const headers = this.getHeaders();
+    delete headers['Content-Type']; // Fix Fastify 400 Bad Request on empty body
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method: 'DELETE',
-      headers: this.getHeaders(),
+      headers,
     });
     return this.handleResponse<T>(response);
   }

@@ -10,7 +10,7 @@ export function middleware(request: NextRequest) {
   const isAuthenticated = !!(supabaseToken || legacyToken);
 
   // Define protected paths
-  const isMemberPath = path.startsWith('/directory') || path.startsWith('/profile');
+  const isMemberPath = path.startsWith('/directory') || path.startsWith('/profile') || path.startsWith('/archives');
   const isAdminPath = path.startsWith('/dashboard');
   const isLoginPath = path === '/login';
 
@@ -64,7 +64,15 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+  
+  if (isMemberPath || isAdminPath) {
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+  }
+
+  return response;
 }
 
 export const config = {
@@ -72,6 +80,7 @@ export const config = {
     '/directory/:path*',
     '/profile/:path*',
     '/dashboard/:path*',
+    '/archives/:path*',
     '/login',
   ],
 };

@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { Search, User, Home } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Home, User, ChevronDown } from 'lucide-react';
 import styles from './Navbar.module.css';
 import { useAuth } from '@/lib/auth-context';
 import Link from 'next/link';
@@ -10,29 +10,47 @@ import { usePathname } from 'next/navigation';
 interface NavbarProps {
   variant?: 'public' | 'admin';
   activeLink?: string;
-  showSearch?: boolean;
 }
 
 export default function Navbar({
   activeLink = '',
-  showSearch = false,
 }: NavbarProps) {
   const { user, role, logout } = useAuth();
   const pathname = usePathname();
+  const [loginDropdownOpen, setLoginDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const handleLogout = async (e: React.MouseEvent) => {
-    e.preventDefault();
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setLoginDropdownOpen(false);
+      }
+    };
+    if (loginDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [loginDropdownOpen]);
+
+  const handleLogout = async (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
+    
+    if (!window.confirm('Are you sure you want to log out?')) return;
+
     await logout();
-    window.location.replace('/');
+    window.location.replace('/home');
   };
 
   const links = [
     ...(pathname !== '/login' ? [
       { label: 'About', href: '/about', public: true },
-      { label: 'Archives', href: '/home#archives', public: true },
     ] : []),
-    // Directory is only visible when logged in
-    ...(user ? [{ label: 'Directory', href: '/directory', public: false }] : []),
+    // Directory and Archives are only visible when logged in
+    ...(user ? [
+      { label: 'Archives', href: '/archives', public: false },
+      { label: 'Directory', href: '/directory', public: false },
+    ] : []),
   ];
 
   return (
@@ -55,12 +73,6 @@ export default function Navbar({
       </div>
 
       <div className={styles.navActions}>
-        {showSearch && (
-          <div className={styles.searchBar}>
-            <Search size={16} className={styles.searchIcon} />
-            <input type="text" placeholder="Search members..." />
-          </div>
-        )}
 
         {(role === 'admin' || role === 'committee') && (
           <Link href="/dashboard" className={styles.dashboardBtn}>
@@ -79,16 +91,35 @@ export default function Navbar({
           <button className={styles.joinBtn} onClick={handleLogout}>
             Logout
           </button>
-        ) : pathname !== '/login' ? (
-          <>
-            <Link href="/login" className={styles.memberLoginBtn}>
-              Login
-            </Link>
-            <Link href="/login?tab=committee" className={styles.joinBtn}>
-              Join Us
-            </Link>
-          </>
-        ) : null}
+        ) : (
+          <div ref={dropdownRef} className={styles.loginDropdownWrapper}>
+            <button
+              className={styles.joinBtn}
+              onClick={() => setLoginDropdownOpen(prev => !prev)}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              Login <ChevronDown size={14} style={{ transition: 'transform 0.2s', transform: loginDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+            </button>
+            {loginDropdownOpen && (
+              <div className={styles.loginDropdownMenu}>
+                <Link
+                  href="/login?tab=member"
+                  className={styles.loginDropdownItem}
+                  onClick={() => setLoginDropdownOpen(false)}
+                >
+                  Member Login
+                </Link>
+                <Link
+                  href="/login?tab=committee"
+                  className={styles.loginDropdownItem}
+                  onClick={() => setLoginDropdownOpen(false)}
+                >
+                  Committee Login
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </nav>
   );

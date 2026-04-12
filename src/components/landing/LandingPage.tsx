@@ -1,15 +1,19 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { useParallax, useScrollReveal } from '@/hooks/useParallax';
+import { useAuth } from '@/lib/auth-context';
+import { ApiClient } from '@/lib/api';
+import { Event } from '@/types';
 import styles from './LandingPage.module.css';
 
 export function HeroSection() {
   const heroImageRef = useParallax<HTMLDivElement>({ speed: 0.15 });
   const heroContentRef = useParallax<HTMLDivElement>({ speed: -0.08 });
+  const { user, role } = useAuth();
 
   return (
     <section className={styles.hero}>
@@ -29,12 +33,20 @@ export function HeroSection() {
           generations through unity.
         </p>
         <div className={`${styles.heroCta} ${styles.animateFadeUp} ${styles.delay3}`}>
-          <Link href="/login?tab=member" className={styles.ctaBtnPrimary}>
-            Member Login
-          </Link>
-          <Link href="/login?tab=committee" className={styles.ctaBtnOutlinedHero}>
-            Committee Login
-          </Link>
+          {user ? (
+            <Link href={(role === 'admin' || role === 'committee') ? '/dashboard' : '/directory'} className={styles.ctaBtnPrimary}>
+              {role === 'admin' || role === 'committee' ? 'Go to Dashboard' : 'Go to Directory'}
+            </Link>
+          ) : (
+            <>
+              <Link href="/login?tab=member" className={styles.ctaBtnPrimary}>
+                Member Login
+              </Link>
+              <Link href="/login?tab=committee" className={styles.ctaBtnOutlinedHero}>
+                Committee Login
+              </Link>
+            </>
+          )}
         </div>
       </div>
       <div ref={heroImageRef} className={`${styles.heroImage} ${styles.parallaxImage}`}>
@@ -91,8 +103,11 @@ export function HistoryMissionSection() {
 }
 
 export function AchievementsSection() {
+  const { user } = useAuth();
   const titleRef = useScrollReveal<HTMLDivElement>();
   const bannerRef = useParallax<HTMLDivElement>({ speed: 0.12 });
+
+  if (!user) return null;
 
   return (
     <section id="archives" className={styles.achievementsSection}>
@@ -154,7 +169,26 @@ export function AchievementsSection() {
 
 export function EventsSection() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const sectionRef = useScrollReveal<HTMLElement>();
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user) {
+      ApiClient.get<Event[]>('/events')
+        .then((data: Event[]) => {
+          setEvents((data || []).slice(0, 3));
+          setLoading(false);
+        })
+        .catch((err: Error) => {
+          console.error('Failed to load events:', err);
+          setLoading(false);
+        });
+    }
+  }, [user]);
+
+  if (!user) return null;
   
   return (
     <section ref={sectionRef} className={`${styles.eventsSection} ${styles.scrollReveal}`}>
@@ -166,32 +200,43 @@ export function EventsSection() {
               Join our community gatherings and celebrate your heritage together.
             </p>
           </div>
-          <Link href="/events" className={styles.eventsLink}>
-            See All Events <ArrowRight size={14} />
-          </Link>
         </div>
         
-        <div className={styles.eventCard}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/images/events/event1.png"
-            alt="Heritage Gala & Cultural Night"
-            className={styles.eventCardImage}
-          />
-          <div className={styles.eventCardContent}>
-            <h3 className={styles.eventCardTitle}>Heritage Gala &amp; Cultural Night</h3>
-            <p className={styles.eventCardLocation}>Grand Ballroom, Samaj Center · Dadar</p>
+        {loading ? (
+          <p style={{ color: 'var(--color-text-muted)' }}>Loading upcoming events...</p>
+        ) : events.length === 0 ? (
+          <p style={{ color: 'var(--color-text-muted)' }}>No upcoming events scheduled right now.</p>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', width: '100%' }}>
+            {events.map((event: Event) => {
+              const eventDate = new Date(event.date);
+              const day = eventDate.getDate();
+              const month = eventDate.toLocaleString('default', { month: 'short' });
+              
+              return (
+                <div key={event.id} className={styles.eventCard}>
+                  <div style={{ padding: '24px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                    <h3 className={styles.eventCardTitle}>{event.title}</h3>
+                    <p className={styles.eventCardLocation} style={{ marginTop: '8px', marginBottom: 'auto' }}>
+                      {event.location || 'Location TBA'}
+                      {event.time && ` • ${event.time}`}
+                    </p>
+                    
+                    <div className={styles.eventCardActions} style={{ marginTop: '24px' }}>
+                      <div className={styles.eventDate}>
+                        <div className={styles.eventDateDay}>{day}</div>
+                        <div className={styles.eventDateMonth}>{month}</div>
+                      </div>
+                      <button className={styles.registerBtn} onClick={() => toast('Registration successful! You will receive a confirmation SMS.', 'success')}>
+                        Register
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-          <div className={styles.eventCardActions}>
-            <div className={styles.eventDate}>
-              <div className={styles.eventDateDay}>15</div>
-              <div className={styles.eventDateMonth}>Apr</div>
-            </div>
-            <button className={styles.registerBtn} onClick={() => toast('Registration successful! You will receive a confirmation SMS.', 'success')}>
-              Register
-            </button>
-          </div>
-        </div>
+        )}
       </div>
     </section>
   );
@@ -199,6 +244,36 @@ export function EventsSection() {
 
 export function CTABanner() {
   const ctaRef = useScrollReveal<HTMLElement>();
+  const { user } = useAuth();
+
+  const handleScrollToTop = () => {
+    const startY = window.scrollY;
+    const duration = 1200; // 1.2s smooth roll up
+    let startTime: number | null = null;
+    
+    const easeInOutCubic = (t: number, b: number, c: number, d: number) => {
+      t /= d / 2;
+      if (t < 1) return c / 2 * t * t * t + b;
+      t -= 2;
+      return c / 2 * (t * t * t + 2) + b;
+    };
+
+    const animation = (currentTime: number) => {
+      if (startTime === null) startTime = currentTime;
+      const timeElapsed = currentTime - startTime;
+      const nextY = easeInOutCubic(timeElapsed, startY, -startY, duration);
+      
+      window.scrollTo(0, nextY);
+      
+      if (timeElapsed < duration) {
+        requestAnimationFrame(animation);
+      } else {
+        window.scrollTo(0, 0); // ensure perfect lock
+      }
+    };
+    
+    requestAnimationFrame(animation);
+  };
 
   return (
     <section ref={ctaRef} className={`${styles.ctaBanner} ${styles.scrollReveal}`}>
@@ -208,12 +283,15 @@ export function CTABanner() {
         to our community&apos;s lasting legacy.
       </p>
       <div className={styles.ctaActions}>
-        <Link href="/login" className={styles.ctaBtnOutlined} style={{ textDecoration: 'none' }}>
-          Join the Community
-        </Link>
-        <Link href="/login" className={styles.ctaBtnOutlined} style={{ textDecoration: 'none' }}>
-          Member Login
-        </Link>
+        {!user && (
+          <button
+            onClick={handleScrollToTop}
+            className={styles.ctaBtnOutlined}
+            style={{ textDecoration: 'none', cursor: 'pointer' }}
+          >
+            Login
+          </button>
+        )}
       </div>
     </section>
   );
