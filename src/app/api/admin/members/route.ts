@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams;
     const { skip, take } = getPagination(searchParams);
-    const name = searchParams.get('name');
+    const name = searchParams.get('name') || searchParams.get('search');
 
     const supabase = createServerSupabase();
 
@@ -28,14 +28,26 @@ export async function GET(request: NextRequest) {
       .range(skip, skip + take - 1);
 
     if (name) {
-      query = query.or(`first_name.ilike.%${name}%,last_name.ilike.%${name}%`);
+      const q = name.trim();
+      const parts = q.split(/\s+/);
+      
+      if (parts.length > 1) {
+        const f = parts[0];
+        const l = parts.slice(1).join(' ');
+        query = query.or(`and(first_name.ilike.%${f}%,last_name.ilike.%${l}%),NAME.ilike.%${q}%, "LAST NAME".ilike.%${q}%`);
+      } else {
+        query = query.or(`first_name.ilike.%${q}%,last_name.ilike.%${q}%,NAME.ilike.%${q}%,"LAST NAME".ilike.%${q}%`);
+      }
     }
 
     const { data: members, error } = await query;
 
     if (error) {
       console.error('Error fetching admin members:', error);
-      return NextResponse.json({ error: 'Failed to fetch members' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to fetch members', detail: error.message },
+        { status: 500 }
+      );
     }
 
     const result = (members || []).map((m: any) => {
@@ -52,7 +64,10 @@ export async function GET(request: NextRequest) {
 
   } catch (error: any) {
     console.error('Error in GET /api/admin/members:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal Server Error', detail: error.message },
+      { status: 500 }
+    );
   }
 }
 

@@ -217,6 +217,14 @@
   border-color: var(--color-primary-light);
 }
 
+.memberCardActive {
+  box-shadow: var(--shadow-xl);
+  transform: translateY(-6px);
+  border-color: var(--color-primary);
+  background-color: var(--color-bg-section-alt);
+  outline: 2px solid var(--color-primary-light);
+}
+
 .memberCardImage {
   position: relative;
   width: 100%;

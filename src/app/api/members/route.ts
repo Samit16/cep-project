@@ -18,8 +18,8 @@ export async function GET(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams;
     const { skip, take } = getPagination(searchParams);
-    
-    const name = searchParams.get('name');
+
+    const name = searchParams.get('name') || searchParams.get('search');
     const city = searchParams.get('city');
     const occupation = searchParams.get('occupation');
 
@@ -28,11 +28,16 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('members')
       .select('*')
-      .eq('active', true)
       .range(skip, skip + take - 1);
 
+    // Filter by active status (include true and null, exclude explicitly false)
+    query = query.or('active.is.null,active.eq.true');
+
     if (name) {
-      query = query.or(`NAME.ilike.%${name}%,"LAST NAME".ilike.%${name}%`);
+      const q = name.trim();
+
+      // Prefix search for a more natural typeahead experience.
+      query = query.or(`NAME.ilike.${q}%,"LAST NAME".ilike.${q}%`);
     }
     if (city) {
       query = query.eq('current_place', city);
@@ -45,7 +50,10 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('Error fetching members:', error);
-      return NextResponse.json({ error: 'Failed to fetch members' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to fetch members', detail: error.message },
+        { status: 500 }
+      );
     }
 
     const result = (members || []).map((m: any) => {

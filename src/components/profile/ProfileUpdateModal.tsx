@@ -30,6 +30,7 @@ export default function ProfileUpdateModal({ member, onClose, onUpdated, mode = 
     e.preventDefault();
     setIsSubmitting(true);
     try {
+      console.log('Submitting profile update:', formData);
       if (mode === 'self-update') {
         // Direct update to the database
         const updatedMember = await ApiClient.put<Member>('/members/me', formData);
@@ -44,7 +45,9 @@ export default function ProfileUpdateModal({ member, onClose, onUpdated, mode = 
       }
       onClose();
     } catch (err: unknown) {
-      toast((err as Error).message || 'Failed to update profile', 'error');
+      console.error('Profile update failed:', err);
+      const errorMessage = (err as Error).message || 'Failed to update profile';
+      toast(errorMessage, 'error');
     } finally {
       setIsSubmitting(false);
     }

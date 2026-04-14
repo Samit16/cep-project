@@ -47,7 +47,8 @@ export class ApiClient {
     const data = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(data?.error || response.statusText || 'API Request failed');
+      const errorMsg = data?.detail || data?.error || response.statusText || 'API Request failed';
+      throw new Error(errorMsg);
     }
 
     return data as T;

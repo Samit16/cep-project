@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Search, LayoutGrid, List, ShieldCheck, MapPin, Users } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import styles from './DirectoryPage.module.css';
 import { OverlayBadge } from '@/components/ui/Badge/Badge';
 import EmptyState from '@/components/ui/EmptyState/EmptyState';
@@ -22,17 +23,46 @@ function getAvatarColor(name: string) {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
+const highlightMatch = (name: string, query: string) => {
+  if (!query.trim()) return name;
+  const q = query.trim().toLowerCase();
+  
+  // Split query into parts to handle multi-word highlighting
+  const queryParts = q.split(/\s+/).filter(part => part.length > 0);
+  
+  // Create a regex to match any of the query parts (substring matching)
+  try {
+    const pattern = queryParts.map(p => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+    const regex = new RegExp(`(${pattern})`, 'i');
+    const parts = name.split(regex);
+
+    return parts.map((part, i) => {
+      const isMatch = regex.test(part);
+      if (isMatch) {
+        return (
+          <span key={i} style={{ fontWeight: 'bold', color: 'var(--color-primary)' }}>
+            {part}
+          </span>
+        );
+      }
+      return part;
+    });
+  } catch (e) {
+    return name;
+  }
+};
 
 export default function DirectoryPage() {
+  const router = useRouter();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-
   
   const [members, setMembers] = useState<Member[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeIndex, setActiveIndex] = useState(-1);
 
   const { toast } = useToast();
   const itemsPerPage = 12;
@@ -42,6 +72,7 @@ export default function DirectoryPage() {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchQuery);
       setCurrentPage(1);
+      setActiveIndex(-1); // Reset highlight when search changes
     }, 300);
     return () => clearTimeout(timer);
   }, [searchQuery]);
@@ -49,15 +80,20 @@ export default function DirectoryPage() {
   const loadMembers = useCallback(async () => {
     setIsLoading(true);
     try {
+      const q = debouncedSearch.trim();
       const response = await ApiClient.get<Member[]>('/members', {
         page: currentPage,
         limit: itemsPerPage,
-        name: debouncedSearch,
+        name: q,
       });
       setMembers(response);
       setHasMore(response.length === itemsPerPage);
     } catch (err: unknown) {
-      toast((err as Error).message || 'Failed to load directory', 'error');
+      const msg = (err as Error).message || '';
+      // Only show error toast if it's NOT an unauthorized error during background load
+      if (msg !== 'Unauthorized') {
+        toast(msg || 'Failed to load directory', 'error');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -67,14 +103,31 @@ export default function DirectoryPage() {
     loadMembers();
   }, [loadMembers]);
 
-
-
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
+    setCurrentPage(1);
+    setActiveIndex(-1);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!members.length) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveIndex(prev => (prev < members.length - 1 ? prev + 1 : prev));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveIndex(prev => (prev > 0 ? prev - 1 : 0));
+    } else if (e.key === 'Enter') {
+      if (activeIndex >= 0) {
+        e.preventDefault();
+        router.push(`/directory/${members[activeIndex].id}`);
+      }
+    }
   };
 
   return (
-    <div className={styles.directoryContent}>
+    <div className={styles.directoryContent} onKeyDown={handleKeyDown}>
       {/* Header */}
       <div className={styles.header}>
         <div className={styles.headerLeft}>
@@ -140,10 +193,10 @@ export default function DirectoryPage() {
               }
             }}
           >
-            {members.map((member) => (
+            {members.map((member, index) => (
               <motion.div 
-                key={member.id} 
-                className={styles.memberCard}
+                key={`${member.id}-${index}`} 
+                className={`${styles.memberCard} ${index === activeIndex ? styles.memberCardActive : ''}`}
                 variants={{
                   hidden: { opacity: 0, y: 20 },
                   show: { opacity: 1, y: 0 }
@@ -162,7 +215,9 @@ export default function DirectoryPage() {
                   )}
                 </div>
                 <div className={styles.memberCardBody}>
-                  <h3 className={styles.memberCardName}>{member.name}</h3>
+                  <h3 className={styles.memberCardName}>
+                    {highlightMatch(member.name, debouncedSearch)}
+                  </h3>
                   <p className={styles.memberCardProfession}>{member.occupation || 'N/A'}</p>
                   <p className={styles.memberCardLocation}>
                     <MapPin size={14} className={styles.locationIcon} />

@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
 
     const firstName = member.first_name || member.NAME || '';
     const lastName = member.last_name || member['LAST NAME'] || '';
-    
+
     return NextResponse.json({
       ...member,
       name: `${firstName} ${lastName}`.trim(),
@@ -122,7 +122,8 @@ export async function PUT(request: NextRequest) {
     }
 
     // Only allow specific fields to be updated
-    // Note: DB has 'contact_numbers' (array), NOT 'contact_no'
+    // Note: the DB uses contact_numbers (TEXT[]), not contact_no.
+    // We accept contact_no from the frontend and map it to contact_numbers.
     const allowedFields = ['occupation', 'marital_status', 'current_place', 'kutch_town', 'contact_numbers', 'email'];
     const updateData: Record<string, any> = {};
     for (const key of allowedFields) {
@@ -131,9 +132,10 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    // Handle contact_no from frontend → convert to contact_numbers array
-    if (changes.contact_no && !changes.contact_numbers) {
-      updateData.contact_numbers = [changes.contact_no];
+    // Map contact_no (single string from UI) → contact_numbers (TEXT[] in DB)
+    if (changes['contact_no'] !== undefined && changes['contact_no'] !== null) {
+      const num = String(changes['contact_no']).trim();
+      updateData['contact_numbers'] = num ? [num] : [];
     }
 
     if (Object.keys(updateData).length === 0) {
@@ -157,7 +159,10 @@ export async function PUT(request: NextRequest) {
 
     if (error) {
       console.error('Error updating member profile:', error);
-      return NextResponse.json({ error: 'Failed to update profile.' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to update profile.', detail: error.message },
+        { status: 500 }
+      );
     }
 
     const firstName = updatedMember.first_name || updatedMember.NAME || '';
