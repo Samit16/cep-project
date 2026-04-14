@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const { skip, take } = getPagination(searchParams);
     
-    const name = searchParams.get('name');
+    const name = searchParams.get('name') || searchParams.get('search');
     const city = searchParams.get('city');
     const occupation = searchParams.get('occupation');
 
@@ -34,9 +34,10 @@ export async function GET(request: NextRequest) {
     query = query.or('active.is.null,active.eq.true');
 
     if (name) {
-      // Broaden search to include legacy column names (NAME, LAST NAME) if they exist
-      // We use double quotes for "LAST NAME" because of the space
-      query = query.or(`first_name.ilike.%${name}%,last_name.ilike.%${name}%,NAME.ilike.%${name}%,"LAST NAME".ilike.%${name}%`);
+      const q = name.trim();
+
+      // Prefix search for a more natural typeahead experience.
+      query = query.or(`NAME.ilike.${q}%,"LAST NAME".ilike.${q}%`);
     }
     if (city) {
       query = query.eq('current_place', city);

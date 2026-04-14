@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams;
     const { skip, take } = getPagination(searchParams);
-    const name = searchParams.get('name');
+    const name = searchParams.get('name') || searchParams.get('search');
 
     const supabase = createServerSupabase();
 
@@ -28,8 +28,16 @@ export async function GET(request: NextRequest) {
       .range(skip, skip + take - 1);
 
     if (name) {
-      // Broaden search to include legacy column names (NAME, LAST NAME) if they exist
-      query = query.or(`first_name.ilike.%${name}%,last_name.ilike.%${name}%,NAME.ilike.%${name}%,"LAST NAME".ilike.%${name}%`);
+      const q = name.trim();
+      const parts = q.split(/\s+/);
+      
+      if (parts.length > 1) {
+        const f = parts[0];
+        const l = parts.slice(1).join(' ');
+        query = query.or(`and(first_name.ilike.%${f}%,last_name.ilike.%${l}%),NAME.ilike.%${q}%, "LAST NAME".ilike.%${q}%`);
+      } else {
+        query = query.or(`first_name.ilike.%${q}%,last_name.ilike.%${q}%,NAME.ilike.%${q}%,"LAST NAME".ilike.%${q}%`);
+      }
     }
 
     const { data: members, error } = await query;
