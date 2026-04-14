@@ -122,12 +122,18 @@ export async function PUT(request: NextRequest) {
     }
 
     // Only allow specific fields to be updated
-    const allowedFields = ['occupation', 'marital_status', 'current_place', 'kutch_town', 'contact_no', 'contact_numbers', 'email'];
+    // Note: DB has 'contact_numbers' (array), NOT 'contact_no'
+    const allowedFields = ['occupation', 'marital_status', 'current_place', 'kutch_town', 'contact_numbers', 'email'];
     const updateData: Record<string, any> = {};
     for (const key of allowedFields) {
       if (changes[key] !== undefined) {
         updateData[key] = changes[key];
       }
+    }
+
+    // Handle contact_no from frontend → convert to contact_numbers array
+    if (changes.contact_no && !changes.contact_numbers) {
+      updateData.contact_numbers = [changes.contact_no];
     }
 
     if (Object.keys(updateData).length === 0) {

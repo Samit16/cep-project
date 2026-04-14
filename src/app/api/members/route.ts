@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
       .range(skip, skip + take - 1);
 
     if (name) {
-      query = query.or(`first_name.ilike.%${name}%,last_name.ilike.%${name}%,NAME.ilike.%${name}%,"LAST NAME".ilike.%${name}%`);
+      query = query.or(`NAME.ilike.%${name}%,"LAST NAME".ilike.%${name}%`);
     }
     if (city) {
       query = query.eq('current_place', city);
