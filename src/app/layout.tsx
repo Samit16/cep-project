@@ -3,6 +3,7 @@ import { Playfair_Display, Inter } from "next/font/google";
 import { ToastProvider } from "@/components/ui/Toast/ToastProvider";
 import { AuthProvider } from "@/lib/auth-context";
 import { ClientAuthGuard } from "@/components/auth/ClientAuthGuard";
+import { GsapInteractionsProvider } from "@/components/GsapInteractionsProvider";
 import "./globals.css";
 
 const playfairDisplay = Playfair_Display({
@@ -37,7 +38,9 @@ export default function RootLayout({
         <AuthProvider>
           <ToastProvider>
             <ClientAuthGuard>
-              {children}
+              <GsapInteractionsProvider>
+                {children}
+              </GsapInteractionsProvider>
             </ClientAuthGuard>
           </ToastProvider>
         </AuthProvider>

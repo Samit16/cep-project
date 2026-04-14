@@ -4,22 +4,40 @@ import React, { useEffect, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
-import { useParallax, useScrollReveal } from '@/hooks/useParallax';
+import { useGsapReveal, useGsapStagger, useGsapParallax } from '@/hooks/useGsapAnimations';
 import { useAuth } from '@/lib/auth-context';
 import { ApiClient } from '@/lib/api';
 import { Event } from '@/types';
 import styles from './LandingPage.module.css';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
 
 export function HeroSection() {
-  const heroImageRef = useParallax<HTMLDivElement>({ speed: 0.15 });
-  const heroContentRef = useParallax<HTMLDivElement>({ speed: -0.08 });
+  const containerRef = React.useRef<HTMLElement>(null);
+  const heroImageRef = useGsapParallax<HTMLDivElement>(0.15, 'y');
+  const heroContentRef = useGsapParallax<HTMLDivElement>(-0.08, 'y');
   const { user, role } = useAuth();
 
+  useGSAP(() => {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    gsap.from('.gsap-hero-anim', {
+      y: 30,
+      opacity: 0,
+      duration: 0.8,
+      stagger: 0.15,
+      ease: 'power3.out',
+      delay: 0.2,
+      clearProps: 'all'
+    });
+  }, { scope: containerRef });
+
   return (
-    <section className={styles.hero}>
-      <div ref={heroContentRef} className={`${styles.heroContent} ${styles.parallaxContent} ${styles.animateFadeUp}`}>
-        <span className={styles.heroLabel}>Established Since 1921</span>
-        <h1 className={`${styles.heroTitle} ${styles.animateFadeUp} ${styles.delay1}`}>
+    <section ref={containerRef} className={styles.hero}>
+      <div ref={heroContentRef} className={`${styles.heroContent}`}>
+        <span className={`${styles.heroLabel} gsap-hero-anim`}>Established Since 1921</span>
+        <h1 className={`${styles.heroTitle} gsap-hero-anim`}>
           Connecting Our{' '}
           <span className={styles.heroTitleHighlight}>
             Heritage
@@ -27,12 +45,12 @@ export function HeroSection() {
           ,{' '}
           <span className={styles.heroTitleItalic}>Building<br />Our Future</span>
         </h1>
-        <p className={`${styles.heroSubtitle} ${styles.animateFadeUp} ${styles.delay2}`}>
+        <p className={`${styles.heroSubtitle} gsap-hero-anim`}>
           A vibrant tapestry of culture, commerce, and community. We stand as
           the custodians of the KVO Nagpur legacy, empowering
           generations through unity.
         </p>
-        <div className={`${styles.heroCta} ${styles.animateFadeUp} ${styles.delay3}`}>
+        <div className={`${styles.heroCta} gsap-hero-anim`}>
           {user ? (
             <Link href={(role === 'admin' || role === 'committee') ? '/dashboard' : '/directory'} className={styles.ctaBtnPrimary}>
               {role === 'admin' || role === 'committee' ? 'Go to Dashboard' : 'Go to Directory'}
@@ -51,22 +69,22 @@ export function HeroSection() {
       </div>
       <div ref={heroImageRef} className={`${styles.heroImage} ${styles.parallaxImage}`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/images/hero.png" alt="Heritage architecture of the KVO Nagpur community" />
+        <img src="/images/samaj.jpeg" alt="Heritage architecture of the KVO Nagpur community" />
       </div>
     </section>
   );
 }
 
 export function HistoryMissionSection() {
-  const imageRef = useParallax<HTMLDivElement>({ speed: 0.2 });
-  const contentRef = useScrollReveal<HTMLDivElement>();
+  const imageRef = useGsapParallax<HTMLDivElement>(0.2, 'y');
+  const contentRef = useGsapReveal<HTMLDivElement>();
 
   return (
     <section className={styles.historySection}>
       <div className={styles.historySectionInner} id="history">
         <div ref={imageRef} className={`${styles.historyImage} ${styles.parallaxImageContainer}`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/images/history.png" alt="Historical photograph of community founders" className={styles.parallaxInnerImage} />
+          <img src="/images/samaj_entrance.jpeg" alt="Historical photograph of community founders" className={styles.parallaxInnerImage} />
         </div>
         <div ref={contentRef} className={`${styles.historyContent} ${styles.scrollReveal}`}>
           <p className={styles.historyLabel}>The Heritage Realm</p>
@@ -104,8 +122,8 @@ export function HistoryMissionSection() {
 
 export function AchievementsSection() {
   const { user } = useAuth();
-  const titleRef = useScrollReveal<HTMLDivElement>();
-  const bannerRef = useParallax<HTMLDivElement>({ speed: 0.12 });
+  const titleRef = useGsapReveal<HTMLDivElement>();
+  const bannerRef = useGsapParallax<HTMLDivElement>(0.12, 'y');
 
   if (!user) return null;
 
@@ -120,7 +138,7 @@ export function AchievementsSection() {
           {/* Card 1 - Top Left */}
           <div className={styles.bentoCard}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className={styles.bentoCardImage} src="/images/hero.png" alt="Excellence in Education Grant" />
+            <img className={styles.bentoCardImage} src="/images/samaj_plaque.jpeg" alt="Excellence in Education Grant" />
             <span className={styles.bentoCardLabel}>Education</span>
             <h3 className={styles.bentoCardTitle}>Excellence in Education Grant</h3>
             <p className={styles.bentoCardText}>
@@ -170,7 +188,8 @@ export function AchievementsSection() {
 export function EventsSection() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const sectionRef = useScrollReveal<HTMLElement>();
+  const sectionRef = useGsapReveal<HTMLElement>();
+  const cardsContainerRef = useGsapStagger<HTMLDivElement>('.gsap-stagger-card');
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -207,14 +226,14 @@ export function EventsSection() {
         ) : events.length === 0 ? (
           <p style={{ color: 'var(--color-text-muted)' }}>No upcoming events scheduled right now.</p>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', width: '100%' }}>
+          <div ref={cardsContainerRef} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', width: '100%' }}>
             {events.map((event: Event) => {
               const eventDate = new Date(event.date);
               const day = eventDate.getDate();
               const month = eventDate.toLocaleString('default', { month: 'short' });
               
               return (
-                <div key={event.id} className={styles.eventCard}>
+                <div key={event.id} className={`${styles.eventCard} gsap-stagger-card`}>
                   <div style={{ padding: '24px', flex: 1, display: 'flex', flexDirection: 'column' }}>
                     <h3 className={styles.eventCardTitle}>{event.title}</h3>
                     <p className={styles.eventCardLocation} style={{ marginTop: '8px', marginBottom: 'auto' }}>
@@ -243,7 +262,7 @@ export function EventsSection() {
 }
 
 export function CTABanner() {
-  const ctaRef = useScrollReveal<HTMLElement>();
+  const ctaRef = useGsapReveal<HTMLElement>();
   const { user } = useAuth();
 
   const handleScrollToTop = () => {

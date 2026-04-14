@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/auth-context';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import LinkGooglePrompt from '@/components/auth/LinkGooglePrompt';
+import { useGsapNavbar, useGsapHover } from '@/hooks/useGsapAnimations';
 
 interface NavbarProps {
   variant?: 'public' | 'admin';
@@ -16,6 +17,7 @@ interface NavbarProps {
 export default function Navbar({
   activeLink = '',
 }: NavbarProps) {
+  const navRef = useGsapNavbar<HTMLElement>();
   const { user, role, logout } = useAuth();
   const pathname = usePathname();
   const [loginDropdownOpen, setLoginDropdownOpen] = useState(false);
@@ -52,7 +54,7 @@ export default function Navbar({
   ];
 
   return (
-    <nav className={styles.navbar} role="navigation" aria-label="Main navigation">
+    <nav ref={navRef} className={styles.navbar} role="navigation" aria-label="Main navigation">
       <Link href="/home" className={styles.logo} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <Home size={24} />
         KVO Nagpur
