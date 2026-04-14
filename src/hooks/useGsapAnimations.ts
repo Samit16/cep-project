@@ -24,17 +24,21 @@ export function useGsapReveal<T extends HTMLElement = HTMLDivElement>() {
       const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       if (prefersReducedMotion) return;
 
-      gsap.from(el, {
-        scrollTrigger: {
-          trigger: el,
-          start: 'top 85%',
-        },
-        y: 32,
-        opacity: 0,
-        duration: 0.8,
-        ease: 'power3.out',
-        clearProps: 'all' // clean up inline styles
-      });
+      gsap.fromTo(el, 
+        { y: 50, opacity: 0, scale: 0.98 },
+        {
+          scrollTrigger: {
+            trigger: el,
+            start: 'top 85%',
+          },
+          y: 0,
+          opacity: 1,
+          scale: 1,
+          duration: 1.2,
+          ease: 'expo.out',
+          clearProps: 'all'
+        }
+      );
     },
     { scope: ref }
   );
@@ -55,18 +59,22 @@ export function useGsapStagger<T extends HTMLElement = HTMLDivElement>(childSele
       const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       if (prefersReducedMotion) return;
 
-      gsap.from(gsap.utils.toArray(childSelector, el), {
-        scrollTrigger: {
-          trigger: el,
-          start: 'top 85%',
-        },
-        y: 24,
-        opacity: 0,
-        duration: 0.6,
-        stagger: 0.1,
-        ease: 'power2.out',
-        clearProps: 'all'
-      });
+      gsap.fromTo(gsap.utils.toArray(childSelector, el), 
+        { y: 40, opacity: 0, scale: 0.95 },
+        {
+          scrollTrigger: {
+            trigger: el,
+            start: 'top 80%',
+          },
+          y: 0,
+          opacity: 1,
+          scale: 1,
+          duration: 1,
+          stagger: 0.15,
+          ease: 'power3.out',
+          clearProps: 'all'
+        }
+      );
     },
     { scope: ref }
   );
@@ -88,16 +96,21 @@ export function useGsapParallax<T extends HTMLElement = HTMLDivElement>(speedMul
       const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       if (prefersReducedMotion) return;
 
-      gsap.to(el, {
-        scrollTrigger: {
-          trigger: el,
-          start: 'top bottom',
-          end: 'bottom top',
-          scrub: true,
-        },
-        [direction]: (i, target) => -100 * speedMultiplier,
-        ease: 'none'
-      });
+      // Wrap parallax in a subtle scale to give depth perception
+      gsap.fromTo(el,
+        { scale: 1.05 },
+        {
+          scrollTrigger: {
+            trigger: el,
+            start: 'top bottom',
+            end: 'bottom top',
+            scrub: 1.5, // Added smoothing scrub for premium feel
+          },
+          scale: 1,
+          [direction]: -100 * speedMultiplier,
+          ease: 'power1.inOut'
+        }
+      );
     },
     { scope: ref }
   );
@@ -162,7 +175,9 @@ export function useGsapClick<T extends HTMLElement = HTMLButtonElement>() {
       };
 
       el.addEventListener('click', onClick);
-      return () => el.removeEventListener('click', onClick);
+      return () => {
+        el.removeEventListener('click', onClick);
+      };
     },
     { scope: ref }
   );
@@ -225,28 +240,67 @@ export function useGsapInteractions<T extends HTMLElement = HTMLElement>() {
       if (prefersReducedMotion) return;
 
       const btns = gsap.utils.toArray<HTMLElement>('button, a[class*="Btn"], .btn', parent);
-      btns.forEach((btn) => {
-        const hoverAnim = gsap.to(btn, { scale: 1.04, y: -2, duration: 0.25, ease: 'power2.out', paused: true });
-        
-        btn.addEventListener('mouseenter', () => hoverAnim.play());
-        btn.addEventListener('mouseleave', () => hoverAnim.reverse());
-        btn.addEventListener('mousedown', () => gsap.to(btn, { scale: 0.96, duration: 0.1 }));
-        btn.addEventListener('mouseup', () => gsap.to(btn, { scale: 1.04, duration: 0.4, ease: 'elastic.out(1, 0.4)' }));
-      });
+      const btnCleanups: (() => void)[] = [];
 
-      const cards = gsap.utils.toArray<HTMLElement>('[class*="Card"]', parent);
-      cards.forEach((card) => {
-        const hoverAnim = gsap.to(card, { 
-          y: -4, 
-          scale: 1.01, 
-          boxShadow: '0 12px 24px rgba(0,0,0,0.08)',
-          duration: 0.3, 
-          ease: 'power2.out', 
+      btns.forEach((btn) => {
+        const hoverAnim = gsap.to(btn, { 
+          scale: 1.05, 
+          y: -2, 
+          boxShadow: '0 10px 20px -10px rgba(0,0,0,0.15)',
+          duration: 0.4, 
+          ease: 'power3.out', 
           paused: true 
         });
-        card.addEventListener('mouseenter', () => hoverAnim.play());
-        card.addEventListener('mouseleave', () => hoverAnim.reverse());
+        
+        const enter = () => hoverAnim.play();
+        const leave = () => hoverAnim.reverse();
+        const down = () => gsap.to(btn, { scale: 0.94, duration: 0.1, ease: 'power2.out' });
+        const up = () => gsap.to(btn, { scale: 1.05, duration: 0.6, ease: 'elastic.out(1, 0.4)' });
+
+        btn.addEventListener('mouseenter', enter);
+        btn.addEventListener('mouseleave', leave);
+        btn.addEventListener('mousedown', down);
+        btn.addEventListener('mouseup', up);
+
+        btnCleanups.push(() => {
+          btn.removeEventListener('mouseenter', enter);
+          btn.removeEventListener('mouseleave', leave);
+          btn.removeEventListener('mousedown', down);
+          btn.removeEventListener('mouseup', up);
+        });
       });
+
+      const cards = gsap.utils.toArray<HTMLElement>('[class*="Card"], [class*="card"]', parent);
+      const cardCleanups: (() => void)[] = [];
+
+      cards.forEach((card) => {
+        gsap.set(card, { transformPerspective: 1000 });
+        
+        const hoverAnim = gsap.to(card, { 
+          y: -8, 
+          scale: 1.02, 
+          boxShadow: '0 20px 40px -10px rgba(0,0,0,0.12), 0 8px 16px -8px rgba(0,0,0,0.08)',
+          duration: 0.5, 
+          ease: 'expo.out', 
+          paused: true 
+        });
+
+        const enter = () => hoverAnim.play();
+        const leave = () => hoverAnim.reverse();
+
+        card.addEventListener('mouseenter', enter);
+        card.addEventListener('mouseleave', leave);
+
+        cardCleanups.push(() => {
+          card.removeEventListener('mouseenter', enter);
+          card.removeEventListener('mouseleave', leave);
+        });
+      });
+
+      return () => {
+        btnCleanups.forEach(c => c());
+        cardCleanups.forEach(c => c());
+      };
     },
     { scope: ref }
   );

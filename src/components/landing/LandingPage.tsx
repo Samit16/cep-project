@@ -46,9 +46,9 @@ export function HeroSection() {
           <span className={styles.heroTitleItalic}>Building<br />Our Future</span>
         </h1>
         <p className={`${styles.heroSubtitle} gsap-hero-anim`}>
-          A vibrant tapestry of culture, commerce, and community. We stand as
-          the custodians of the KVO Nagpur legacy, empowering
-          generations through unity.
+          A place where culture, commerce, and community come together. We're proud 
+          to carry forward the KVO Nagpur legacy, empowering our future generations through 
+          unity and shared values.
         </p>
         <div className={`${styles.heroCta} gsap-hero-anim`}>
           {user ? (
@@ -87,18 +87,17 @@ export function HistoryMissionSection() {
           <img src="/images/samaj_entrance.jpeg" alt="Historical photograph of community founders" className={styles.parallaxInnerImage} />
         </div>
         <div ref={contentRef} className={`${styles.historyContent} ${styles.scrollReveal}`}>
-          <p className={styles.historyLabel}>The Heritage Realm</p>
+          <p className={styles.historyLabel}>Our Roots</p>
           <h2 className={styles.historyTitle}>History &amp; Mission</h2>
           <p className={styles.historyText}>
-            Founded on the bedrock of resilience and mutual prosperity, the KVO
-            Nagpur has been a pillar of strength for over a century. Our ancestors
-            transitioned from the arid plains of Kutch to the bustling centers of global
-            commerce.
+            Built on resilience and shared success, KVO Nagpur has been our community’s anchor 
+            for over a century. Our ancestors travelled from the arid plains of Kutch to thrive 
+            in global commerce, carrying our values with them.
           </p>
           <p className={styles.historyText}>
-            Today, our mission remains steadfast: to preserve the rich cultural tapestry of
-            our heritage while providing a modern ecosystem for professional growth,
-            social welfare, and spiritual enlightenment.
+            Today, our mission is simple: to celebrate our rich cultural heritage while creating 
+            a modern space where members can grow professionally, support one another, and find 
+            spiritual grounding.
           </p>
           <div className={styles.historyStats}>
             <div className={styles.statItem}>
@@ -132,7 +131,7 @@ export function AchievementsSection() {
       <div ref={titleRef} className={`${styles.achievementsSectionInner} ${styles.scrollReveal}`}>
         <h2 className={styles.achievementsTitle}>Archives</h2>
         <p className={styles.achievementsSubtitle}>
-          Honouring those whose contributions and impact inspire the future of the Samaj.
+          Celebrating the individuals whose contributions and lasting impact continue to inspire our community.
         </p>
         <div className={styles.bentoGrid}>
           {/* Card 1 - Top Left */}
@@ -154,8 +153,8 @@ export function AchievementsSection() {
             <span className={styles.bentoCardLabel}>Entrepreneurial Spirit</span>
             <h3 className={styles.bentoCardTitle}>Entrepreneurial Spirit</h3>
             <p className={styles.bentoCardText}>
-              A showcase of those in our community who are building businesses, creating employment,
-              and strengthening our legacy.
+              Celebrating the builders in our community who are starting businesses, creating jobs, 
+              and strengthening our shared legacy.
             </p>
             <a href="#" className={styles.bentoCardLink}>
               View Stories <ArrowRight size={14} />
@@ -216,7 +215,7 @@ export function EventsSection() {
           <div>
             <h2 className={styles.eventsTitle}>Upcoming Events</h2>
             <p className={styles.eventsSubtitle}>
-              Join our community gatherings and celebrate your heritage together.
+              Come join us! Reconnect with friends, meet new people, and celebrate our community together.
             </p>
           </div>
         </div>
@@ -296,10 +295,10 @@ export function CTABanner() {
 
   return (
     <section ref={ctaRef} className={`${styles.ctaBanner} ${styles.scrollReveal}`}>
-      <h2 className={styles.ctaTitle}>Ready to Shape Our Tomorrow?</h2>
+      <h2 className={styles.ctaTitle}>Ready to Shape Our Future?</h2>
       <p className={styles.ctaSubtitle}>
-        Join KVO Nagpur today. Gain access to a worldwide network and contribute
-        to our community&apos;s lasting legacy.
+        Join KVO Nagpur today. Connect with a worldwide network of members, share your journey, 
+        and help us build something special.
       </p>
       <div className={styles.ctaActions}>
         {!user && (

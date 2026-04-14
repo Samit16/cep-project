@@ -8,18 +8,18 @@ import styles from './AboutPage.module.css';
 import { Heart, BookOpen, Users, Landmark, Target, Eye, Globe, Award } from 'lucide-react';
 
 const milestones = [
-  { year: '1921', title: 'Foundation', description: 'A group of visionary community leaders established the Samaj in Mumbai to support migrants from the Kutch region.' },
-  { year: '1952', title: 'First Cultural Center', description: 'Inaugurated the community\'s first dedicated cultural center in Dadar, becoming a hub for heritage preservation.' },
+  { year: '1921', title: 'Foundation', description: 'A group of forward-looking community members started the Samaj in Mumbai to support fellow migrants arriving from the Kutch region.' },
+  { year: '1952', title: 'First Cultural Center', description: 'Opened our first dedicated cultural center in Dadar, giving everyone a physical place to connect and keep our traditions alive.' },
   { year: '1985', title: 'International Expansion', description: 'Opened chapters in East Africa, the UK, and the Gulf states, connecting diaspora members worldwide.' },
-  { year: '2003', title: 'Education Fund Launch', description: 'Launched a scholarship programme that has since supported over 2,000 students in higher education.' },
-  { year: '2024', title: 'Digital Transformation', description: 'Unveiled this community platform to digitise the member directory and modernise governance for the next century.' },
+  { year: '2003', title: 'Education Fund Launch', description: 'Started a scholarship fund that has since helped over 2,000 students pursue their dreams in higher education.' },
+  { year: '2024', title: 'Digital Transformation', description: 'Launched this online platform to bring our community directory to your fingertips and step confidently into the future.' },
 ];
 
 const values = [
-  { icon: Heart, title: 'Ahimsa', subtitle: 'Non-Violence', description: 'Rooted in the core Jain principle, we champion compassion and peaceful coexistence in every endeavour.' },
-  { icon: Users, title: 'Seva', subtitle: 'Service', description: 'Selfless service to the community drives our welfare programmes, health camps, and disaster relief efforts.' },
-  { icon: BookOpen, title: 'Vidya', subtitle: 'Education', description: 'We believe education is the greatest equaliser, funding scholarships and mentoring young professionals.' },
-  { icon: Landmark, title: 'Vanijya', subtitle: 'Enterprise', description: 'Building on our mercantile heritage, we foster ethical entrepreneurship and professional networking.' },
+  { icon: Heart, title: 'Ahimsa', subtitle: 'Non-Violence', description: 'Rooted in our core principles, we believe in acting with compassion and kindness in everything we do.' },
+  { icon: Users, title: 'Seva', subtitle: 'Service', description: 'Giving back to our community drives our support programs, health initiatives, and community events.' },
+  { icon: BookOpen, title: 'Vidya', subtitle: 'Education', description: 'We believe education changes lives, and we proudly fund scholarships to help our young people succeed.' },
+  { icon: Landmark, title: 'Vanijya', subtitle: 'Enterprise', description: 'Honoring our business roots, we encourage ethical entrepreneurship and love seeing our members thrive together.' },
 ];
 
 export default function AboutPage() {
@@ -32,11 +32,11 @@ export default function AboutPage() {
           <div className={styles.heroContent}>
             <span className={styles.heroBadge}>Est. 1921</span>
             <h1 className={styles.title}>
-              Our Sacred <span className={styles.italic}>Heritage</span>
+              Our Shared <span className={styles.italic}>Roots</span>
             </h1>
             <p className={styles.subtitle}>
-              For over a century, the KVO Nagpur has stood as a beacon of unity,
-              tradition, and progress — connecting thousands across six continents.
+              For over a century, KVO Nagpur has been a home away from home — connecting thousands 
+              of us across six continents through shared roots and values.
             </p>
           </div>
         </section>
@@ -90,19 +90,18 @@ export default function AboutPage() {
               <div className={styles.missionIcon}><Target size={28} /></div>
               <h3 className={styles.missionTitle}>Our Mission</h3>
               <p className={styles.missionText}>
-                To preserve the rich cultural tapestry of our heritage while providing a modern
-                ecosystem for professional growth, social welfare, and spiritual enlightenment.
-                We act as custodians of our traditions, ensuring that while we embrace the future,
-                we never lose sight of our foundation.
+                To keep our culture thriving while building a space where members can grow in their careers, 
+                support each other, and find personal fulfillment. We celebrate who we are, making sure that 
+                as we grow and look to the future, we always remember where we came from.
               </p>
             </div>
             <div className={styles.missionCard}>
               <div className={styles.missionIcon}><Eye size={28} /></div>
               <h3 className={styles.missionTitle}>Our Vision</h3>
               <p className={styles.missionText}>
-                To build the most connected, empowered, and culturally vibrant community
-                network in the world — one that serves as a model for how heritage communities
-                can thrive in the modern era without sacrificing their identity.
+                To build the most welcoming, supportive, and vibrant community network in the world 
+                — showing how we can thrive in the modern world while staying true to our roots and 
+                looking out for one another.
               </p>
             </div>
           </div>
@@ -138,7 +137,7 @@ export default function AboutPage() {
         <section className={styles.ctaSection}>
           <h2 className={styles.ctaTitle}>Be Part of Our Story</h2>
           <p className={styles.ctaText}>
-            Join KVO Nagpur today and contribute to a legacy that spans generations.
+            Join KVO Nagpur today, meet new friends, and be part of a community that spans generations.
           </p>
           <div className={styles.ctaActions}>
             <Link href="/login" className={styles.ctaBtnPrimary}>Join the Community</Link>

@@ -4,6 +4,7 @@ import { ToastProvider } from "@/components/ui/Toast/ToastProvider";
 import { AuthProvider } from "@/lib/auth-context";
 import { ClientAuthGuard } from "@/components/auth/ClientAuthGuard";
 import { GsapInteractionsProvider } from "@/components/GsapInteractionsProvider";
+import CustomCursor from "@/components/ui/CustomCursor/CustomCursor";
 import "./globals.css";
 
 const playfairDisplay = Playfair_Display({
@@ -40,6 +41,7 @@ export default function RootLayout({
             <ClientAuthGuard>
               <GsapInteractionsProvider>
                 {children}
+                <CustomCursor />
               </GsapInteractionsProvider>
             </ClientAuthGuard>
           </ToastProvider>

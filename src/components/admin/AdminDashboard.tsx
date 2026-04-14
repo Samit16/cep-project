@@ -15,6 +15,9 @@ import EmptyState from '@/components/ui/EmptyState/EmptyState';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { ApiClient } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { MemberGrowthChart, OverviewRingChart, EventParticipationChart } from './AdminCharts';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
 
 const avatarColors = ['#8B1A1A', '#C8956C', '#2D5F8B', '#4A7C59', '#7B5EA7'];
 
@@ -41,6 +44,56 @@ interface EventItem {
   description: string;
 }
 
+const FloatingLabelInput = ({ label, type = 'text', value, onChange, placeholder, isValid }: any) => {
+  const [focused, setFocused] = useState(false);
+  const hasInteracted = value.length > 0;
+  
+  let borderColor = 'var(--color-border)';
+  if (focused) borderColor = 'var(--color-primary)';
+  else if (hasInteracted && isValid) borderColor = '#16a34a';
+  else if (hasInteracted && !isValid) borderColor = '#dc2626';
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <div style={{
+        position: 'absolute',
+        top: focused || value ? '-10px' : '14px',
+        left: '14px',
+        background: '#fff',
+        padding: '0 4px',
+        fontSize: focused || value ? '0.75rem' : '0.9375rem',
+        color: focused ? 'var(--color-primary)' : 'var(--color-text-muted)',
+        transition: 'all 0.2s',
+        pointerEvents: 'none',
+        zIndex: 2,
+        fontWeight: focused || value ? 600 : 400
+      }}>
+        {label}
+      </div>
+      <input
+        type={type}
+        value={value}
+        onChange={onChange}
+        placeholder={focused ? placeholder : ''}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        style={{
+          width: '100%',
+          padding: '12px 14px',
+          border: '1.5px solid',
+          borderColor,
+          borderRadius: '8px',
+          fontSize: '0.9375rem',
+          outline: 'none',
+          boxShadow: focused ? '0 0 0 3px rgba(139,26,26,0.1)' : 'none',
+          background: hasInteracted && isValid && !focused ? '#f0fdf4' : '#fff',
+          transition: 'all 0.2s',
+          boxSizing: 'border-box'
+        }}
+      />
+    </div>
+  );
+};
 
 export default function AdminDashboard() {
   const [members, setMembers] = useState<MemberAdmin[]>([]);
@@ -205,6 +258,24 @@ export default function AdminDashboard() {
     return members.filter(m => m.name?.toLowerCase().includes(q) || m.email?.toLowerCase().includes(q));
   }, [members, debouncedSearch]);
 
+  useGSAP(() => {
+    gsap.from(`.${styles.statCard}`, {
+      y: 20,
+      opacity: 0,
+      duration: 0.6,
+      stagger: 0.1,
+      ease: 'power3.out'
+    });
+    gsap.from(`.${styles.insightCard}`, {
+      y: 30,
+      opacity: 0,
+      duration: 0.7,
+      delay: 0.3,
+      stagger: 0.15,
+      ease: 'back.out(1.2)'
+    });
+  }, { dependencies: [activeTab] });
+
   if (isLoading || (role !== 'admin' && role !== 'committee')) {
     return <div style={{ padding: '4rem', textAlign: 'center' }}>Loading Workspace...</div>;
   }
@@ -355,66 +426,31 @@ export default function AdminDashboard() {
         </div>
         )}
 
-        {/* Member Insights */}
-        {activeTab === 'members' && members.length > 0 && (
-        <div className={styles.insightsSection}>
-          <div className={styles.insightCard}>
-            <h3 className={styles.insightTitle}>Activity Overview</h3>
-            <div className={styles.insightBody}>
-              <div className={styles.insightRow}>
-                <span className={styles.insightLabel}>Active members</span>
-                <span className={styles.insightValue}>{members.filter(m => m.active).length}</span>
-              </div>
-              <div className={styles.insightRow}>
-                <span className={styles.insightLabel}>Profiles updated</span>
-                <span className={styles.insightValue}>
-                  {members.filter(m => m.updated_at && m.created_at && m.updated_at !== m.created_at).length}
-                </span>
-              </div>
-              <div className={styles.insightRow}>
-                <span className={styles.insightLabel}>With contact info</span>
-                <span className={styles.insightValue}>
-                  {members.filter(m => m.contact_numbers && m.contact_numbers.length > 0).length}
-                </span>
-              </div>
-              <div className={styles.insightRow}>
-                <span className={styles.insightLabel}>Pending updates</span>
-                <span className={styles.insightValue}>
-                  {members.filter(m => !m.updated_at || m.updated_at === m.created_at).length}
-                </span>
-              </div>
-            </div>
+        {/* Data Visualization */}
+        {activeTab === 'members' && (
+        <div className={styles.insightGrid}>
+          
+          <div className={`${styles.insightCard} ${styles.cardFull}`}>
+            <h3 className={styles.insightTitle}>Community Growth</h3>
+            <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>M-o-M new member registrations</p>
+            <MemberGrowthChart members={members} />
           </div>
 
-          <div className={styles.insightCard}>
-            <h3 className={styles.insightTitle}>Top Cities</h3>
-            <div className={styles.insightBody}>
-              {(() => {
-                const cityCount: Record<string, number> = {};
-                members.forEach(m => {
-                  const city = m.current_place || 'Unknown';
-                  cityCount[city] = (cityCount[city] || 0) + 1;
-                });
-                return Object.entries(cityCount)
-                  .sort(([,a], [,b]) => b - a)
-                  .slice(0, 5)
-                  .map(([city, count]) => (
-                    <div key={city} className={styles.insightRow}>
-                      <span className={styles.insightLabel}>
-                        <MapPin size={12} style={{ opacity: 0.5 }} /> {city}
-                      </span>
-                      <div className={styles.insightBarWrapper}>
-                        <div
-                          className={styles.insightBar}
-                          style={{ width: `${Math.min(100, (count / members.length) * 100 * 3)}%` }}
-                        />
-                        <span className={styles.insightValue}>{count}</span>
-                      </div>
-                    </div>
-                  ));
-              })()}
-            </div>
+          <div className={`${styles.insightCard} ${styles.cardHalf}`}>
+            <h3 className={styles.insightTitle}>Profile Verification</h3>
+            <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>Percentage of updated profiles in system</p>
+            <OverviewRingChart 
+              active={members.filter(m => m.active || (m.updated_at && m.updated_at !== m.created_at)).length} 
+              pending={members.filter(m => !m.active && (!m.updated_at || m.updated_at === m.created_at)).length} 
+            />
           </div>
+
+          <div className={`${styles.insightCard} ${styles.cardHalf}`}>
+            <h3 className={styles.insightTitle}>Recent Event Feedback</h3>
+            <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>Estimated turnout for recent events</p>
+            <EventParticipationChart events={events} />
+          </div>
+          
         </div>
         )}
 
@@ -447,16 +483,16 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Data Table */}
-          <div className={styles.dataTable} style={{ marginTop: '2rem' }}>
-            <div className={styles.tableHeader}>
-              <div className={styles.tableHeaderCell}>Member Details</div>
-              <div className={styles.tableHeaderCell}>Mobile Number</div>
-              <div className={styles.tableHeaderCell}>Profession</div>
-              <div className={styles.tableHeaderCell}>Join Date</div>
-              <div className={styles.tableHeaderCell}>Status</div>
-              <div className={styles.tableHeaderCell}>Actions</div>
-            </div>
+          <div className={styles.tableWrapper}>
+            <div className={styles.dataTable} style={{ marginTop: '2rem' }}>
+              <div className={styles.tableHeader}>
+                <div className={styles.tableHeaderCell}>Member Details</div>
+                <div className={styles.tableHeaderCell}>Mobile Number</div>
+                <div className={styles.tableHeaderCell}>Profession</div>
+                <div className={styles.tableHeaderCell}>Join Date</div>
+                <div className={styles.tableHeaderCell}>Status</div>
+                <div className={styles.tableHeaderCell}>Actions</div>
+              </div>
             {tableMembers.length > 0 ? (
               tableMembers.map((member, index) => (
                 <div key={member.id} className={styles.tableRow}>
@@ -472,16 +508,16 @@ export default function AdminDashboard() {
                       <div className={styles.memberCellEmail}>{member.email}</div>
                     </div>
                   </div>
-                  <div className={styles.cellText}>
+                  <div className={styles.tableCell}>
                     {member.contact_numbers?.length 
                       ? member.contact_numbers[0] 
-                      : (member.contact_no || 'not updated')}
+                      : (member.contact_no || 'Not updated')}
                   </div>
-                  <div>
+                  <div className={styles.tableCell}>
                     <span className={styles.professionBadge}>{member.occupation || 'N/A'}</span>
                   </div>
-                  <div className={styles.cellText}>{member.createdAt ? member.createdAt.slice(0, 10) : 'Recent'}</div>
-                  <div>
+                  <div className={styles.tableCell}>{member.createdAt ? member.createdAt.slice(0, 10) : 'Recent'}</div>
+                  <div className={styles.tableCell}>
                     {(() => {
                       const isUpdated = member.updated_at && member.created_at && member.updated_at !== member.created_at;
                       const hasContacts = member.contact_numbers && member.contact_numbers.length > 0;
@@ -544,6 +580,7 @@ export default function AdminDashboard() {
                 }
               />
             )}
+            </div>
           </div>
 
           <MemberFormModal 
@@ -578,60 +615,57 @@ export default function AdminDashboard() {
             </div>
 
             {/* Events List */}
-            <div className={styles.dataTable} style={{ marginTop: '1rem' }}>
-              <div className={styles.tableHeader} style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 0.8fr' }}>
-                <div className={styles.tableHeaderCell}>Event Details</div>
-                <div className={styles.tableHeaderCell}>Date</div>
-                <div className={styles.tableHeaderCell}>Time</div>
-                <div className={styles.tableHeaderCell}>Location</div>
-                <div className={styles.tableHeaderCell}>Actions</div>
+            <div className={styles.tableWrapper}>
+              <div className={styles.dataTable} style={{ marginTop: '1rem' }}>
+                <div className={styles.tableHeader} style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 0.8fr' }}>
+                  <div className={styles.tableHeaderCell}>Event Details</div>
+                  <div className={styles.tableHeaderCell}>Date</div>
+                  <div className={styles.tableHeaderCell}>Time</div>
+                  <div className={styles.tableHeaderCell}>Location</div>
+                  <div className={styles.tableHeaderCell}>Actions</div>
+                </div>
+                {events.length > 0 ? (
+                  events.map((event) => (
+                    <div key={event.id} className={styles.tableRow} style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 0.8fr' }}>
+                      <div>
+                        <div className={styles.memberCellName}>{event.title}</div>
+                        <div className={styles.memberCellEmail} style={{ marginTop: '2px' }}>{(event.description || '').slice(0, 60)}...</div>
+                      </div>
+                      <div className={styles.tableCell}>
+                        {new Date(event.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </div>
+                      <div className={styles.tableCell}>{event.time}</div>
+                      <div className={styles.tableCell} style={{ gap: '6px' }}>
+                        <MapPin size={14} color="var(--color-text-muted)" /> {(event.location || '').split(',')[0] || 'Unknown'}
+                      </div>
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        <button
+                          className={styles.actionsBtn}
+                          aria-label="Edit event"
+                          onClick={() => openEditEvent(event)}
+                          style={{ padding: '6px', borderRadius: '4px' }}
+                        >
+                          <Pencil size={15} />
+                        </button>
+                        <button
+                          className={styles.actionsBtn}
+                          aria-label="Delete event"
+                          onClick={() => handleDeleteEvent(event.id)}
+                          style={{ padding: '6px', borderRadius: '4px', color: '#dc2626' }}
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <EmptyState 
+                    icon={Calendar}
+                    title="No events yet"
+                    description="Create your first community event to get started."
+                  />
+                )}
               </div>
-              {events.length > 0 ? (
-                events.map((event) => (
-                  <div key={event.id} className={styles.tableRow} style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 0.8fr' }}>
-                    <div>
-                      <div className={styles.memberCellName}>{event.title}</div>
-                      <div className={styles.memberCellEmail} style={{ marginTop: '2px' }}>{(event.description || '').slice(0, 60)}...</div>
-                    </div>
-                    <div className={styles.cellText}>
-                      {new Date(event.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                    </div>
-                    <div className={styles.cellText}>{event.time}</div>
-                    <div className={styles.cellText} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <MapPin size={12} color="var(--color-text-muted)" /> {(event.location || '').split(',')[0] || '—'}
-                    </div>
-                    <div style={{ display: 'flex', gap: '4px' }}>
-                      <button
-                        className={styles.actionsBtn}
-                        aria-label="Edit event"
-                        onClick={() => openEditEvent(event)}
-                        style={{ padding: '6px', borderRadius: '4px' }}
-                      >
-                        <Pencil size={15} />
-                      </button>
-                      <button
-                        className={styles.actionsBtn}
-                        aria-label="Delete event"
-                        onClick={() => handleDeleteEvent(event.id)}
-                        style={{ padding: '6px', borderRadius: '4px', color: '#dc2626' }}
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <EmptyState
-                  icon={Calendar}
-                  title="No events yet"
-                  description="Create your first community event to get started."
-                  action={
-                    <button className={styles.actionBtnPrimary} onClick={openCreateEvent} style={{ border: 'none', padding: '8px 18px', borderRadius: '8px', cursor: 'pointer' }}>
-                      Create Event
-                    </button>
-                  }
-                />
-              )}
             </div>
           </div>
         )}
@@ -657,27 +691,23 @@ export default function AdminDashboard() {
               <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.5rem', marginBottom: '1.5rem', color: 'var(--color-text-primary)' }}>
                 {editingEvent ? 'Edit Event' : 'Create New Event'}
               </h2>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div>
-                  <label style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-secondary)', marginBottom: '4px', display: 'block' }}>Event Title *</label>
-                  <input
-                    type="text"
-                    value={eventForm.title}
-                    onChange={(e) => setEventForm(f => ({ ...f, title: e.target.value }))}
-                    placeholder="Heritage Gala Night"
-                    style={{ width: '100%', padding: '10px 14px', border: '1.5px solid var(--color-border)', borderRadius: '8px', fontSize: '0.9375rem', outline: 'none', transition: 'border-color 0.2s', boxSizing: 'border-box' }}
-                  />
-                </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginTop: '1rem' }}>
+                <FloatingLabelInput
+                  label="Event Title *"
+                  value={eventForm.title}
+                  onChange={(e: any) => setEventForm(f => ({ ...f, title: e.target.value }))}
+                  placeholder="Heritage Gala Night"
+                  isValid={eventForm.title.length > 3}
+                />
+                
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <div>
-                    <label style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-secondary)', marginBottom: '4px', display: 'block' }}>Date *</label>
-                    <input
-                      type="date"
-                      value={eventForm.date}
-                      onChange={(e) => setEventForm(f => ({ ...f, date: e.target.value }))}
-                      style={{ width: '100%', padding: '10px 14px', border: '1.5px solid var(--color-border)', borderRadius: '8px', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }}
-                    />
-                  </div>
+                  <FloatingLabelInput
+                    label="Date *"
+                    type="date"
+                    value={eventForm.date}
+                    onChange={(e: any) => setEventForm(f => ({ ...f, date: e.target.value }))}
+                    isValid={!!eventForm.date}
+                  />
                   <div>
                     <label style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-secondary)', marginBottom: '4px', display: 'block' }}>Time</label>
                     <div style={{ display: 'flex', gap: '8px' }}>
@@ -689,8 +719,10 @@ export default function AdminDashboard() {
                           const currentPeriod = eventForm.time.match(/AM|PM/)?.[0] || 'PM';
                           setEventForm(f => ({ ...f, time: val ? `${val} ${currentPeriod}` : '' }));
                         }}
-                        placeholder="e.g. 6:30"
-                        style={{ width: '100%', padding: '10px 14px', border: '1.5px solid var(--color-border)', borderRadius: '8px', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }}
+                        placeholder="6:30"
+                        style={{ width: '100%', padding: '12px 14px', border: '1.5px solid var(--color-border)', borderRadius: '8px', fontSize: '0.9375rem', outline: 'none', transition: 'border-color 0.2s', boxSizing: 'border-box' }}
+                        onFocus={(e) => e.target.style.borderColor = 'var(--color-primary)'}
+                        onBlur={(e) => e.target.style.borderColor = 'var(--color-border)'}
                       />
                       <select
                         value={eventForm.time.match(/AM|PM/)?.[0] || 'PM'}
@@ -698,7 +730,9 @@ export default function AdminDashboard() {
                           const val = eventForm.time.replace(/ (AM|PM)$/, '') || '12:00';
                           setEventForm(f => ({ ...f, time: `${val} ${e.target.value}` }));
                         }}
-                        style={{ padding: '10px', border: '1.5px solid var(--color-border)', borderRadius: '8px', background: '#fff', fontSize: '0.9375rem', cursor: 'pointer' }}
+                        style={{ padding: '12px', border: '1.5px solid var(--color-border)', borderRadius: '8px', background: '#fff', fontSize: '0.9375rem', cursor: 'pointer', outline: 'none' }}
+                        onFocus={(e) => e.target.style.borderColor = 'var(--color-primary)'}
+                        onBlur={(e) => e.target.style.borderColor = 'var(--color-border)'}
                       >
                         <option value="AM">AM</option>
                         <option value="PM">PM</option>
@@ -706,24 +740,25 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                 </div>
-                <div>
-                  <label style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-secondary)', marginBottom: '4px', display: 'block' }}>Location</label>
-                  <input
-                    type="text"
-                    value={eventForm.location}
-                    onChange={(e) => setEventForm(f => ({ ...f, location: e.target.value }))}
-                    placeholder="Grand Ballroom, Samaj Center"
-                    style={{ width: '100%', padding: '10px 14px', border: '1.5px solid var(--color-border)', borderRadius: '8px', fontSize: '0.9375rem', outline: 'none', boxSizing: 'border-box' }}
-                  />
-                </div>
-                <div>
+                
+                <FloatingLabelInput
+                  label="Location"
+                  value={eventForm.location}
+                  onChange={(e: any) => setEventForm(f => ({ ...f, location: e.target.value }))}
+                  placeholder="Grand Ballroom, Samaj Center"
+                  isValid={eventForm.location.length > 2}
+                />
+                
+                <div style={{ position: 'relative' }}>
                   <label style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-secondary)', marginBottom: '4px', display: 'block' }}>Description</label>
                   <textarea
                     value={eventForm.description}
                     onChange={(e) => setEventForm(f => ({ ...f, description: e.target.value }))}
                     placeholder="Describe the event..."
                     rows={3}
-                    style={{ width: '100%', padding: '10px 14px', border: '1.5px solid var(--color-border)', borderRadius: '8px', fontSize: '0.9375rem', outline: 'none', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '12px 14px', border: '1.5px solid var(--color-border)', borderRadius: '8px', fontSize: '0.9375rem', outline: 'none', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box', transition: 'all 0.2s', background: 'var(--color-bg-input)' }}
+                    onFocus={(e) => { e.target.style.borderColor = 'var(--color-primary)'; e.target.style.boxShadow = '0 0 0 3px rgba(139,26,26,0.1)'; }}
+                    onBlur={(e) => { e.target.style.borderColor = eventForm.description.length > 5 ? '#16a34a' : 'var(--color-border)'; e.target.style.boxShadow = 'none'; e.target.style.background = eventForm.description.length > 5 ? '#f0fdf4' : 'var(--color-bg-input)'; }}
                   />
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>

@@ -19,6 +19,74 @@ const GoogleIcon = () => (
   </svg>
 );
 
+const FormInput = ({ 
+  label, icon: Icon, type, placeholder, value, onChange, disabled, isValid, showPasswordToggle = false, onTogglePassword 
+}: any) => {
+  const [focused, setFocused] = useState(false);
+  const hasInteracted = value.length > 0;
+  
+  // Dynamic border color based on validation state
+  let borderColor = 'var(--color-border)';
+  if (focused) borderColor = 'var(--color-primary)';
+  else if (hasInteracted && isValid) borderColor = '#16a34a'; // Green success state
+  else if (hasInteracted && !isValid) borderColor = '#dc2626'; // Red error state
+
+  return (
+    <div className={styles.formGroup} style={{ position: 'relative', marginBottom: '1.5rem' }}>
+      <div style={{
+        position: 'absolute',
+        top: focused || value ? '-10px' : '14px',
+        left: '38px',
+        background: 'var(--color-bg-card)',
+        padding: '0 4px',
+        fontSize: focused || value ? '0.75rem' : '0.9375rem',
+        color: focused ? 'var(--color-primary)' : 'var(--color-text-muted)',
+        transition: 'all 0.2s',
+        pointerEvents: 'none',
+        zIndex: 2,
+        fontWeight: focused || value ? 600 : 400
+      }}>
+        {label}
+      </div>
+      <div 
+        className={styles.inputWrapper} 
+        style={{ 
+          borderColor, 
+          boxShadow: focused ? '0 0 0 3px rgba(139,26,26,0.1)' : 'none',
+          background: hasInteracted && isValid && !focused ? '#f0fdf4' : 'var(--color-bg-input)'
+        }}
+      >
+        <Icon size={18} className={styles.inputIcon} style={{ color: focused ? 'var(--color-primary)' : 'var(--color-text-muted)' }} />
+        <input
+          type={type}
+          className={styles.inputField}
+          placeholder={focused ? placeholder : ''}
+          value={value}
+          onChange={onChange}
+          disabled={disabled}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          style={{ width: '100%', height: '100%', border: 'none', outline: 'none', background: 'transparent' }}
+        />
+        {showPasswordToggle && (
+          <button
+            type="button"
+            className={styles.passwordToggle}
+            onClick={onTogglePassword}
+          >
+            {type === 'password' ? <Eye size={18} /> : <EyeOff size={18} />}
+          </button>
+        )}
+      </div>
+      {hasInteracted && !isValid && !focused && (
+        <div style={{ color: '#dc2626', fontSize: '0.75rem', marginTop: '4px', position: 'absolute' }}>
+          {label} is too short.
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function LoginPage() {
   const [activeTab, setActiveTab] = useState<'member' | 'committee'>('member');
   const [username, setUsername] = useState('');
@@ -115,6 +183,9 @@ export default function LoginPage() {
     }
   };
 
+  const isUsernameValid = username.length >= 3;
+  const isPasswordValid = password.length >= 6;
+
   return (
     <div className={styles.loginPage}>
       <div className={styles.formSide}>
@@ -122,7 +193,7 @@ export default function LoginPage() {
           <h1 className={styles.welcomeTitle}>
             {activeTab === 'committee' ? 'Committee Login' : 'Member Login'}
           </h1>
-          <p className={styles.welcomeSubtitle}>Preserving Heritage, Building Future.</p>
+          <p className={styles.welcomeSubtitle}>Welcome back! Sign in to connect with the community.</p>
 
           <div className={styles.loginCard}>
             {loginError && (
@@ -131,138 +202,54 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* Conditional Form Rendering */}
-            {activeTab === 'member' ? (
-              <div onKeyDown={(e) => { if (e.key === 'Enter') handleMemberLogin(e); }}>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Member Username</label>
-                  <div className={styles.inputWrapper}>
-                    <User size={18} className={styles.inputIcon} />
-                    <input
-                      type="text"
-                      className={styles.inputField}
-                      placeholder="first_last"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      disabled={isLoading}
-                    />
-                  </div>
-                </div>
+            <div onKeyDown={(e) => { if (e.key === 'Enter') activeTab === 'member' ? handleMemberLogin(e) : handleAdminLogin(e); }}>
+              <FormInput 
+                label={activeTab === 'committee' ? 'Staff Username' : 'Member Username'}
+                icon={activeTab === 'committee' ? Shield : User}
+                type="text"
+                placeholder={activeTab === 'committee' ? 'admin' : 'first_last'}
+                value={username}
+                onChange={(e: any) => setUsername(e.target.value)}
+                disabled={isLoading}
+                isValid={isUsernameValid}
+              />
 
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Password</label>
-                  <div className={styles.inputWrapper}>
-                    <Lock size={18} className={styles.inputIcon} />
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      className={styles.inputField}
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      disabled={isLoading}
-                      aria-label="Password"
-                      autoComplete="off"
-                    />
-                    <button
-                      type="button"
-                      className={styles.passwordToggle}
-                      onClick={() => setShowPassword(prev => !prev)}
-                      aria-label={showPassword ? 'Hide password' : 'Show password'}
-                      tabIndex={0}
-                    >
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
-                </div>
+              <FormInput 
+                label="Password"
+                icon={Lock}
+                type={showPassword ? 'text' : 'password'}
+                placeholder="••••••••"
+                value={password}
+                onChange={(e: any) => setPassword(e.target.value)}
+                disabled={isLoading}
+                isValid={isPasswordValid}
+                showPasswordToggle={true}
+                onTogglePassword={() => setShowPassword(prev => !prev)}
+              />
 
-                <button
-                  type="button"
-                  onClick={handleMemberLogin}
-                  className={styles.submitBtn}
-                  disabled={isLoading || !username || !password}
-                >
-                  {isLoading ? 'Verifying...' : 'Sign In'}
-                </button>
+              <button
+                type="button"
+                onClick={activeTab === 'member' ? handleMemberLogin : handleAdminLogin}
+                className={styles.submitBtn}
+                disabled={isLoading || !isUsernameValid || !isPasswordValid}
+                style={{ opacity: (!isUsernameValid || !isPasswordValid) ? 0.6 : 1, transition: 'all 0.2s' }}
+              >
+                {isLoading ? 'Verifying...' : 'Sign In'}
+              </button>
 
-                <div className={styles.divider}>or</div>
+              <div className={styles.divider}>or</div>
 
-                <button
-                  type="button"
-                  className={styles.googleBtn}
-                  onClick={handleGoogleSignIn}
-                  disabled={isGoogleLoading || isLoading}
-                  id="google-signin-btn"
-                >
-                  <GoogleIcon />
-                  {isGoogleLoading ? 'Redirecting...' : 'Sign in with Google'}
-                </button>
-              </div>
-            ) : (
-              <div onKeyDown={(e) => { if (e.key === 'Enter') handleAdminLogin(e); }}>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Staff Username</label>
-                  <div className={styles.inputWrapper}>
-                    <Shield size={18} className={styles.inputIcon} />
-                    <input
-                      type="text"
-                      className={styles.inputField}
-                      placeholder="admin"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      disabled={isLoading}
-                    />
-                  </div>
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Password</label>
-                  <div className={styles.inputWrapper}>
-                    <Lock size={18} className={styles.inputIcon} />
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      className={styles.inputField}
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      disabled={isLoading}
-                      aria-label="Password"
-                      autoComplete="off"
-                    />
-                    <button
-                      type="button"
-                      className={styles.passwordToggle}
-                      onClick={() => setShowPassword(prev => !prev)}
-                      aria-label={showPassword ? 'Hide password' : 'Show password'}
-                      tabIndex={0}
-                    >
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleAdminLogin}
-                  className={styles.submitBtn}
-                  disabled={isLoading || !username || !password}
-                >
-                  {isLoading ? 'Verifying...' : 'Sign In'}
-                </button>
-
-                <div className={styles.divider}>or</div>
-
-                <button
-                  type="button"
-                  className={styles.googleBtn}
-                  onClick={handleGoogleSignIn}
-                  disabled={isGoogleLoading || isLoading}
-                  id="google-signin-btn-admin"
-                >
-                  <GoogleIcon />
-                  {isGoogleLoading ? 'Redirecting...' : 'Sign in with Google'}
-                </button>
-              </div>
-            )}
+              <button
+                type="button"
+                className={styles.googleBtn}
+                onClick={handleGoogleSignIn}
+                disabled={isGoogleLoading || isLoading}
+                style={{ borderRadius: '8px', padding: '12px', background: '#fff', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', gap: '8px', cursor: 'pointer', transition: 'all 0.2s' }}
+              >
+                <GoogleIcon />
+                {isGoogleLoading ? 'Redirecting...' : 'Sign in with Google'}
+              </button>
+            </div>
 
             <p className={styles.joinText}>
               Not a member? <Link href="/about" className={styles.joinLink}>Learn more</Link>
@@ -273,15 +260,15 @@ export default function LoginPage() {
           <div className={styles.trustBadges}>
             <div className={styles.trustBadge}>
               <Shield size={16} className={styles.trustIcon} />
-              Secure Access
+              Secure
             </div>
             <div className={styles.trustBadge}>
               <Lock size={16} className={styles.trustIcon} />
-              Privacy First
+              Private
             </div>
             <div className={styles.trustBadge}>
               <Landmark size={16} className={styles.trustIcon} />
-              Official Portal
+              Community
             </div>
           </div>
         </div>
