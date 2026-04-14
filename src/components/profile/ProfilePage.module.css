@@ -138,6 +138,121 @@
   background: var(--color-bg-section-alt);
 }
 
+/* Request Update Button (committee viewing others) */
+.requestUpdateBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 10px 24px;
+  background: transparent;
+  color: var(--color-primary);
+  border: 1.5px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.requestUpdateBtn:hover:not(:disabled) {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.requestUpdateBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Notification Banner */
+.notificationBanner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-6);
+  background: linear-gradient(135deg, #fffbeb, #fef3c7);
+  border: 1px solid #fbbf24;
+  border-radius: var(--radius-xl);
+  padding: var(--space-6) var(--space-8);
+  margin-bottom: var(--space-8);
+  box-shadow: 0 2px 8px rgba(251, 191, 36, 0.15);
+}
+
+.notificationContent {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  flex: 1;
+}
+
+.notificationIcon {
+  color: #d97706;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.notificationContent strong {
+  display: block;
+  color: #92400e;
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+  margin-bottom: var(--space-1);
+}
+
+.notificationContent p {
+  color: #a16207;
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+  margin: 0;
+}
+
+.notificationActions {
+  display: flex;
+  gap: var(--space-3);
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.notificationUpdateBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #d97706;
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.notificationUpdateBtn:hover {
+  background: #b45309;
+}
+
+.notificationDismissBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  background: transparent;
+  color: #92400e;
+  border: 1px solid #d97706;
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.notificationDismissBtn:hover {
+  background: rgba(217, 119, 6, 0.1);
+}
+
 /* Info Cards Grid */
 .infoGrid {
   display: grid;

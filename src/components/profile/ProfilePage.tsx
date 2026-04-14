@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { Pencil, Eye, ShieldCheck, Mail, Phone, CheckCircle2, LogOut } from 'lucide-react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { Pencil, Eye, ShieldCheck, Mail, Phone, CheckCircle2, LogOut, AlertTriangle, X, Send } from 'lucide-react';
 import styles from './ProfilePage.module.css';
 import { ApiClient } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
@@ -29,31 +29,105 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
   const [member, setMember] = useState<Member | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+  const [updateModalMode, setUpdateModalMode] = useState<'self-update' | 'request-update'>('self-update');
+  const [isRequestingUpdate, setIsRequestingUpdate] = useState(false);
+
+  // Notification state for pending update requests on own profile
+  const [pendingNotification, setPendingNotification] = useState<any>(null);
   
   const { profile, role, logout } = useAuth();
   const { toast } = useToast();
 
   const handleLogout = async (e: React.MouseEvent) => {
     e.preventDefault();
-    await logout();
-    window.location.replace('/');
+    try {
+      await logout();
+      // Small delay to ensure cookies are fully cleared before redirect
+      await new Promise(resolve => setTimeout(resolve, 150));
+      window.location.href = '/home';
+    } catch {
+      // Force redirect even if logout had an error
+      window.location.href = '/home';
+    }
   };
 
+  const loadProfile = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const endpoint = memberId ? `/members/${memberId}` : '/members/me';
+      const data = await ApiClient.get<Member>(endpoint);
+      setMember(data);
+    } catch (err: unknown) {
+      toast((err as Error).message || 'Failed to load profile', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [memberId, toast]);
+
   useEffect(() => {
-    async function loadData() {
-      setIsLoading(true);
+    loadProfile();
+  }, [loadProfile]);
+
+  // Check for pending update-request notifications on own profile
+  const isMyProfile = !memberId || memberId === 'me' || profile?.member_id === (member?._id || member?.id);
+
+  useEffect(() => {
+    if (!isMyProfile) return;
+    
+    async function checkNotifications() {
       try {
-        const endpoint = memberId ? `/members/${memberId}` : '/members/me';
-        const data = await ApiClient.get<Member>(endpoint);
-        setMember(data);
-      } catch (err: unknown) {
-        toast((err as Error).message || 'Failed to load profile', 'error');
-      } finally {
-        setIsLoading(false);
+        const data = await ApiClient.get<any>('/members/me/notifications');
+        if (data.hasPendingRequest && data.notification) {
+          setPendingNotification(data.notification);
+        }
+      } catch {
+        // Silently fail — notifications are not critical
       }
     }
-    loadData();
-  }, [memberId, toast]);
+    checkNotifications();
+  }, [isMyProfile]);
+
+  const handleDismissNotification = async () => {
+    if (!pendingNotification?.id) return;
+    try {
+      await ApiClient.put('/members/me/notifications', { notificationId: pendingNotification.id });
+      setPendingNotification(null);
+      toast('Notification dismissed', 'success');
+    } catch {
+      toast('Failed to dismiss notification', 'error');
+    }
+  };
+
+  // Committee member requests another member to update profile
+  const handleRequestUpdate = async () => {
+    const targetId = member?._id || member?.id;
+    if (!targetId) return;
+
+    setIsRequestingUpdate(true);
+    try {
+      await ApiClient.post(`/members/${targetId}/request-update`, {});
+      toast('Update request sent to this member successfully!', 'success');
+    } catch (err: unknown) {
+      toast((err as Error).message || 'Failed to send update request', 'error');
+    } finally {
+      setIsRequestingUpdate(false);
+    }
+  };
+
+  // Open edit modal for own profile
+  const handleEditProfile = () => {
+    setUpdateModalMode('self-update');
+    setIsUpdateModalOpen(true);
+  };
+
+  // Callback after successful profile update
+  const handleProfileUpdated = (updatedMember: Member) => {
+    setMember(updatedMember);
+    // Also dismiss any pending notification since they've updated
+    if (pendingNotification) {
+      handleDismissNotification();
+    }
+  };
 
   if (isLoading) {
     return <ProfileSkeleton />;
@@ -68,8 +142,8 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
   const lastName = nameParts.slice(1).join(' ');
   const initials = (member.name || '?').split(' ').map(n => n?.[0]).join('');
 
-  const isMyProfile = !memberId || memberId === 'me' || profile?.member_id === (member._id || member.id);
-  const canEdit = isMyProfile || role === 'admin' || role === 'committee';
+  const canEdit = isMyProfile;
+  const isCommitteeViewingOther = !isMyProfile && (role === 'admin' || role === 'committee');
   
   return (
     <motion.div 
@@ -78,6 +152,38 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
+      {/* Pending Update Notification Banner */}
+      {isMyProfile && pendingNotification && (
+        <motion.div 
+          className={styles.notificationBanner}
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+        >
+          <div className={styles.notificationContent}>
+            <AlertTriangle size={20} className={styles.notificationIcon} />
+            <div>
+              <strong>Profile Update Requested</strong>
+              <p>A committee member has requested you to update your profile because it may be incomplete. Please review and update your information.</p>
+            </div>
+          </div>
+          <div className={styles.notificationActions}>
+            <button 
+              className={styles.notificationUpdateBtn}
+              onClick={handleEditProfile}
+            >
+              <Pencil size={14} /> Update Now
+            </button>
+            <button 
+              className={styles.notificationDismissBtn}
+              onClick={handleDismissNotification}
+            >
+              <X size={14} /> Dismiss
+            </button>
+          </div>
+        </motion.div>
+      )}
+
       {/* Profile Hero */}
       <div className={styles.profileHero}>
         <motion.div 
@@ -117,14 +223,27 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
             A valued member of the KVO Nagpur community.
           </motion.p>
           <div className={styles.profileActions}>
+            {/* Edit Profile — only on your own profile */}
             {canEdit && (
               <motion.button 
                 className={styles.editProfileBtn} 
-                onClick={() => setIsUpdateModalOpen(true)}
+                onClick={handleEditProfile}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                <Pencil size={16} /> Request Update
+                <Pencil size={16} /> Edit Profile
+              </motion.button>
+            )}
+            {/* Request Update — only for committee/admin viewing someone else */}
+            {isCommitteeViewingOther && (
+              <motion.button 
+                className={styles.requestUpdateBtn} 
+                onClick={handleRequestUpdate}
+                disabled={isRequestingUpdate}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Send size={16} /> {isRequestingUpdate ? 'Sending...' : 'Request Update'}
               </motion.button>
             )}
             {isMyProfile && (
@@ -256,7 +375,9 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
       {isUpdateModalOpen && (
         <ProfileUpdateModal 
           member={member} 
-          onClose={() => setIsUpdateModalOpen(false)} 
+          onClose={() => setIsUpdateModalOpen(false)}
+          onUpdated={handleProfileUpdated}
+          mode={updateModalMode}
         />
       )}
     </motion.div>
