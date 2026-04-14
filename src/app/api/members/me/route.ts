@@ -106,3 +106,64 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
+
+export async function PUT(request: NextRequest) {
+  try {
+    const authResult = await authenticateSupabase(request);
+    if (authResult.error) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status || 401 });
+    }
+
+    const { user } = authResult;
+    const changes = await request.json().catch(() => null);
+
+    if (!changes || Object.keys(changes).length === 0) {
+      return NextResponse.json({ error: 'No update data provided.' }, { status: 400 });
+    }
+
+    // Only allow specific fields to be updated
+    const allowedFields = ['occupation', 'marital_status', 'current_place', 'kutch_town', 'contact_no', 'contact_numbers', 'email'];
+    const updateData: Record<string, any> = {};
+    for (const key of allowedFields) {
+      if (changes[key] !== undefined) {
+        updateData[key] = changes[key];
+      }
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ error: 'No valid fields provided.' }, { status: 400 });
+    }
+
+    let memberId = user.member_id;
+
+    if (!memberId) {
+      return NextResponse.json({ error: 'No member profile linked to this account.' }, { status: 404 });
+    }
+
+    const supabase = createServerSupabase();
+
+    const { data: updatedMember, error } = await supabase
+      .from('members')
+      .update(updateData)
+      .eq('id', memberId)
+      .select('*')
+      .single();
+
+    if (error) {
+      console.error('Error updating member profile:', error);
+      return NextResponse.json({ error: 'Failed to update profile.' }, { status: 500 });
+    }
+
+    const firstName = updatedMember.first_name || updatedMember.NAME || '';
+    const lastName = updatedMember.last_name || updatedMember['LAST NAME'] || '';
+
+    return NextResponse.json({
+      ...updatedMember,
+      name: `${firstName} ${lastName}`.trim(),
+    });
+
+  } catch (error: any) {
+    console.error('Error in PUT /api/members/me:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
