@@ -28,14 +28,18 @@ export async function GET(request: NextRequest) {
       .range(skip, skip + take - 1);
 
     if (name) {
-      query = query.or(`first_name.ilike.%${name}%,last_name.ilike.%${name}%`);
+      // Broaden search to include legacy column names (NAME, LAST NAME) if they exist
+      query = query.or(`first_name.ilike.%${name}%,last_name.ilike.%${name}%,NAME.ilike.%${name}%,"LAST NAME".ilike.%${name}%`);
     }
 
     const { data: members, error } = await query;
 
     if (error) {
       console.error('Error fetching admin members:', error);
-      return NextResponse.json({ error: 'Failed to fetch members' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to fetch members', detail: error.message },
+        { status: 500 }
+      );
     }
 
     const result = (members || []).map((m: any) => {
@@ -52,7 +56,10 @@ export async function GET(request: NextRequest) {
 
   } catch (error: any) {
     console.error('Error in GET /api/admin/members:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal Server Error', detail: error.message },
+      { status: 500 }
+    );
   }
 }
 

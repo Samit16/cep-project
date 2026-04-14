@@ -122,12 +122,20 @@ export async function PUT(request: NextRequest) {
     }
 
     // Only allow specific fields to be updated
-    const allowedFields = ['occupation', 'marital_status', 'current_place', 'kutch_town', 'contact_no', 'contact_numbers', 'email'];
+    // Note: the DB uses contact_numbers (TEXT[]), not contact_no.
+    // We accept contact_no from the frontend and map it to contact_numbers.
+    const allowedFields = ['occupation', 'marital_status', 'current_place', 'kutch_town', 'contact_numbers', 'email'];
     const updateData: Record<string, any> = {};
     for (const key of allowedFields) {
       if (changes[key] !== undefined) {
         updateData[key] = changes[key];
       }
+    }
+
+    // Map contact_no (single string from UI) → contact_numbers (TEXT[] in DB)
+    if (changes['contact_no'] !== undefined && changes['contact_no'] !== null) {
+      const num = String(changes['contact_no']).trim();
+      updateData['contact_numbers'] = num ? [num] : [];
     }
 
     if (Object.keys(updateData).length === 0) {
@@ -151,7 +159,10 @@ export async function PUT(request: NextRequest) {
 
     if (error) {
       console.error('Error updating member profile:', error);
-      return NextResponse.json({ error: 'Failed to update profile.' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to update profile.', detail: error.message }, 
+        { status: 500 }
+      );
     }
 
     const firstName = updatedMember.first_name || updatedMember.NAME || '';
