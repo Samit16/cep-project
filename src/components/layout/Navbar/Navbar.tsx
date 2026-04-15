@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Home, User, ChevronDown } from 'lucide-react';
+import { Home, User, ChevronDown, Menu, X } from 'lucide-react';
 import styles from './Navbar.module.css';
 import { useAuth } from '@/lib/auth-context';
 import Link from 'next/link';
@@ -21,7 +21,13 @@ export default function Navbar({
   const { user, role, logout } = useAuth();
   const pathname = usePathname();
   const [loginDropdownOpen, setLoginDropdownOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -60,75 +66,114 @@ export default function Navbar({
         KVO Nagpur
       </Link>
 
-      <div className={styles.navLinks}>
-        {links.map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            className={`${styles.navLink} ${activeLink === link.label.toLowerCase() ? styles.navLinkActive : ''}`}
-          >
-            {link.label}
-          </Link>
-        ))}
+      {/* Desktop Navigation */}
+      <div className={styles.desktopNav}>
+        <div className={styles.navLinks}>
+          {links.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={`${styles.navLink} ${activeLink === link.label.toLowerCase() ? styles.navLinkActive : ''}`}
+            >
+              {link.label}
+            </Link>
+          ))}
+        </div>
+
+        <div className={styles.navActions}>
+          {(role === 'admin' || role === 'committee') && (
+            <Link href="/dashboard" className={styles.dashboardBtn}>
+              Dashboard
+            </Link>
+          )}
+
+          {user && (
+            <Link href="/directory/me" className={styles.profileLink}>
+              <User size={18} />
+              <span>My Profile</span>
+            </Link>
+          )}
+
+          {pathname !== '/login' && (
+            <Link href="/about" className={styles.navLink}>
+              About
+            </Link>
+          )}
+
+          {user ? (
+            <button className={styles.joinBtn} onClick={handleLogout}>
+              Logout
+            </button>
+          ) : (
+            <div ref={dropdownRef} className={styles.loginDropdownWrapper}>
+              <button
+                className={styles.joinBtn}
+                onClick={() => setLoginDropdownOpen(prev => !prev)}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                Login <ChevronDown size={14} style={{ transition: 'transform 0.2s', transform: loginDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+              </button>
+              {loginDropdownOpen && (
+                <div className={styles.loginDropdownMenu}>
+                  <Link href="/login?tab=member" className={styles.loginDropdownItem} onClick={() => setLoginDropdownOpen(false)}>
+                    Member Login
+                  </Link>
+                  <Link href="/login?tab=committee" className={styles.loginDropdownItem} onClick={() => setLoginDropdownOpen(false)}>
+                    Committee Login
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className={styles.navActions}>
+      {/* Mobile Menu Toggle Button */}
+      <button 
+        className={styles.mobileMenuBtn} 
+        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        aria-label="Toggle Navigation"
+      >
+        {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+      </button>
 
-        {(role === 'admin' || role === 'committee') && (
-          <Link href="/dashboard" className={styles.dashboardBtn}>
-            Dashboard
-          </Link>
-        )}
-
-        {user && (
-          <Link href="/directory/me" className={styles.profileLink}>
-            <User size={18} />
-            <span>My Profile</span>
-          </Link>
-        )}
-
-        {pathname !== '/login' && (
-          <Link
-            href="/about"
-            className={styles.navLink}
-          >
-            About
-          </Link>
-        )}
-
-        {user ? (
-          <button className={styles.joinBtn} onClick={handleLogout}>
-            Logout
-          </button>
-        ) : (
-          <div ref={dropdownRef} className={styles.loginDropdownWrapper}>
-            <button
-              className={styles.joinBtn}
-              onClick={() => setLoginDropdownOpen(prev => !prev)}
-              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+      {/* Mobile Navigation Drawer */}
+      <div className={`${styles.mobileNavDrawer} ${mobileMenuOpen ? styles.mobileNavOpen : ''}`}>
+        <div className={styles.mobileNavLinks}>
+          {links.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={`${styles.mobileNavLink} ${activeLink === link.label.toLowerCase() ? styles.mobileNavLinkActive : ''}`}
             >
-              Login <ChevronDown size={14} style={{ transition: 'transform 0.2s', transform: loginDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} />
-            </button>
-            {loginDropdownOpen && (
-              <div className={styles.loginDropdownMenu}>
-                <Link
-                  href="/login?tab=member"
-                  className={styles.loginDropdownItem}
-                  onClick={() => setLoginDropdownOpen(false)}
-                >
-                  Member Login
-                </Link>
-                <Link
-                  href="/login?tab=committee"
-                  className={styles.loginDropdownItem}
-                  onClick={() => setLoginDropdownOpen(false)}
-                >
-                  Committee Login
-                </Link>
-              </div>
-            )}
-          </div>
-        )}
+              {link.label}
+            </Link>
+          ))}
+          {pathname !== '/login' && (
+            <Link href="/about" className={styles.mobileNavLink}>About</Link>
+          )}
+        </div>
+        
+        <div className={styles.mobileNavActions}>
+          {(role === 'admin' || role === 'committee') && (
+            <Link href="/dashboard" className={styles.mobileDashboardBtn}>
+              Dashboard
+            </Link>
+          )}
+          {user && (
+            <Link href="/directory/me" className={styles.mobileProfileLink}>
+              <User size={18} /> My Profile
+            </Link>
+          )}
+          {user ? (
+            <button className={styles.mobileJoinBtn} onClick={handleLogout}>Logout</button>
+          ) : (
+            <div className={styles.mobileLoginStack}>
+              <Link href="/login?tab=member" className={styles.mobileJoinBtn}>Member Login</Link>
+              <Link href="/login?tab=committee" className={styles.mobileCommitteeBtn}>Committee Login</Link>
+            </div>
+          )}
+        </div>
       </div>
       <LinkGooglePrompt />
     </nav>
