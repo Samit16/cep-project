@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams;
     const { skip, take } = getPagination(searchParams);
-    
+
     const name = searchParams.get('name') || searchParams.get('search');
     const city = searchParams.get('city');
     const occupation = searchParams.get('occupation');

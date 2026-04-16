@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
 
     const firstName = member.first_name || member.NAME || '';
     const lastName = member.last_name || member['LAST NAME'] || '';
-    
+
     return NextResponse.json({
       ...member,
       name: `${firstName} ${lastName}`.trim(),
@@ -160,7 +160,7 @@ export async function PUT(request: NextRequest) {
     if (error) {
       console.error('Error updating member profile:', error);
       return NextResponse.json(
-        { error: 'Failed to update profile.', detail: error.message }, 
+        { error: 'Failed to update profile.', detail: error.message },
         { status: 500 }
       );
     }
