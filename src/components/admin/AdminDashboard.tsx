@@ -317,6 +317,9 @@ export default function AdminDashboard() {
         </nav>
 
         <div className={styles.sidebarFooter}>
+          <Link href="/profile" className={styles.sidebarLink} style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
+            <User size={16} /> My Profile
+          </Link>
           <button className={styles.sidebarLink} onClick={handleLogout}>
             <LogOut size={16} /> Logout
           </button>

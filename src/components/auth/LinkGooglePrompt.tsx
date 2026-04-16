@@ -34,7 +34,7 @@ export default function LinkGooglePrompt({ onDismiss }: { onDismiss?: () => void
     <div style={{
       position: 'fixed',
       bottom: '24px',
-      right: '24px',
+      left: '24px',
       background: '#fff',
       padding: '24px',
       borderRadius: '16px',
