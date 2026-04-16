@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '@/lib/auth-context';
 import styles from './LoginPage.module.css'; // Re-use styling variables
 import { Shield, Mail, X } from 'lucide-react';
@@ -30,7 +31,9 @@ export default function LinkGooglePrompt({ onDismiss }: { onDismiss?: () => void
     }
   };
 
-  return (
+  if (typeof document === 'undefined') return null;
+
+  const node = (
     <div style={{
       position: 'fixed',
       bottom: '24px',
@@ -74,4 +77,6 @@ export default function LinkGooglePrompt({ onDismiss }: { onDismiss?: () => void
       </button>
     </div>
   );
+
+  return createPortal(node, document.body);
 }

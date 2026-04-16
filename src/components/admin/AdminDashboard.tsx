@@ -175,6 +175,33 @@ export default function AdminDashboard() {
     })();
   }, []);
 
+  // If the user arrived via the Google OAuth flow, intercept back navigation
+  // so the account picker isn't exposed in history and user can confirm logout.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const authMethod = localStorage.getItem('kjo_auth_method');
+    if (authMethod !== 'google') return;
+
+    try { window.history.pushState(null, '', window.location.href); } catch (e) {}
+
+    const handlePop = async () => {
+      const confirmed = window.confirm('Do you want to log out and leave this page?');
+      if (confirmed) {
+        await logout();
+        window.location.replace('/home');
+      } else {
+        // push state back so user stays on the page
+        try { window.history.pushState(null, '', window.location.href); } catch (e) {}
+      }
+    };
+
+    window.addEventListener('popstate', handlePop);
+    // clear the flag (only need to do this once per login)
+    localStorage.removeItem('kjo_auth_method');
+
+    return () => window.removeEventListener('popstate', handlePop);
+  }, [logout]);
+
 
   const handleLogout = async () => {
     if (!window.confirm('Are you sure you want to log out?')) return;
@@ -781,6 +808,13 @@ export default function AdminDashboard() {
               </div>
             </div>
           </div>
+        )}
+
+        {role === 'committee' && (
+          <Link href="/profile" className={styles.floatingProfileBtn} aria-label="My Profile">
+            <User size={16} />
+            <span style={{ marginLeft: '8px', fontWeight: 600 }}>My Profile</span>
+          </Link>
         )}
 
         <Footer />
