@@ -119,7 +119,11 @@ export default function LoginPage() {
     }
 
     if (!authLoading && token) {
-      router.replace('/home');
+      if (role === 'admin' || role === 'committee') {
+        router.replace('/dashboard');
+      } else {
+        router.replace('/home');
+      }
     }
   }, [authLoading, token, router, role, toast, searchParams, activeTab]);
 
@@ -130,6 +134,8 @@ export default function LoginPage() {
     setIsGoogleLoading(true);
     // Track which login portal they used
     localStorage.setItem('kjo_login_intent', activeTab);
+    // mark that OAuth flow was used so we can handle history/back behavior
+    localStorage.setItem('kjo_auth_method', 'google');
     try {
       await signInWithGoogle();
       // Redirect is handled by Supabase OAuth flow

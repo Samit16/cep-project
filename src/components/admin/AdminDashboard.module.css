@@ -136,6 +136,12 @@
 .sidebarFooter {
   padding: var(--space-4) var(--space-3);
   border-top: 1px solid var(--color-border-light);
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: transparent;
+  z-index: 2;
 }
 
 .broadcastBtn {
@@ -816,6 +822,31 @@
 
 .dropdownItemDanger:hover {
   background-color: #fef2f2;
+}
+
+/* Floating My Profile button (committee only) */
+.floatingProfileBtn {
+  position: fixed;
+  left: calc(var(--sidebar-width) + 16px);
+  bottom: 24px;
+  z-index: 60;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  color: var(--color-text-primary);
+  text-decoration: none;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  transition: all 0.15s ease;
+}
+
+.floatingProfileBtn:hover {
+  background: var(--color-bg-section-alt);
+  color: var(--color-primary);
+  border-color: var(--color-primary-lightest);
 }
 
 /* Table Footer */
