@@ -10,7 +10,9 @@ import EmptyState from '@/components/ui/EmptyState/EmptyState';
 import { ApiClient } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { DirectorySkeleton } from '@/components/ui/Skeleton/Skeleton';
-import { motion } from 'framer-motion';
+import { useGsapHeroEntrance } from '@/hooks/useGsapAnimations';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
 import { Member } from '@/types';
 
 const AVATAR_COLORS = ['#8B1A1A', '#C8956C', '#2D5F8B', '#4A7C59', '#7B5EA7', '#D4763C', '#3B8686', '#9B5DE5', '#E07A5F'];
@@ -126,14 +128,36 @@ export default function DirectoryPage() {
     }
   };
 
+  const headerRef = useGsapHeroEntrance<HTMLDivElement>('.gsap-dir-header');
+  const gridRef = React.useRef<HTMLDivElement>(null);
+
+  // Stagger member cards on data change
+  useGSAP(() => {
+    if (!gridRef.current || isLoading || members.length === 0) return;
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    const cards = gridRef.current.querySelectorAll('.gsap-member-card');
+    gsap.fromTo(cards,
+      { y: 25, opacity: 0 },
+      {
+        y: 0, opacity: 1,
+        duration: 0.7,
+        stagger: 0.08,
+        ease: 'power3.out',
+        clearProps: 'transform,opacity',
+      }
+    );
+  }, { scope: gridRef, dependencies: [members, isLoading, viewMode] });
+
   return (
     <div className={styles.directoryContent} onKeyDown={handleKeyDown}>
       {/* Header */}
-      <div className={styles.header}>
+      <div ref={headerRef} className={styles.header}>
         <div className={styles.headerLeft}>
-          <p className={styles.headerLabel}>Community Network</p>
-          <h1 className={styles.headerTitle}>Member Directory</h1>
-          <p className={styles.headerDescription}>
+          <p className={`${styles.headerLabel} gsap-dir-header`}>Community Network</p>
+          <h1 className={`${styles.headerTitle} gsap-dir-header`}>Member Directory</h1>
+          <p className={`${styles.headerDescription} gsap-dir-header`}>
             Connect with fellow community members across the globe. Access is
             exclusive to verified Samaj members.
           </p>
@@ -179,29 +203,14 @@ export default function DirectoryPage() {
         <DirectorySkeleton />
       ) : members.length > 0 ? (
         <>
-          <motion.div 
+          <div 
+            ref={gridRef}
             className={viewMode === 'grid' ? styles.memberGrid : styles.memberList}
-            initial="hidden"
-            animate="show"
-            variants={{
-              hidden: { opacity: 0 },
-              show: {
-                opacity: 1,
-                transition: {
-                  staggerChildren: 0.1
-                }
-              }
-            }}
           >
             {members.map((member, index) => (
-              <motion.div 
+              <div 
                 key={`${member.id}-${index}`} 
-                className={`${styles.memberCard} ${index === activeIndex ? styles.memberCardActive : ''}`}
-                variants={{
-                  hidden: { opacity: 0, y: 20 },
-                  show: { opacity: 1, y: 0 }
-                }}
-                whileHover={{ y: -5, boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }}
+                className={`${styles.memberCard} ${index === activeIndex ? styles.memberCardActive : ''} gsap-member-card`}
               >
                 <div className={styles.memberCardImage}>
                   <div 
@@ -227,9 +236,9 @@ export default function DirectoryPage() {
                     View Basic Profile
                   </Link>
                 </div>
-              </motion.div>
+              </div>
             ))}
-          </motion.div>
+          </div>
 
           {/* Simple Pagination */}
           <div className={styles.paginationWrapper} style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '2rem' }}>

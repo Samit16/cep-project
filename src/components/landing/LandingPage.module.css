@@ -628,3 +628,117 @@
     opacity: 1;
   }
 }
+
+/* ============================================
+   Responsive Layout Breakpoints
+   ============================================ */
+@media (max-width: 1024px) {
+  /* Tablet scale down */
+  .heroContent {
+    max-width: 50%;
+    padding: var(--space-12) var(--space-6);
+  }
+  
+  .historySectionInner {
+    flex-direction: column;
+    gap: var(--space-8);
+  }
+  
+  .historyImage {
+    flex: auto;
+    width: 100%;
+    height: 400px;
+  }
+
+  .bentoGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .bentoBanner {
+    grid-column: 1;
+    grid-row: auto;
+    min-height: 280px;
+  }
+
+  .eventCard {
+    flex-direction: column;
+    padding-right: 0;
+  }
+
+  .eventCardImage {
+    width: 100%;
+    height: 200px;
+  }
+  
+  .eventCardActions {
+    padding-left: var(--space-6);
+    padding-bottom: var(--space-6);
+    padding-right: var(--space-6);
+    margin-top: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Mobile stack */
+  .hero {
+    flex-direction: column;
+    min-height: auto;
+  }
+
+  .heroContent {
+    max-width: 100%;
+    padding: var(--space-10) var(--space-4);
+    text-align: left;
+    align-items: center;
+  }
+  
+  .heroTitle {
+    text-align: center;
+  }
+  
+  .heroSubtitle {
+    text-align: center;
+  }
+  
+  .heroCta {
+    flex-direction: column;
+    width: 100%;
+    gap: var(--space-3);
+  }
+
+  .ctaBtnPrimary, .ctaBtnOutlinedHero {
+    width: 100%;
+  }
+
+  .heroImage {
+    position: relative;
+    height: 350px;
+    min-height: auto;
+  }
+  
+  .heroImage::after {
+    background: linear-gradient(to bottom, rgba(253, 251, 248, 1) 0%, rgba(253, 251, 248, 0.4) 25%, rgba(253, 251, 248, 0) 100%);
+  }
+
+  .historySection, .achievementsSection, .eventsSection, .ctaBanner {
+    padding: var(--space-10) var(--space-4);
+    margin: var(--space-4);
+  }
+
+  .historyStats {
+    flex-direction: column;
+    gap: var(--space-6);
+  }
+
+  .statItem {
+    text-align: center;
+    background: var(--color-bg-section-alt);
+    padding: var(--space-4);
+    border-radius: var(--radius-md);
+  }
+  
+  .eventsHeader {
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+}

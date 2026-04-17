@@ -4,38 +4,31 @@ import React, { useEffect, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
-import { useGsapReveal, useGsapStagger, useGsapParallax } from '@/hooks/useGsapAnimations';
+import {
+  useGsapHeroEntrance,
+  useGsapReveal,
+  useGsapStagger,
+  useGsapParallax,
+  useGsapSectionFlow,
+  useGsapCounter,
+} from '@/hooks/useGsapAnimations';
 import { useAuth } from '@/lib/auth-context';
 import { ApiClient } from '@/lib/api';
 import { Event } from '@/types';
 import styles from './LandingPage.module.css';
-import gsap from 'gsap';
-import { useGSAP } from '@gsap/react';
+
+// ============================================
+// Hero Section — Sequential Cascade Entrance
+// ============================================
 
 export function HeroSection() {
-  const containerRef = React.useRef<HTMLElement>(null);
+  const heroRef = useGsapHeroEntrance<HTMLElement>('.gsap-hero-anim');
   const heroImageRef = useGsapParallax<HTMLDivElement>(0.15, 'y');
-  const heroContentRef = useGsapParallax<HTMLDivElement>(-0.08, 'y');
   const { user, role } = useAuth();
 
-  useGSAP(() => {
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReducedMotion) return;
-
-    gsap.from('.gsap-hero-anim', {
-      y: 30,
-      opacity: 0,
-      duration: 0.8,
-      stagger: 0.15,
-      ease: 'power3.out',
-      delay: 0.2,
-      clearProps: 'all'
-    });
-  }, { scope: containerRef });
-
   return (
-    <section ref={containerRef} className={styles.hero}>
-      <div ref={heroContentRef} className={`${styles.heroContent}`}>
+    <section ref={heroRef} className={styles.hero}>
+      <div className={styles.heroContent}>
         <span className={`${styles.heroLabel} gsap-hero-anim`}>Established Since 1921</span>
         <h1 className={`${styles.heroTitle} gsap-hero-anim`}>
           Connecting Our{' '}
@@ -75,41 +68,58 @@ export function HeroSection() {
   );
 }
 
+// ============================================
+// History & Mission — Scroll-Driven Reveal
+// ============================================
+
 export function HistoryMissionSection() {
-  const imageRef = useGsapParallax<HTMLDivElement>(0.2, 'y');
-  const contentRef = useGsapReveal<HTMLDivElement>();
+  const imageRef = useGsapParallax<HTMLDivElement>(0.18, 'y');
+  const sectionRef = useGsapSectionFlow<HTMLElement>();
+  const contentRef = useGsapStagger<HTMLDivElement>('.gsap-history-item', {
+    stagger: 0.15,
+    duration: 0.9,
+    distance: 30,
+  });
+
+  // Counter refs for each stat
+  const membersRef = useGsapCounter<HTMLDivElement>(500, '+');
+  const chaptersRef = useGsapCounter<HTMLDivElement>(120);
+  const legacyRef = useGsapCounter<HTMLDivElement>(100);
 
   return (
-    <section className={styles.historySection}>
+    <section ref={sectionRef} className={styles.historySection}>
       <div className={styles.historySectionInner} id="history">
         <div ref={imageRef} className={`${styles.historyImage} ${styles.parallaxImageContainer}`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/images/samaj_entrance.jpeg" alt="Historical photograph of community founders" className={styles.parallaxInnerImage} />
         </div>
-        <div ref={contentRef} className={`${styles.historyContent} ${styles.scrollReveal}`}>
-          <p className={styles.historyLabel}>Our Roots</p>
-          <h2 className={styles.historyTitle}>History &amp; Mission</h2>
-          <p className={styles.historyText}>
-            Built on resilience and shared success, KVO Nagpur has been our community’s anchor 
+        <div ref={contentRef} className={styles.historyContent}>
+          <p className={`${styles.historyLabel} gsap-history-item`}>Our Roots</p>
+          <h2 className={`${styles.historyTitle} gsap-history-item`}>History &amp; Mission</h2>
+          <p className={`${styles.historyText} gsap-history-item`}>
+            Built on resilience and shared success, KVO Nagpur has been our community's anchor 
             for over a century. Our ancestors travelled from the arid plains of Kutch to thrive 
             in global commerce, carrying our values with them.
           </p>
-          <p className={styles.historyText}>
+          <p className={`${styles.historyText} gsap-history-item`}>
             Today, our mission is simple: to celebrate our rich cultural heritage while creating 
             a modern space where members can grow professionally, support one another, and find 
             spiritual grounding.
           </p>
-          <div className={styles.historyStats}>
+          <div className={`${styles.historyStats} gsap-history-item`}>
             <div className={styles.statItem}>
-              <div className={styles.statValue}>50k<span className={styles.statSuffix}>+</span></div>
+              <div ref={membersRef} className={styles.statValue}>0</div>
               <div className={styles.statLabel}>Active Members</div>
             </div>
             <div className={styles.statItem}>
-              <div className={styles.statValue}>120</div>
+              <div ref={chaptersRef} className={styles.statValue}>0</div>
               <div className={styles.statLabel}>Global Chapters</div>
             </div>
             <div className={styles.statItem}>
-              <div className={styles.statValue}>100<span className={styles.statSuffix}>yr</span></div>
+              <div className={styles.statValue}>
+                <span ref={legacyRef}>0</span>
+                <span className={styles.statSuffix}>yr</span>
+              </div>
               <div className={styles.statLabel}>Legacy</div>
             </div>
           </div>
@@ -119,23 +129,32 @@ export function HistoryMissionSection() {
   );
 }
 
+// ============================================
+// Achievements — Bento Grid with Stagger
+// ============================================
+
 export function AchievementsSection() {
   const { user } = useAuth();
-  const titleRef = useGsapReveal<HTMLDivElement>();
+  const sectionRef = useGsapSectionFlow<HTMLElement>();
+  const gridRef = useGsapStagger<HTMLDivElement>('.gsap-bento-card', {
+    stagger: 0.18,
+    duration: 0.9,
+    distance: 40,
+  });
   const bannerRef = useGsapParallax<HTMLDivElement>(0.12, 'y');
 
   if (!user) return null;
 
   return (
-    <section id="archives" className={styles.achievementsSection}>
-      <div ref={titleRef} className={`${styles.achievementsSectionInner} ${styles.scrollReveal}`}>
+    <section ref={sectionRef} id="archives" className={styles.achievementsSection}>
+      <div className={styles.achievementsSectionInner}>
         <h2 className={styles.achievementsTitle}>Archives</h2>
         <p className={styles.achievementsSubtitle}>
           Celebrating the individuals whose contributions and lasting impact continue to inspire our community.
         </p>
-        <div className={styles.bentoGrid}>
+        <div ref={gridRef} className={styles.bentoGrid}>
           {/* Card 1 - Top Left */}
-          <div className={styles.bentoCard}>
+          <div className={`${styles.bentoCard} gsap-bento-card`}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img className={styles.bentoCardImage} src="/images/samaj_plaque.jpeg" alt="Excellence in Education Grant" />
             <span className={styles.bentoCardLabel}>Education</span>
@@ -149,7 +168,7 @@ export function AchievementsSection() {
             </a>
           </div>
           {/* Card 2 - Bottom Left */}
-          <div className={styles.bentoCard}>
+          <div className={`${styles.bentoCard} gsap-bento-card`}>
             <span className={styles.bentoCardLabel}>Entrepreneurial Spirit</span>
             <h3 className={styles.bentoCardTitle}>Entrepreneurial Spirit</h3>
             <p className={styles.bentoCardText}>
@@ -161,7 +180,7 @@ export function AchievementsSection() {
             </a>
           </div>
           {/* Banner - Right column spanning both rows */}
-          <div ref={bannerRef} className={`${styles.bentoBanner} ${styles.parallaxBanner}`}>
+          <div ref={bannerRef} className={`${styles.bentoBanner} ${styles.parallaxBanner} gsap-bento-card`}>
             <div className={styles.bentoBannerBg}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/images/history.png" alt="" />
@@ -184,11 +203,23 @@ export function AchievementsSection() {
   );
 }
 
+// ============================================
+// Events — Cards with Progressive Stagger
+// ============================================
+
 export function EventsSection() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const sectionRef = useGsapReveal<HTMLElement>();
-  const cardsContainerRef = useGsapStagger<HTMLDivElement>('.gsap-stagger-card');
+  const sectionRef = useGsapSectionFlow<HTMLElement>();
+  const headerRef = useGsapStagger<HTMLDivElement>('.gsap-events-header', {
+    stagger: 0.15,
+    duration: 0.8,
+  });
+  const cardsContainerRef = useGsapStagger<HTMLDivElement>('.gsap-stagger-card', {
+    stagger: 0.15,
+    duration: 0.85,
+    distance: 40,
+  });
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -209,12 +240,12 @@ export function EventsSection() {
   if (!user) return null;
   
   return (
-    <section ref={sectionRef} className={`${styles.eventsSection} ${styles.scrollReveal}`}>
+    <section ref={sectionRef} className={styles.eventsSection}>
       <div className={styles.eventsSectionInner}>
-        <div className={styles.eventsHeader}>
+        <div ref={headerRef} className={styles.eventsHeader}>
           <div>
-            <h2 className={styles.eventsTitle}>Upcoming Events</h2>
-            <p className={styles.eventsSubtitle}>
+            <h2 className={`${styles.eventsTitle} gsap-events-header`}>Upcoming Events</h2>
+            <p className={`${styles.eventsSubtitle} gsap-events-header`}>
               Come join us! Reconnect with friends, meet new people, and celebrate our community together.
             </p>
           </div>
@@ -260,13 +291,22 @@ export function EventsSection() {
   );
 }
 
+// ============================================
+// CTA Banner — Final Attention Focus
+// ============================================
+
 export function CTABanner() {
-  const ctaRef = useGsapReveal<HTMLElement>();
+  const sectionRef = useGsapSectionFlow<HTMLElement>();
+  const contentRef = useGsapStagger<HTMLDivElement>('.gsap-cta-item', {
+    stagger: 0.18,
+    duration: 1,
+    distance: 30,
+  });
   const { user } = useAuth();
 
   const handleScrollToTop = () => {
     const startY = window.scrollY;
-    const duration = 1200; // 1.2s smooth roll up
+    const duration = 1200;
     let startTime: number | null = null;
     
     const easeInOutCubic = (t: number, b: number, c: number, d: number) => {
@@ -286,7 +326,7 @@ export function CTABanner() {
       if (timeElapsed < duration) {
         requestAnimationFrame(animation);
       } else {
-        window.scrollTo(0, 0); // ensure perfect lock
+        window.scrollTo(0, 0);
       }
     };
     
@@ -294,22 +334,24 @@ export function CTABanner() {
   };
 
   return (
-    <section ref={ctaRef} className={`${styles.ctaBanner} ${styles.scrollReveal}`}>
-      <h2 className={styles.ctaTitle}>Ready to Shape Our Future?</h2>
-      <p className={styles.ctaSubtitle}>
-        Join KVO Nagpur today. Connect with a worldwide network of members, share your journey, 
-        and help us build something special.
-      </p>
-      <div className={styles.ctaActions}>
-        {!user && (
-          <button
-            onClick={handleScrollToTop}
-            className={styles.ctaBtnOutlined}
-            style={{ textDecoration: 'none', cursor: 'pointer' }}
-          >
-            Login
-          </button>
-        )}
+    <section ref={sectionRef} className={styles.ctaBanner}>
+      <div ref={contentRef}>
+        <h2 className={`${styles.ctaTitle} gsap-cta-item`}>Ready to Shape Our Future?</h2>
+        <p className={`${styles.ctaSubtitle} gsap-cta-item`}>
+          Join KVO Nagpur today. Connect with a worldwide network of members, share your journey, 
+          and help us build something special.
+        </p>
+        <div className={`${styles.ctaActions} gsap-cta-item`}>
+          {!user && (
+            <button
+              onClick={handleScrollToTop}
+              className={styles.ctaBtnOutlined}
+              style={{ textDecoration: 'none', cursor: 'pointer' }}
+            >
+              Login
+            </button>
+          )}
+        </div>
       </div>
     </section>
   );

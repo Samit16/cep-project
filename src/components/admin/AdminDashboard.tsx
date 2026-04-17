@@ -286,21 +286,33 @@ export default function AdminDashboard() {
   }, [members, debouncedSearch]);
 
   useGSAP(() => {
-    gsap.from(`.${styles.statCard}`, {
-      y: 20,
-      opacity: 0,
-      duration: 0.6,
-      stagger: 0.1,
-      ease: 'power3.out'
-    });
-    gsap.from(`.${styles.insightCard}`, {
-      y: 30,
-      opacity: 0,
-      duration: 0.7,
-      delay: 0.3,
-      stagger: 0.15,
-      ease: 'back.out(1.2)'
-    });
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    // Progressive stat card entrance
+    gsap.fromTo(`.${styles.statCard}`,
+      { y: 30, opacity: 0, scale: 0.97 },
+      {
+        y: 0, opacity: 1, scale: 1,
+        duration: 0.8,
+        stagger: 0.12,
+        ease: 'expo.out',
+        clearProps: 'transform,opacity'
+      }
+    );
+
+    // Insight cards cascade after stats
+    gsap.fromTo(`.${styles.insightCard}`,
+      { y: 35, opacity: 0 },
+      {
+        y: 0, opacity: 1,
+        duration: 0.85,
+        delay: 0.35,
+        stagger: 0.15,
+        ease: 'power3.out',
+        clearProps: 'transform,opacity'
+      }
+    );
   }, { dependencies: [activeTab] });
 
   if (isLoading || (role !== 'admin' && role !== 'committee')) {

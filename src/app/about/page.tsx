@@ -6,6 +6,12 @@ import Navbar from '@/components/layout/Navbar/Navbar';
 import Footer from '@/components/layout/Footer/Footer';
 import styles from './AboutPage.module.css';
 import { Heart, BookOpen, Users, Landmark, Target, Eye, Globe, Award } from 'lucide-react';
+import {
+  useGsapHeroEntrance,
+  useGsapSectionFlow,
+  useGsapStagger,
+  useGsapCounter,
+} from '@/hooks/useGsapAnimations';
 
 const milestones = [
   { year: '1921', title: 'Foundation', description: 'A group of forward-looking community members started the Samaj in Mumbai to support fellow migrants arriving from the Kutch region.' },
@@ -23,18 +29,55 @@ const values = [
 ];
 
 export default function AboutPage() {
+  // Progressive animation hooks
+  const heroRef = useGsapHeroEntrance<HTMLElement>('.gsap-about-hero');
+  const timelineRef = useGsapSectionFlow<HTMLElement>();
+  const timelineCardsRef = useGsapStagger<HTMLDivElement>('.gsap-timeline-card', {
+    stagger: 0.18,
+    duration: 0.9,
+    distance: 35,
+  });
+  const valuesRef = useGsapSectionFlow<HTMLElement>();
+  const valuesGridRef = useGsapStagger<HTMLDivElement>('.gsap-value-card', {
+    stagger: 0.15,
+    duration: 0.85,
+    distance: 30,
+  });
+  const missionRef = useGsapSectionFlow<HTMLElement>();
+  const missionGridRef = useGsapStagger<HTMLDivElement>('.gsap-mission-card', {
+    stagger: 0.2,
+    duration: 0.9,
+  });
+  const impactRef = useGsapSectionFlow<HTMLElement>();
+  const impactGridRef = useGsapStagger<HTMLDivElement>('.gsap-impact-item', {
+    stagger: 0.12,
+    duration: 0.8,
+    distance: 25,
+  });
+  const ctaRef = useGsapSectionFlow<HTMLElement>();
+  const ctaContentRef = useGsapStagger<HTMLDivElement>('.gsap-cta-item', {
+    stagger: 0.18,
+    duration: 1,
+  });
+
+  // Counter refs for impact stats
+  const chaptersCountRef = useGsapCounter<HTMLDivElement>(120);
+  const membersCountRef = useGsapCounter<HTMLDivElement>(500);
+  const scholarshipsCountRef = useGsapCounter<HTMLDivElement>(2000);
+  const yearsCountRef = useGsapCounter<HTMLDivElement>(100);
+
   return (
     <>
       <Navbar variant="public" activeLink="about" />
       <main className={styles.aboutContainer}>
         {/* Hero */}
-        <section className={styles.hero}>
+        <section ref={heroRef} className={styles.hero}>
           <div className={styles.heroContent}>
-            <span className={styles.heroBadge}>Est. 1921</span>
-            <h1 className={styles.title}>
+            <span className={`${styles.heroBadge} gsap-about-hero`}>Est. 1921</span>
+            <h1 className={`${styles.title} gsap-about-hero`}>
               Our Shared <span className={styles.italic}>Roots</span>
             </h1>
-            <p className={styles.subtitle}>
+            <p className={`${styles.subtitle} gsap-about-hero`}>
               For over a century, KVO Nagpur has been a home away from home — connecting thousands 
               of us across six continents through shared roots and values.
             </p>
@@ -42,15 +85,15 @@ export default function AboutPage() {
         </section>
 
         {/* Timeline */}
-        <section className={styles.timelineSection}>
+        <section ref={timelineRef} className={styles.timelineSection}>
           <div className={styles.timelineHeader}>
             <p className={styles.sectionLabel}>Our Journey</p>
             <h2 className={styles.sectionTitle}>The Century <span className={styles.italic}>Journey</span></h2>
             <p className={styles.sectionSubtitle}>Key moments that shaped who we are today.</p>
           </div>
-          <div className={styles.timeline}>
+          <div ref={timelineCardsRef} className={styles.timeline}>
             {milestones.map((m, i) => (
-              <div key={m.year} className={`${styles.timelineItem} ${i % 2 === 0 ? styles.timelineLeft : styles.timelineRight}`}>
+              <div key={m.year} className={`${styles.timelineItem} ${i % 2 === 0 ? styles.timelineLeft : styles.timelineRight} gsap-timeline-card`}>
                 <div className={styles.timelineDot} />
                 <div className={styles.timelineCard}>
                   <span className={styles.timelineYear}>{m.year}</span>
@@ -64,14 +107,14 @@ export default function AboutPage() {
         </section>
 
         {/* Values */}
-        <section className={styles.valuesSection}>
+        <section ref={valuesRef} className={styles.valuesSection}>
           <div className={styles.valuesHeader}>
             <p className={styles.sectionLabel}>Our Pillars</p>
             <h2 className={styles.sectionTitle}>Core Values</h2>
           </div>
-          <div className={styles.valuesGrid}>
+          <div ref={valuesGridRef} className={styles.valuesGrid}>
             {values.map((v) => (
-              <div key={v.title} className={styles.valueCard}>
+              <div key={v.title} className={`${styles.valueCard} gsap-value-card`}>
                 <div className={styles.valueIcon}>
                   <v.icon size={24} />
                 </div>
@@ -84,9 +127,9 @@ export default function AboutPage() {
         </section>
 
         {/* Mission & Vision */}
-        <section className={styles.missionSection}>
-          <div className={styles.missionGrid}>
-            <div className={styles.missionCard}>
+        <section ref={missionRef} className={styles.missionSection}>
+          <div ref={missionGridRef} className={styles.missionGrid}>
+            <div className={`${styles.missionCard} gsap-mission-card`}>
               <div className={styles.missionIcon}><Target size={28} /></div>
               <h3 className={styles.missionTitle}>Our Mission</h3>
               <p className={styles.missionText}>
@@ -95,7 +138,7 @@ export default function AboutPage() {
                 as we grow and look to the future, we always remember where we came from.
               </p>
             </div>
-            <div className={styles.missionCard}>
+            <div className={`${styles.missionCard} gsap-mission-card`}>
               <div className={styles.missionIcon}><Eye size={28} /></div>
               <h3 className={styles.missionTitle}>Our Vision</h3>
               <p className={styles.missionText}>
@@ -108,40 +151,42 @@ export default function AboutPage() {
         </section>
 
         {/* Impact Stats */}
-        <section className={styles.impactSection}>
-          <div className={styles.impactGrid}>
-            <div className={styles.impactItem}>
+        <section ref={impactRef} className={styles.impactSection}>
+          <div ref={impactGridRef} className={styles.impactGrid}>
+            <div className={`${styles.impactItem} gsap-impact-item`}>
               <Globe size={28} className={styles.impactIcon} />
-              <div className={styles.impactValue}>120</div>
+              <div ref={chaptersCountRef} className={styles.impactValue}>0</div>
               <div className={styles.impactLabel}>Global Chapters</div>
             </div>
-            <div className={styles.impactItem}>
+            <div className={`${styles.impactItem} gsap-impact-item`}>
               <Users size={28} className={styles.impactIcon} />
-              <div className={styles.impactValue}>50,000+</div>
+              <div className={styles.impactValue}><span ref={membersCountRef}>0</span>+</div>
               <div className={styles.impactLabel}>Active Members</div>
             </div>
-            <div className={styles.impactItem}>
+            <div className={`${styles.impactItem} gsap-impact-item`}>
               <Award size={28} className={styles.impactIcon} />
-              <div className={styles.impactValue}>2,000+</div>
+              <div className={styles.impactValue}><span ref={scholarshipsCountRef}>0</span>+</div>
               <div className={styles.impactLabel}>Scholarships Awarded</div>
             </div>
-            <div className={styles.impactItem}>
+            <div className={`${styles.impactItem} gsap-impact-item`}>
               <Landmark size={28} className={styles.impactIcon} />
-              <div className={styles.impactValue}>100+</div>
+              <div className={styles.impactValue}><span ref={yearsCountRef}>0</span>+</div>
               <div className={styles.impactLabel}>Years of Legacy</div>
             </div>
           </div>
         </section>
 
         {/* CTA */}
-        <section className={styles.ctaSection}>
-          <h2 className={styles.ctaTitle}>Be Part of Our Story</h2>
-          <p className={styles.ctaText}>
-            Join KVO Nagpur today, meet new friends, and be part of a community that spans generations.
-          </p>
-          <div className={styles.ctaActions}>
-            <Link href="/login" className={styles.ctaBtnPrimary}>Join the Community</Link>
-            <Link href="/directory" className={styles.ctaBtnOutline}>Browse Directory</Link>
+        <section ref={ctaRef} className={styles.ctaSection}>
+          <div ref={ctaContentRef}>
+            <h2 className={`${styles.ctaTitle} gsap-cta-item`}>Be Part of Our Story</h2>
+            <p className={`${styles.ctaText} gsap-cta-item`}>
+              Join KVO Nagpur today, meet new friends, and be part of a community that spans generations.
+            </p>
+            <div className={`${styles.ctaActions} gsap-cta-item`}>
+              <Link href="/login" className={styles.ctaBtnPrimary}>Join the Community</Link>
+              <Link href="/directory" className={styles.ctaBtnOutline}>Browse Directory</Link>
+            </div>
           </div>
         </section>
       </main>

@@ -8,6 +8,7 @@ import { useToast } from '@/components/ui/Toast/ToastProvider';
 
 import { useAuth } from '@/lib/auth-context';
 import styles from './LoginPage.module.css';
+import { useGsapHeroEntrance } from '@/hooks/useGsapAnimations';
 
 // Inline Google SVG icon to avoid external dependency
 const GoogleIcon = () => (
@@ -192,16 +193,18 @@ export default function LoginPage() {
   const isUsernameValid = username.length >= 3;
   const isPasswordValid = password.length >= 6;
 
+  const formRef = useGsapHeroEntrance<HTMLDivElement>('.gsap-login-anim');
+
   return (
     <div className={styles.loginPage}>
       <div className={styles.formSide}>
-        <div className={styles.formContainer}>
-          <h1 className={styles.welcomeTitle}>
+        <div ref={formRef} className={styles.formContainer}>
+          <h1 className={`${styles.welcomeTitle} gsap-login-anim`}>
             {activeTab === 'committee' ? 'Committee Login' : 'Member Login'}
           </h1>
-          <p className={styles.welcomeSubtitle}>Welcome back! Sign in to connect with the community.</p>
+          <p className={`${styles.welcomeSubtitle} gsap-login-anim`}>Welcome back! Sign in to connect with the community.</p>
 
-          <div className={styles.loginCard}>
+          <div className={`${styles.loginCard} gsap-login-anim`}>
             {loginError && (
               <div style={{ backgroundColor: '#fee2e2', color: '#991b1b', padding: '12px', borderRadius: '8px', marginBottom: '16px', fontSize: '14px', border: '1px solid #fca5a5' }}>
                 {loginError}
@@ -263,7 +266,7 @@ export default function LoginPage() {
           </div>
 
           {/* Trust Badges */}
-          <div className={styles.trustBadges}>
+          <div className={`${styles.trustBadges} gsap-login-anim`}>
             <div className={styles.trustBadge}>
               <Shield size={16} className={styles.trustIcon} />
               Secure

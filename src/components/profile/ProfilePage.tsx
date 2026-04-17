@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Pencil, Eye, ShieldCheck, Mail, Phone, CheckCircle2, LogOut, AlertTriangle, X, Send } from 'lucide-react';
 import styles from './ProfilePage.module.css';
 import { ApiClient } from '@/lib/api';
@@ -8,8 +8,9 @@ import { useAuth } from '@/lib/auth-context';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { ProfileSkeleton } from '@/components/ui/Skeleton/Skeleton';
 import ProfileUpdateModal from './ProfileUpdateModal';
-import { motion } from 'framer-motion';
 import { Member } from '@/types';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
 
 const AVATAR_COLORS = ['#8B1A1A', '#C8956C', '#2D5F8B', '#4A7C59', '#7B5EA7', '#D4763C', '#3B8686', '#9B5DE5', '#E07A5F'];
 
@@ -38,15 +39,16 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
   const { profile, role, logout } = useAuth();
   const { toast } = useToast();
 
+  // GSAP animation ref
+  const profileRef = useRef<HTMLDivElement>(null);
+
   const handleLogout = async (e: React.MouseEvent) => {
     e.preventDefault();
     try {
       await logout();
-      // Small delay to ensure cookies are fully cleared before redirect
       await new Promise(resolve => setTimeout(resolve, 150));
       window.location.href = '/home';
     } catch {
-      // Force redirect even if logout had an error
       window.location.href = '/home';
     }
   };
@@ -67,6 +69,25 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
   useEffect(() => {
     loadProfile();
   }, [loadProfile]);
+
+  // Progressive entrance animation
+  useGSAP(() => {
+    if (!profileRef.current || isLoading || !member) return;
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    const items = profileRef.current.querySelectorAll('.gsap-profile-anim');
+    gsap.fromTo(items,
+      { y: 30, opacity: 0 },
+      {
+        y: 0, opacity: 1,
+        duration: 0.85,
+        stagger: 0.12,
+        ease: 'expo.out',
+        clearProps: 'transform,opacity',
+      }
+    );
+  }, { scope: profileRef, dependencies: [member, isLoading] });
 
   // Check for pending update-request notifications on own profile
   const isMyProfile = !memberId || memberId === 'me' || profile?.member_id === (member?._id || member?.id);
@@ -123,7 +144,6 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
   // Callback after successful profile update
   const handleProfileUpdated = (updatedMember: Member) => {
     setMember(updatedMember);
-    // Also dismiss any pending notification since they've updated
     if (pendingNotification) {
       handleDismissNotification();
     }
@@ -146,20 +166,10 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
   const isCommitteeViewingOther = !isMyProfile && (role === 'admin' || role === 'committee');
   
   return (
-    <motion.div 
-      className={styles.profileContent}
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
+    <div ref={profileRef} className={styles.profileContent}>
       {/* Pending Update Notification Banner */}
       {isMyProfile && pendingNotification && (
-        <motion.div 
-          className={styles.notificationBanner}
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-        >
+        <div className={`${styles.notificationBanner} gsap-profile-anim`}>
           <div className={styles.notificationContent}>
             <AlertTriangle size={20} className={styles.notificationIcon} />
             <div>
@@ -181,79 +191,48 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
               <X size={14} /> Dismiss
             </button>
           </div>
-        </motion.div>
+        </div>
       )}
 
       {/* Profile Hero */}
-      <div className={styles.profileHero}>
-        <motion.div 
-          className={styles.profilePhoto}
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.2 }}
-        >
+      <div className={`${styles.profileHero} gsap-profile-anim`}>
+        <div className={styles.profilePhoto}>
           <div className={styles.profilePhotoInitials} style={{ backgroundColor: getAvatarColor(member.name) }}>
             {initials}
           </div>
-        </motion.div>
+        </div>
         <div className={styles.profileHeroInfo}>
-          <motion.p 
-            className={styles.verifiedLabel}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-          >
+          <p className={styles.verifiedLabel}>
             {member.active ? 'Verified Member' : 'Member'}
-          </motion.p>
-          <motion.h1 
-            className={styles.profileName}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.4 }}
-          >
+          </p>
+          <h1 className={styles.profileName}>
             {firstName}<br />
             <span className={styles.profileNameItalic}>{lastName}</span>
-          </motion.h1>
-          <motion.p 
-            className={styles.profileBio}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-          >
+          </h1>
+          <p className={styles.profileBio}>
             A valued member of the KVO Nagpur community.
-          </motion.p>
+          </p>
           <div className={styles.profileActions}>
             {/* Edit Profile — only on your own profile */}
             {canEdit && (
-              <motion.button 
-                className={styles.editProfileBtn} 
-                onClick={handleEditProfile}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
+              <button className={styles.editProfileBtn} onClick={handleEditProfile}>
                 <Pencil size={16} /> Edit Profile
-              </motion.button>
+              </button>
             )}
             {/* Request Update — only for committee/admin viewing someone else */}
             {isCommitteeViewingOther && (
-              <motion.button 
+              <button 
                 className={styles.requestUpdateBtn} 
                 onClick={handleRequestUpdate}
                 disabled={isRequestingUpdate}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
               >
                 <Send size={16} /> {isRequestingUpdate ? 'Sending...' : 'Request Update'}
-              </motion.button>
+              </button>
             )}
             {isMyProfile && (
-              <motion.button 
-                className={styles.privacyBtn}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
+              <button className={styles.privacyBtn}>
                 <Eye size={16} /> View Privacy Settings
-              </motion.button>
+              </button>
             )}
           </div>
         </div>
@@ -262,12 +241,7 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
       {/* Info Cards */}
       <div className={styles.infoGrid}>
         {/* Personal Info */}
-        <motion.div 
-          className={styles.infoCard}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-        >
+        <div className={`${styles.infoCard} gsap-profile-anim`}>
           <div className={styles.sectionHeader}>
             <span className={styles.sectionDash} />
             <span className={styles.sectionTitle}>Personal</span>
@@ -278,15 +252,10 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
           <div className={styles.infoValue}>{member.marital_status || 'Not specified'}</div>
           <div className={styles.infoLabel}>Family Members</div>
           <div className={styles.infoValue}>{(member.family_members || []).join(', ') || 'None listed'}</div>
-        </motion.div>
+        </div>
 
         {/* Professional Standing */}
-        <motion.div 
-          className={styles.infoCard}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7 }}
-        >
+        <div className={`${styles.infoCard} gsap-profile-anim`}>
           <div className={styles.sectionHeader}>
             <span className={styles.sectionDash} />
             <span className={styles.sectionTitle}>Professional Standing</span>
@@ -299,16 +268,11 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
           <div className={styles.separator} />
           <div className={styles.infoLabel}>Current Residence</div>
           <div className={styles.infoValue}>{member.current_place || 'Not specified'}</div>
-        </motion.div>
+        </div>
       </div>
 
       {/* Contact Info */}
-      <motion.div 
-        className={styles.contactCard}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.8 }}
-      >
+      <div className={`${styles.contactCard} gsap-profile-anim`}>
         <div className={styles.sectionHeader}>
           <span className={styles.sectionDash} />
           <span className={styles.sectionTitle}>Contact</span>
@@ -334,15 +298,10 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
             </div>
           </div>
         </div>
-      </motion.div>
+      </div>
 
       {/* Visibility Banner */}
-      <motion.div 
-        className={styles.visibilityBanner}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.9 }}
-      >
+      <div className={`${styles.visibilityBanner} gsap-profile-anim`}>
         <ShieldCheck size={24} className={styles.visibilityIcon} />
         <div>
           <h3 className={styles.visibilityTitle}>Member Directory Visibility ({member.contact_visibility})</h3>
@@ -350,12 +309,12 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
             Depending on privacy settings, contact numbers are only visible to the profile owner or if explicitly marked public.
           </p>
         </div>
-      </motion.div>
+      </div>
 
       {/* Logout Button */}
       {isMyProfile && (
-        <div style={{ marginTop: '3rem', display: 'flex', justifyContent: 'center' }}>
-          <motion.button
+        <div className="gsap-profile-anim" style={{ marginTop: '3rem', display: 'flex', justifyContent: 'center' }}>
+          <button
             onClick={handleLogout}
             style={{
               display: 'flex', alignItems: 'center', gap: '8px', 
@@ -364,11 +323,9 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
               color: '#dc2626', fontWeight: 600, cursor: 'pointer',
               transition: 'all 0.2s'
             }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
           >
             <LogOut size={16} /> Logout
-          </motion.button>
+          </button>
         </div>
       )}
 
@@ -380,6 +337,6 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
           mode={updateModalMode}
         />
       )}
-    </motion.div>
+    </div>
   );
 }
