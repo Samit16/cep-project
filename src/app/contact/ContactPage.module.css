@@ -1,0 +1,200 @@
+/* ============================================
+   Contact Page — Welcoming, lightweight design
+   ============================================ */
+
+.contactPage {
+  min-height: 100vh;
+  background-color: var(--color-bg-page);
+}
+
+/* ---- Hero ---- */
+.hero {
+  padding: var(--space-20) var(--page-padding) var(--space-16);
+  text-align: center;
+  background: linear-gradient(
+    180deg,
+    var(--color-bg-warm) 0%,
+    var(--color-bg-page) 100%
+  );
+}
+
+.heroContent {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.heroBadge {
+  display: inline-block;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--color-primary);
+  background-color: var(--color-primary-lightest);
+  border: 1px solid rgba(139, 26, 26, 0.1);
+  padding: 6px 18px;
+  border-radius: var(--radius-full);
+  margin-bottom: var(--space-5);
+}
+
+.title {
+  font-family: var(--font-serif);
+  font-size: var(--text-4xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+  line-height: var(--leading-tight);
+  margin-bottom: var(--space-4);
+}
+
+.italic {
+  font-style: italic;
+  color: var(--color-primary);
+}
+
+.subtitle {
+  font-size: var(--text-md);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+/* ---- Cards Section ---- */
+.cardsSection {
+  padding: 0 var(--page-padding) var(--space-16);
+}
+
+.cardsGrid {
+  max-width: 960px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-6);
+}
+
+.card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-xl);
+  padding: var(--space-8) var(--space-6);
+  text-align: center;
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card:hover {
+  border-color: var(--color-border);
+  box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.08),
+              0 4px 12px -4px rgba(0, 0, 0, 0.04);
+  transform: translateY(-6px);
+}
+
+.cardIconWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, var(--color-primary-lightest), rgba(139, 26, 26, 0.08));
+  color: var(--color-primary);
+  margin-bottom: var(--space-5);
+  transition: transform 0.3s ease;
+}
+
+.card:hover .cardIconWrap {
+  transform: scale(1.08);
+}
+
+.cardTitle {
+  font-family: var(--font-serif);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.cardText {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+  margin-bottom: var(--space-3);
+}
+
+.cardValue {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-primary);
+  word-break: break-all;
+}
+
+.cardAddress {
+  font-style: normal;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.75;
+}
+
+.cardMuted {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  margin-top: var(--space-2);
+}
+
+/* ---- Map Section ---- */
+.mapSection {
+  padding: 0 var(--page-padding) var(--space-20);
+}
+
+.mapTitle {
+  font-family: var(--font-serif);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+  text-align: center;
+  margin-bottom: var(--space-6);
+}
+
+.mapWrapper {
+  max-width: 960px;
+  margin: 0 auto;
+  height: 380px;
+  border-radius: var(--radius-2xl);
+  overflow: hidden;
+  border: 1px solid var(--color-border-light);
+  box-shadow: var(--shadow-lg);
+}
+
+.mapWrapper iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* ============================================
+   Responsive
+   ============================================ */
+@media (max-width: 768px) {
+  .hero {
+    padding: var(--space-12) var(--page-padding) var(--space-10);
+  }
+
+  .cardsGrid {
+    grid-template-columns: 1fr;
+    max-width: 420px;
+  }
+
+  .card {
+    padding: var(--space-6) var(--space-5);
+  }
+
+  .mapWrapper {
+    height: 280px;
+    border-radius: var(--radius-xl);
+  }
+}

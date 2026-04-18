@@ -199,6 +199,15 @@ export default function LoginPage() {
     <div className={styles.loginPage}>
       <div className={styles.formSide}>
         <div ref={formRef} className={styles.formContainer}>
+          {/* Logo Branding */}
+          <div className={`gsap-login-anim`} style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/images/logo.png"
+              alt="KVO Nagpur"
+              style={{ height: '64px', width: 'auto', margin: '0 auto', objectFit: 'contain' }}
+            />
+          </div>
           <h1 className={`${styles.welcomeTitle} gsap-login-anim`}>
             {activeTab === 'committee' ? 'Committee Login' : 'Member Login'}
           </h1>

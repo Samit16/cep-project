@@ -12,12 +12,20 @@
 }
 
 .logo {
-  font-family: var(--font-serif);
-  font-size: var(--text-xl);
-  font-weight: var(--weight-bold);
-  color: var(--color-primary);
+  display: flex;
+  align-items: center;
   text-decoration: none;
-  letter-spacing: var(--tracking-tight);
+}
+
+.logoImage {
+  height: 42px;
+  width: auto;
+  object-fit: contain;
+  transition: opacity var(--transition-fast);
+}
+
+.logoImage:hover {
+  opacity: 0.85;
 }
 
 .navLinks {

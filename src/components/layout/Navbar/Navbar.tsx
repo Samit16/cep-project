@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Home, User, ChevronDown, Menu, X } from 'lucide-react';
+import { User, ChevronDown, Menu, X } from 'lucide-react';
 import styles from './Navbar.module.css';
 import { useAuth } from '@/lib/auth-context';
 import Link from 'next/link';
@@ -61,9 +61,9 @@ export default function Navbar({
 
   return (
     <nav ref={navRef} className={styles.navbar} role="navigation" aria-label="Main navigation">
-      <Link href="/home" className={styles.logo} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <Home size={24} />
-        KVO Nagpur
+      <Link href="/home" className={styles.logo}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/images/logo.png" alt="KVO Nagpur" className={styles.logoImage} />
       </Link>
 
       {/* Desktop Navigation */}
@@ -95,9 +95,14 @@ export default function Navbar({
           )}
 
           {pathname !== '/login' && (
-            <Link href="/about" className={styles.navLink}>
-              About
-            </Link>
+            <>
+              <Link href="/about" className={styles.navLink}>
+                About
+              </Link>
+              <Link href="/contact" className={styles.navLink}>
+                Contact
+              </Link>
+            </>
           )}
 
           {user ? (
@@ -150,7 +155,10 @@ export default function Navbar({
             </Link>
           ))}
           {pathname !== '/login' && (
-            <Link href="/about" className={styles.mobileNavLink}>About</Link>
+            <>
+              <Link href="/about" className={styles.mobileNavLink}>About</Link>
+              <Link href="/contact" className={styles.mobileNavLink}>Contact</Link>
+            </>
           )}
         </div>
         
