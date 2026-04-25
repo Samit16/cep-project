@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { authenticateSupabase, createServerSupabase } from '@/lib/auth-server';
+import { sanitizeObject } from '@/lib/sanitize';
 
 export async function GET(request: NextRequest) {
   try {
@@ -131,10 +132,6 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    if (changes['first_name'] !== undefined) updateData['first_name'] = changes['first_name'];
-    if (changes['middle_name'] !== undefined) updateData['middle_name'] = changes['middle_name'];
-    if (changes['last_name'] !== undefined) updateData['last_name'] = changes['last_name'];
-
     // Map contact_no (single string from UI) → contact_numbers (TEXT[] in DB)
     if (changes['contact_no'] !== undefined && changes['contact_no'] !== null) {
       const num = String(changes['contact_no']).trim();
@@ -144,6 +141,9 @@ export async function PUT(request: NextRequest) {
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json({ error: 'No valid fields provided.' }, { status: 400 });
     }
+
+    // Sanitize all string fields to strip HTML tags (XSS prevention)
+    const sanitizedData = sanitizeObject(updateData);
 
     let memberId = user.member_id;
 
@@ -155,7 +155,7 @@ export async function PUT(request: NextRequest) {
 
     const { data: updatedMember, error } = await supabase
       .from('members')
-      .update(updateData)
+      .update(sanitizedData)
       .eq('id', memberId)
       .select('*')
       .single();
