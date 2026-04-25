@@ -21,7 +21,10 @@ export interface Member {
   education?: string;
   marital_status?: string;
   family_members?: string[];
+  relations?: { name: string; relation: string }[];
   joinDate?: string;
+  nukh?: string;
+  birthplace?: string;
   status?: 'verified' | 'pending' | 'inactive' | string;
   active?: boolean;
   role?: 'member' | 'committee' | 'admin' | string;

@@ -11,9 +11,19 @@ export default function LinkGooglePrompt({ onDismiss }: { onDismiss?: () => void
   const { profile, user, signInWithGoogle } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = React.useState(false);
+  const [dismissed, setDismissed] = React.useState(false);
+
+  React.useEffect(() => {
+    // Auto-dismiss after 15 seconds
+    const timer = setTimeout(() => {
+      setDismissed(true);
+      if (onDismiss) onDismiss();
+    }, 15000);
+    return () => clearTimeout(timer);
+  }, [onDismiss]);
 
   // If there's no user, or profile doesn't require first-time setup, render nothing
-  if (!user || !profile || !profile.is_first_login) return null;
+  if (!user || !profile || !profile.is_first_login || dismissed) return null;
 
   // Check if they already have a google identity linked
   const hasGoogleLinked = user.identities?.some(i => i.provider === 'google');
@@ -46,14 +56,15 @@ export default function LinkGooglePrompt({ onDismiss }: { onDismiss?: () => void
       maxWidth: '380px',
       borderLeft: '4px solid var(--color-primary)'
     }}>
-      {onDismiss && (
-        <button 
-          onClick={onDismiss}
-          style={{ position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' }}
-        >
-          <X size={16} />
-        </button>
-      )}
+      <button 
+        onClick={() => {
+          setDismissed(true);
+          if (onDismiss) onDismiss();
+        }}
+        style={{ position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' }}
+      >
+        <X size={16} />
+      </button>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
         <div style={{ background: '#fdf2f2', padding: '8px', borderRadius: '8px', color: 'var(--color-primary)' }}>

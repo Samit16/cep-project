@@ -120,7 +120,10 @@ export default function LoginPage() {
     }
 
     if (!authLoading && token) {
-      if (role === 'admin' || role === 'committee') {
+      const nextUrl = searchParams.get('next');
+      if (nextUrl && nextUrl.startsWith('/')) {
+        router.replace(nextUrl);
+      } else if (role === 'admin' || role === 'committee') {
         router.replace('/dashboard');
       } else {
         router.replace('/home');

@@ -16,12 +16,16 @@ interface ProfileUpdateModalProps {
 
 export default function ProfileUpdateModal({ member, onClose, onUpdated, mode = 'self-update' }: ProfileUpdateModalProps) {
   const [formData, setFormData] = useState({
+    name: member.name || '',
     occupation: member.occupation || '',
     marital_status: member.marital_status || '',
     current_place: member.current_place || '',
     kutch_town: member.kutch_town || '',
+    nukh: member.nukh || '',
+    birthplace: member.birthplace || '',
     contact_no: member.contact_no || (member.contact_numbers?.length ? member.contact_numbers[0] : ''),
     email: member.email || '',
+    relations: member.relations || [],
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
@@ -58,6 +62,20 @@ export default function ProfileUpdateModal({ member, onClose, onUpdated, mode = 
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleRelationChange = (index: number, field: string, value: string) => {
+    const updated = [...formData.relations];
+    updated[index] = { ...updated[index], [field]: value };
+    setFormData(prev => ({ ...prev, relations: updated }));
+  };
+
+  const addRelation = () => {
+    setFormData(prev => ({ ...prev, relations: [...prev.relations, { name: '', relation: '' }] }));
+  };
+
+  const removeRelation = (index: number) => {
+    setFormData(prev => ({ ...prev, relations: prev.relations.filter((_, i) => i !== index) }));
+  };
+
   const isSelfUpdate = mode === 'self-update';
 
   return (
@@ -86,6 +104,18 @@ export default function ProfileUpdateModal({ member, onClose, onUpdated, mode = 
         </div>
 
         <form onSubmit={handleSubmit} className={styles.form}>
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Full Name</label>
+            <input 
+              type="text" 
+              name="name"
+              className={styles.input} 
+              value={formData.name}
+              onChange={handleChange}
+              placeholder="First Last"
+            />
+          </div>
+
           <div className={styles.formGroup}>
             <label className={styles.label}>Current Occupation</label>
             <input 
@@ -139,6 +169,30 @@ export default function ProfileUpdateModal({ member, onClose, onUpdated, mode = 
           </div>
 
           <div className={styles.formGroup}>
+            <label className={styles.label}>Nukh</label>
+            <input 
+              type="text" 
+              name="nukh"
+              className={styles.input} 
+              value={formData.nukh}
+              onChange={handleChange}
+              placeholder="e.g. Bhimani"
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Birthplace</label>
+            <input 
+              type="text" 
+              name="birthplace"
+              className={styles.input} 
+              value={formData.birthplace}
+              onChange={handleChange}
+              placeholder="e.g. Nagpur"
+            />
+          </div>
+
+          <div className={styles.formGroup}>
             <label className={styles.label}>Phone Number</label>
             <input 
               type="text" 
@@ -160,6 +214,30 @@ export default function ProfileUpdateModal({ member, onClose, onUpdated, mode = 
               onChange={handleChange}
               placeholder="e.g. name@example.com"
             />
+          </div>
+
+          <div className={styles.formGroupWrapper} style={{ gridColumn: '1 / -1', marginTop: '1rem', borderTop: '1px solid var(--color-border)', paddingTop: '1rem' }}>
+             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <label className={styles.label} style={{ margin: 0 }}>Family Relations</label>
+                <button type="button" onClick={addRelation} style={{ padding: '6px 12px', background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', borderRadius: '6px', fontSize: '0.875rem', cursor: 'pointer' }}>
+                  + Add Relation
+                </button>
+             </div>
+             {formData.relations.length === 0 ? (
+               <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>No relations added.</p>
+             ) : (
+               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                 {formData.relations.map((rel, index) => (
+                   <div key={index} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                     <input type="text" className={styles.input} placeholder="Name" value={rel.name} onChange={(e) => handleRelationChange(index, 'name', e.target.value)} style={{ flex: 2 }} />
+                     <input type="text" className={styles.input} placeholder="Relation" value={rel.relation} onChange={(e) => handleRelationChange(index, 'relation', e.target.value)} style={{ flex: 1 }} />
+                     <button type="button" onClick={() => removeRelation(index)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', padding: '6px' }}>
+                       <X size={16} />
+                     </button>
+                   </div>
+                 ))}
+               </div>
+             )}
           </div>
 
           <div className={styles.modalFooter}>
