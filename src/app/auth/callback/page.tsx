@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { supabase, SUPABASE_STORAGE_KEY } from '@/lib/supabase';
 
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -21,7 +21,7 @@ export default function AuthCallbackPage() {
 
         if (session) {
           // Explicitly set cookie as a session cookie (no max-age) so it clears on browser close
-          document.cookie = `sb-uevmyvwbmxqreyukbvkq-auth-token=${session.access_token}; path=/; samesite=lax`;
+          document.cookie = `${SUPABASE_STORAGE_KEY}=${session.access_token}; path=/; samesite=lax`;
 
           // Fetch the user's profile to determine redirect
           const { data: profile } = await supabase
@@ -49,7 +49,7 @@ export default function AuthCallbackPage() {
               Object.keys(sessionStorage).filter(k => k.startsWith('sb-')).forEach(k => sessionStorage.removeItem(k));
               Object.keys(localStorage).filter(k => k.startsWith('sb-')).forEach(k => localStorage.removeItem(k));
             }
-            document.cookie = 'sb-uevmyvwbmxqreyukbvkq-auth-token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; samesite=lax';
+            document.cookie = `${SUPABASE_STORAGE_KEY}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; samesite=lax`;
             
             router.replace('/login?tab=committee&error=committee_as_member');
             return;

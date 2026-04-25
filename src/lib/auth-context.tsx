@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase, SUPABASE_STORAGE_KEY } from '@/lib/supabase';
 import type { Session, User } from '@supabase/supabase-js';
 
 type Role = 'admin' | 'member' | 'committee' | null;
@@ -88,7 +88,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (currentSession) {
           setSession(currentSession);
           // SET COOKIE HERE ALSO for when users return after cookie expires
-          document.cookie = `sb-uevmyvwbmxqreyukbvkq-auth-token=${currentSession.access_token}; path=/; max-age=${currentSession.expires_in || 3600}; samesite=lax`;
+          document.cookie = `${SUPABASE_STORAGE_KEY}=${currentSession.access_token}; path=/; max-age=${currentSession.expires_in || 3600}; samesite=lax`;
           await fetchProfile(currentSession.user.id, currentSession.user.email);
         }
       } catch (err) {
@@ -107,12 +107,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         if (newSession?.user) {
           // Set cookie for middleware
-          document.cookie = `sb-uevmyvwbmxqreyukbvkq-auth-token=${newSession.access_token}; path=/; max-age=${newSession.expires_in || 3600}; samesite=lax`;
+          document.cookie = `${SUPABASE_STORAGE_KEY}=${newSession.access_token}; path=/; max-age=${newSession.expires_in || 3600}; samesite=lax`;
           await fetchProfile(newSession.user.id, newSession.user.email);
         } else {
           setProfile(null);
           // Clear cookie for middleware
-          document.cookie = 'sb-uevmyvwbmxqreyukbvkq-auth-token=; path=/; max-age=0;';
+          document.cookie = `${SUPABASE_STORAGE_KEY}=; path=/; max-age=0;`;
         }
 
         setIsLoading(false);
@@ -211,8 +211,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Clear all auth cookies explicitly
       const pastDate = 'Thu, 01 Jan 1970 00:00:00 GMT';
       document.cookie = `kjo_token=; expires=${pastDate}; path=/; samesite=lax`;
-      document.cookie = `sb-uevmyvwbmxqreyukbvkq-auth-token=; expires=${pastDate}; path=/; samesite=lax`;
-      document.cookie = `sb-uevmyvwbmxqreyukbvkq-auth-token=; expires=${pastDate}; path=/`;
+      document.cookie = `${SUPABASE_STORAGE_KEY}=; expires=${pastDate}; path=/; samesite=lax`;
+      document.cookie = `${SUPABASE_STORAGE_KEY}=; expires=${pastDate}; path=/`;
 
       window.dispatchEvent(new Event('kjo_auth_change'));
     }

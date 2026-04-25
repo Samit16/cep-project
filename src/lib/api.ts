@@ -1,3 +1,5 @@
+import { SUPABASE_STORAGE_KEY } from './supabase';
+
 export class ApiClient {
   private static get baseUrl() {
     return '/api';
@@ -15,7 +17,7 @@ export class ApiClient {
 
       // 1. Check Supabase sessionStorage (where the client actually stores sessions)
       try {
-        const sessionData = sessionStorage.getItem('sb-uevmyvwbmxqreyukbvkq-auth-token');
+        const sessionData = sessionStorage.getItem(SUPABASE_STORAGE_KEY);
         if (sessionData) {
           const parsed = JSON.parse(sessionData);
           token = parsed?.access_token || parsed?.currentSession?.access_token || null;
@@ -24,7 +26,7 @@ export class ApiClient {
 
       // 2. Fallback: check cookie
       if (!token) {
-        const match = document.cookie.match(new RegExp('(^| )sb-uevmyvwbmxqreyukbvkq-auth-token=([^;]+)'));
+        const match = document.cookie.match(new RegExp(`(^| )${SUPABASE_STORAGE_KEY}=([^;]+)`));
         if (match) token = match[2];
       }
 

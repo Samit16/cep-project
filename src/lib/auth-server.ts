@@ -32,8 +32,13 @@ function extractToken(request: NextRequest): string | null {
   if (authHeader && authHeader.startsWith('Bearer ')) {
     return authHeader.substring(7);
   }
+  
   // Try cookie fallback for server actions/routes that might pass it
-  const sbCookie = request.cookies.get('sb-uevmyvwbmxqreyukbvkq-auth-token');
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const projectId = supabaseUrl.match(/https:\/\/(.*?)\.supabase\.co/)?.[1] || 'uevmyvwbmxqreyukbvkq';
+  const cookieName = `sb-${projectId}-auth-token`;
+  
+  const sbCookie = request.cookies.get(cookieName);
   if (sbCookie) {
     return sbCookie.value;
   }

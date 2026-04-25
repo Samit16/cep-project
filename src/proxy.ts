@@ -1,11 +1,16 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
+  // Extract project ID from env to match the cookie name
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const projectId = supabaseUrl.match(/https:\/\/(.*?)\.supabase\.co/)?.[1] || 'uevmyvwbmxqreyukbvkq';
+  const cookieName = `sb-${projectId}-auth-token`;
+
   // Check Supabase session cookie (set by our auth-context on the client)
-  const supabaseToken = request.cookies.get('sb-uevmyvwbmxqreyukbvkq-auth-token')?.value;
+  const supabaseToken = request.cookies.get(cookieName)?.value;
   const isAuthenticated = !!supabaseToken;
 
   // Define protected paths
