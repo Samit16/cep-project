@@ -187,35 +187,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const logout = async () => {
+    // Clear React state first so UI updates immediately
+    setSession(null);
+    setProfile(null);
+
     try {
       await supabase.auth.signOut();
     } catch (err) {
       console.error('Logout error:', err);
-    } finally {
-      setSession(null);
-      setProfile(null);
-
-      // Clear all Supabase keys from both localStorage and sessionStorage
-      if (typeof window !== 'undefined') {
-        Object.keys(localStorage)
-          .filter(k => k.startsWith('sb-'))
-          .forEach(k => localStorage.removeItem(k));
-        localStorage.removeItem('kjo_token');
-
-        Object.keys(sessionStorage)
-          .filter(k => k.startsWith('sb-'))
-          .forEach(k => sessionStorage.removeItem(k));
-        sessionStorage.removeItem('kjo_token');
-      }
-
-      // Clear all auth cookies explicitly
-      const pastDate = 'Thu, 01 Jan 1970 00:00:00 GMT';
-      document.cookie = `kjo_token=; expires=${pastDate}; path=/; samesite=lax`;
-      document.cookie = `${SUPABASE_STORAGE_KEY}=; expires=${pastDate}; path=/; samesite=lax`;
-      document.cookie = `${SUPABASE_STORAGE_KEY}=; expires=${pastDate}; path=/`;
-
-      window.dispatchEvent(new Event('kjo_auth_change'));
     }
+
+    // Clear all Supabase keys from both localStorage and sessionStorage
+    if (typeof window !== 'undefined') {
+      Object.keys(localStorage)
+        .filter(k => k.startsWith('sb-'))
+        .forEach(k => localStorage.removeItem(k));
+      localStorage.removeItem('kjo_token');
+      localStorage.removeItem('kjo_auth_method');
+      localStorage.removeItem('kjo_login_intent');
+
+      Object.keys(sessionStorage)
+        .filter(k => k.startsWith('sb-'))
+        .forEach(k => sessionStorage.removeItem(k));
+      sessionStorage.removeItem('kjo_token');
+    }
+
+    // Clear all auth cookies explicitly
+    const pastDate = 'Thu, 01 Jan 1970 00:00:00 GMT';
+    document.cookie = `kjo_token=; expires=${pastDate}; path=/; samesite=lax`;
+    document.cookie = `${SUPABASE_STORAGE_KEY}=; expires=${pastDate}; path=/; samesite=lax`;
+    document.cookie = `${SUPABASE_STORAGE_KEY}=; expires=${pastDate}; path=/`;
+
+    window.dispatchEvent(new Event('kjo_auth_change'));
   };
 
   // Determine the effective role and token

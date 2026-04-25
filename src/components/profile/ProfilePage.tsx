@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { Pencil, Eye, ShieldCheck, Mail, Phone, CheckCircle2, LogOut, AlertTriangle, X, Send } from 'lucide-react';
 import styles from './ProfilePage.module.css';
 import { ApiClient } from '@/lib/api';
@@ -39,19 +40,15 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
   
   const { profile, role, logout } = useAuth();
   const { toast } = useToast();
+  const router = useRouter();
 
   // GSAP animation ref
   const profileRef = useRef<HTMLDivElement>(null);
 
   const handleLogout = async (e: React.MouseEvent) => {
     e.preventDefault();
-    try {
-      await logout();
-      await new Promise(resolve => setTimeout(resolve, 150));
-      window.location.href = '/home';
-    } catch {
-      window.location.href = '/home';
-    }
+    await logout();
+    router.replace('/home');
   };
 
   const loadProfile = useCallback(async () => {
@@ -255,10 +252,8 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
           <div className={styles.infoValue}>{member.birthplace || 'Not specified'}</div>
           <div className={styles.infoLabel}>Marital Status</div>
           <div className={styles.infoValue}>{member.marital_status || 'Not specified'}</div>
-          <div className={styles.infoLabel}>Family Members</div>
-          <div className={styles.infoValue}>{(member.family_members || []).join(', ') || 'None listed'}</div>
           
-          <div className={styles.infoLabel}>Family Relations</div>
+          <div className={styles.infoLabel}>Family Members</div>
           <div className={styles.infoValue}>
             {member.relations && member.relations.length > 0 
               ? member.relations.map(r => `${r.name} (${r.relation})`).join(', ') 

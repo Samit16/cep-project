@@ -100,6 +100,7 @@ const FloatingLabelInput = ({ label, type = 'text', value, onChange, placeholder
 
 export default function AdminDashboard() {
   const [members, setMembers] = useState<MemberAdmin[]>([]);
+  const [totalMemberCount, setTotalMemberCount] = useState<number>(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -141,6 +142,16 @@ export default function AdminDashboard() {
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Fetch real total count (not capped by pagination)
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await ApiClient.get<{ total: number }>('/admin/members/count');
+        setTotalMemberCount(data.total);
+      } catch { /* count is non-critical, fall back to members.length */ }
+    })();
   }, []);
 
   useEffect(() => {
@@ -209,7 +220,7 @@ export default function AdminDashboard() {
   const handleLogout = async () => {
     if (!window.confirm('Are you sure you want to log out?')) return;
     await logout();
-    window.location.replace('/home');
+    router.replace('/home');
   };
 
   const handleExportCSV = () => {
@@ -359,9 +370,6 @@ export default function AdminDashboard() {
         </nav>
 
         <div className={styles.sidebarFooter}>
-          <Link href="/profile" className={styles.sidebarLink} style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
-            <User size={16} /> My Profile
-          </Link>
           <button className={styles.sidebarLink} onClick={handleLogout}>
             <LogOut size={16} /> Logout
           </button>
@@ -424,7 +432,7 @@ export default function AdminDashboard() {
                 <TrendingUp size={14} /> +12%
               </span>
             </div>
-            <div className={styles.statValue}>{members.length}+</div>
+            <div className={styles.statValue}>{totalMemberCount || members.length}</div>
             <div className={styles.statLabel}>Total Members Recorded</div>
           </div>
 
