@@ -23,7 +23,10 @@ const avatarColors = ['#8B1A1A', '#C8956C', '#2D5F8B', '#4A7C59', '#7B5EA7'];
 
 interface MemberAdmin {
   id: string;
-  name: string;
+  name?: string;
+  first_name?: string;
+  middle_name?: string;
+  last_name?: string;
   contact_no?: string;
   email: string;
   occupation?: string;
@@ -217,7 +220,7 @@ export default function AdminDashboard() {
 
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleAddMember = (_newMember: { name: string; email: string; profession: string; city: string; phone: string; role: string }) => {
+  const handleAddMember = (_newMember: { first_name: string; middle_name: string; last_name: string; email: string; profession: string; city: string; phone: string; role: string }) => {
     toast('Member record creation directly via UI coming soon (use CSV now).', 'success');
     setIsModalOpen(false);
   };
@@ -543,7 +546,8 @@ export default function AdminDashboard() {
                       className={styles.memberAvatar}
                       style={{ backgroundColor: avatarColors[index % avatarColors.length] }}
                     >
-                      {(member.name || '?').split(' ').filter(Boolean).map(n => n?.[0]).join('').substring(0, 2).toUpperCase()}
+                      {member.first_name?.[0] || member.name?.[0] || '?'}
+                      {member.last_name?.[0] || ''}
                     </div>
                     <div>
                       <div className={styles.memberCellName}>{member.name}</div>

@@ -3,7 +3,10 @@
 export interface Member {
   id?: string;
   _id?: string;
-  name: string;
+  name?: string; // Keep for backward compatibility/computed purposes
+  first_name?: string;
+  middle_name?: string;
+  last_name?: string;
   email: string;
   phone?: string;
   contact_no?: string;

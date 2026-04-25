@@ -58,8 +58,8 @@ async function run() {
       continue; // Skip, already linked
     }
 
-    const firstName = (member.first_name || member.NAME || '').trim();
-    const lastName = (member.last_name || member['LAST NAME'] || '').trim();
+    const firstName = (member.first_name || '').trim();
+    const lastName = (member.last_name || '').trim();
 
     
     if (!firstName || !lastName) {
