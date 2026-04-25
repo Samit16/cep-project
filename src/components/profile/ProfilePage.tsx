@@ -47,8 +47,9 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
 
   const handleLogout = async (e: React.MouseEvent) => {
     e.preventDefault();
-    await logout();
+    // Navigate immediately, cleanup runs in background
     router.replace('/home');
+    logout();
   };
 
   const loadProfile = useCallback(async () => {

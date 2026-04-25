@@ -117,9 +117,11 @@ export default function AdminDashboard() {
   const router = useRouter();
   const { toast } = useToast();
   const { role, logout, isLoading } = useAuth();
+  const isLoggingOut = useRef(false);
 
-  // Protect Admin Route
+  // Protect Admin Route — skip during active logout
   useEffect(() => {
+    if (isLoggingOut.current) return;
     if (!isLoading && role !== 'admin' && role !== 'committee') {
       router.push('/login');
     }
@@ -219,8 +221,10 @@ export default function AdminDashboard() {
 
   const handleLogout = async () => {
     if (!window.confirm('Are you sure you want to log out?')) return;
-    await logout();
+    isLoggingOut.current = true;
+    // Navigate immediately, don't wait for async signOut
     router.replace('/home');
+    logout();
   };
 
   const handleExportCSV = () => {
@@ -834,12 +838,7 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {role === 'committee' && (
-          <Link href="/profile" className={styles.floatingProfileBtn} aria-label="My Profile">
-            <User size={16} />
-            <span style={{ marginLeft: '8px', fontWeight: 600 }}>My Profile</span>
-          </Link>
-        )}
+
 
         <Footer />
       </div>
