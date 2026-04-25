@@ -57,7 +57,7 @@ A vibrant digital tapestry for the KVO Nagpur community, standing as custodians 
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-## 🏛️ Project Structure
+## Project Structure
 
 - `src/app`: Next.js App Router pages and API routes.
 - `src/components`: Reusable UI components and page sections.
