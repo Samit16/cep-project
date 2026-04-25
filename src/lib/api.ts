@@ -1,38 +1,98 @@
-import { SUPABASE_STORAGE_KEY } from './supabase';
+import { SUPABASE_STORAGE_KEY, supabase } from './supabase';
 
 export class ApiClient {
   private static get baseUrl() {
     return '/api';
   }
 
-  private static getHeaders(customHeaders: Record<string, string> = {}) {
+  // Cache token to avoid repeated async calls within the same tick
+  private static _cachedToken: string | null = null;
+  private static _cacheExpiry = 0;
+
+  private static getTokenSync(): string | null {
+    // Return cached token if still valid (cache for 30s)
+    if (this._cachedToken && Date.now() < this._cacheExpiry) {
+      return this._cachedToken;
+    }
+
+    if (typeof window === 'undefined') return null;
+
+    let token: string | null = null;
+
+    // 1. Check Supabase sessionStorage (where the client stores sessions)
+    try {
+      const sessionData = sessionStorage.getItem(SUPABASE_STORAGE_KEY);
+      if (sessionData) {
+        const parsed = JSON.parse(sessionData);
+        // Handle both v2 flat format and legacy nested format
+        token = parsed?.access_token
+          || parsed?.currentSession?.access_token
+          || parsed?.session?.access_token
+          || null;
+      }
+    } catch { /* ignore parse errors */ }
+
+    // 2. Fallback: scan all sessionStorage keys for any Supabase session
+    if (!token) {
+      try {
+        for (let i = 0; i < sessionStorage.length; i++) {
+          const key = sessionStorage.key(i);
+          if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
+            const raw = sessionStorage.getItem(key);
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              token = parsed?.access_token || parsed?.session?.access_token || null;
+              if (token) break;
+            }
+          }
+        }
+      } catch { /* ignore */ }
+    }
+
+    // 3. Fallback: check cookie
+    if (!token) {
+      try {
+        const match = document.cookie.match(new RegExp(`(^| )${SUPABASE_STORAGE_KEY}=([^;]+)`));
+        if (match) token = match[2];
+      } catch { /* ignore */ }
+    }
+
+    if (token) {
+      this._cachedToken = token;
+      this._cacheExpiry = Date.now() + 30_000;
+    }
+
+    return token;
+  }
+
+  // Async token getter - tries sync first, then falls back to supabase.auth.getSession()
+  private static async getTokenAsync(): Promise<string | null> {
+    const syncToken = this.getTokenSync();
+    if (syncToken) return syncToken;
+
+    // Last resort: ask Supabase client directly
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        this._cachedToken = session.access_token;
+        this._cacheExpiry = Date.now() + 30_000;
+        return session.access_token;
+      }
+    } catch { /* ignore */ }
+
+    return null;
+  }
+
+  private static getHeaders(customHeaders: Record<string, string> = {}, token?: string | null) {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'X-Requested-With': 'XMLHttpRequest',
       ...customHeaders,
     };
 
-    if (typeof window !== 'undefined') {
-      let token: string | null = null;
-
-      // 1. Check Supabase sessionStorage (where the client actually stores sessions)
-      try {
-        const sessionData = sessionStorage.getItem(SUPABASE_STORAGE_KEY);
-        if (sessionData) {
-          const parsed = JSON.parse(sessionData);
-          token = parsed?.access_token || parsed?.currentSession?.access_token || null;
-        }
-      } catch { /* ignore parse errors */ }
-
-      // 2. Fallback: check cookie
-      if (!token) {
-        const match = document.cookie.match(new RegExp(`(^| )${SUPABASE_STORAGE_KEY}=([^;]+)`));
-        if (match) token = match[2];
-      }
-
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
+    const effectiveToken = token ?? this.getTokenSync();
+    if (effectiveToken) {
+      headers['Authorization'] = `Bearer ${effectiveToken}`;
     }
     return headers;
   }
@@ -68,16 +128,18 @@ export class ApiClient {
       if (query) url += `?${query}`;
     }
 
+    const token = await this.getTokenAsync();
     const response = await fetch(url, {
       method: 'GET',
-      headers: this.getHeaders(),
+      headers: this.getHeaders({}, token),
     });
     return this.handleResponse<T>(response);
   }
 
   static async post<T>(endpoint: string, body: unknown): Promise<T> {
     const isFormData = body instanceof FormData;
-    const headers = this.getHeaders();
+    const token = await this.getTokenAsync();
+    const headers = this.getHeaders({}, token);
     if (isFormData) {
       delete headers['Content-Type']; // Let browser set boundary
     }
@@ -100,16 +162,18 @@ export class ApiClient {
   }
 
   static async put<T>(endpoint: string, body: unknown): Promise<T> {
+    const token = await this.getTokenAsync();
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method: 'PUT',
-      headers: this.getHeaders(),
+      headers: this.getHeaders({}, token),
       body: JSON.stringify(body),
     });
     return this.handleResponse<T>(response);
   }
 
   static async delete<T>(endpoint: string): Promise<T> {
-    const headers = this.getHeaders();
+    const token = await this.getTokenAsync();
+    const headers = this.getHeaders({}, token);
     delete headers['Content-Type']; // Fix Fastify 400 Bad Request on empty body
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method: 'DELETE',

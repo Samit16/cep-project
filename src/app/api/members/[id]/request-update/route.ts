@@ -19,7 +19,7 @@ export async function POST(
     // Verify target member exists
     const { data: targetMember, error: memberError } = await supabase
       .from('members')
-      .select('id, first_name, last_name')
+      .select('id, first_name, middle_name, last_name')
       .eq('id', targetMemberId)
       .single();
 
