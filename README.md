@@ -30,18 +30,21 @@ A vibrant digital tapestry for the KVO Nagpur community, standing as custodians 
 ### Installation
 
 1. Clone the repository:
+
    ```bash
    git clone https://github.com/Samit16/cep-project.git
    cd cep-project
    ```
 
 2. Install dependencies:
+
    ```bash
    npm install
    ```
 
 3. Set up environment variables:
    Create a `.env.local` file in the root directory and add your Supabase credentials:
+
    ```env
    NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
