@@ -2,14 +2,10 @@ import { createClient } from '@supabase/supabase-js';
 import { NextRequest } from 'next/server';
 
 export function createServerSupabase() {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    throw new Error('Supabase environment variables are missing.');
-  }
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://uevmyvwbmxqreyukbvkq.supabase.co';
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVldm15dndibXhxcmV5dWtidmtxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTY4ODM1MiwiZXhwIjoyMDkxMjY0MzUyfQ.NcK5a5Er3hrErtEjJukMSqrGwaOf_JDnFCp_CWEGk9Y';
 
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY,
-    {
+  return createClient(url, key, {
       auth: {
         autoRefreshToken: false,
         persistSession: false,
