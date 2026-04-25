@@ -87,6 +87,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         if (currentSession) {
           setSession(currentSession);
+          // SET COOKIE HERE ALSO for when users return after cookie expires
+          document.cookie = `sb-uevmyvwbmxqreyukbvkq-auth-token=${currentSession.access_token}; path=/; max-age=${currentSession.expires_in || 3600}; samesite=lax`;
           await fetchProfile(currentSession.user.id, currentSession.user.email);
         }
       } catch (err) {
@@ -210,6 +212,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const pastDate = 'Thu, 01 Jan 1970 00:00:00 GMT';
       document.cookie = `kjo_token=; expires=${pastDate}; path=/; samesite=lax`;
       document.cookie = `sb-uevmyvwbmxqreyukbvkq-auth-token=; expires=${pastDate}; path=/; samesite=lax`;
+      document.cookie = `sb-uevmyvwbmxqreyukbvkq-auth-token=; expires=${pastDate}; path=/`;
 
       window.dispatchEvent(new Event('kjo_auth_change'));
     }

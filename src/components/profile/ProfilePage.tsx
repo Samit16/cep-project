@@ -248,10 +248,21 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
           </div>
           <div className={styles.infoLabel}>Origin Kutch Town</div>
           <div className={styles.infoValue}>{member.kutch_town || 'Not specified'}</div>
+          <div className={styles.infoLabel}>Nukh</div>
+          <div className={styles.infoValue}>{member.nukh || 'Not specified'}</div>
+          <div className={styles.infoLabel}>Birthplace</div>
+          <div className={styles.infoValue}>{member.birthplace || 'Not specified'}</div>
           <div className={styles.infoLabel}>Marital Status</div>
           <div className={styles.infoValue}>{member.marital_status || 'Not specified'}</div>
           <div className={styles.infoLabel}>Family Members</div>
           <div className={styles.infoValue}>{(member.family_members || []).join(', ') || 'None listed'}</div>
+          
+          <div className={styles.infoLabel}>Family Relations</div>
+          <div className={styles.infoValue}>
+            {member.relations && member.relations.length > 0 
+              ? member.relations.map(r => `${r.name} (${r.relation})`).join(', ') 
+              : 'None listed'}
+          </div>
         </div>
 
         {/* Professional Standing */}

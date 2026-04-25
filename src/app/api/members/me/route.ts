@@ -124,12 +124,18 @@ export async function PUT(request: NextRequest) {
     // Only allow specific fields to be updated
     // Note: the DB uses contact_numbers (TEXT[]), not contact_no.
     // We accept contact_no from the frontend and map it to contact_numbers.
-    const allowedFields = ['occupation', 'marital_status', 'current_place', 'kutch_town', 'contact_numbers', 'email'];
+    const allowedFields = ['occupation', 'marital_status', 'current_place', 'kutch_town', 'contact_numbers', 'email', 'nukh', 'birthplace', 'relations'];
     const updateData: Record<string, any> = {};
     for (const key of allowedFields) {
       if (changes[key] !== undefined) {
         updateData[key] = changes[key];
       }
+    }
+
+    if (changes['name'] !== undefined) {
+      const nameParts = String(changes['name']).trim().split(' ');
+      updateData['first_name'] = nameParts[0] || '';
+      updateData['last_name'] = nameParts.slice(1).join(' ');
     }
 
     // Map contact_no (single string from UI) → contact_numbers (TEXT[] in DB)
