@@ -34,9 +34,9 @@ export async function GET(request: NextRequest) {
       if (parts.length > 1) {
         const f = parts[0];
         const l = parts.slice(1).join(' ');
-        query = query.or(`and(first_name.ilike.%${f}%,last_name.ilike.%${l}%),NAME.ilike.%${q}%, "LAST NAME".ilike.%${q}%`);
+        query = query.or(`and(first_name.ilike.%${f}%,last_name.ilike.%${l}%),middle_name.ilike.%${q}%`);
       } else {
-        query = query.or(`first_name.ilike.%${q}%,last_name.ilike.%${q}%,NAME.ilike.%${q}%,"LAST NAME".ilike.%${q}%`);
+        query = query.or(`first_name.ilike.%${q}%,middle_name.ilike.%${q}%,last_name.ilike.%${q}%`);
       }
     }
 
@@ -51,9 +51,10 @@ export async function GET(request: NextRequest) {
     }
 
     const result = (members || []).map((m: any) => {
-      const firstName = m.first_name || m.NAME || '';
-      const lastName = m.last_name || m['LAST NAME'] || '';
-      const fullName = `${firstName} ${lastName}`.trim();
+      const firstName = m.first_name || '';
+      const middleName = m.middle_name || '';
+      const lastName = m.last_name || '';
+      const fullName = `${firstName} ${middleName} ${lastName}`.replace(/\s+/g, ' ').trim();
       return {
         ...m,
         name: fullName || 'Unknown Member',
@@ -89,6 +90,7 @@ export async function POST(request: NextRequest) {
       .from('members')
       .insert({
         first_name: data.first_name,
+        middle_name: data.middle_name,
         last_name: data.last_name,
         address: data.address,
         contact_numbers: data.contact_numbers || [],

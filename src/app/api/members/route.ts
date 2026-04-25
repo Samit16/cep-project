@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
       const q = name.trim();
 
       // Prefix search for a more natural typeahead experience.
-      query = query.or(`NAME.ilike.${q}%,"LAST NAME".ilike.${q}%`);
+      query = query.or(`first_name.ilike.%${q}%,middle_name.ilike.%${q}%,last_name.ilike.%${q}%`);
     }
     if (city) {
       query = query.eq('current_place', city);
@@ -58,12 +58,13 @@ export async function GET(request: NextRequest) {
 
     const result = (members || []).map((m: any) => {
       const isPublic = m.contact_visibility === 'public';
-      const firstName = m.first_name || m.NAME || '';
-      const lastName = m.last_name || m['LAST NAME'] || '';
+      const firstName = m.first_name || '';
+      const middleName = m.middle_name || '';
+      const lastName = m.last_name || '';
       return {
         ...m,
         id: m.id,
-        name: `${firstName} ${lastName}`.trim(),
+        name: `${firstName} ${middleName} ${lastName}`.replace(/\s+/g, ' ').trim(),
         address: m.address || m.ADDRESS || '',
         contact_numbers: isPublic ? (m.contact_numbers || []) : [],
       };

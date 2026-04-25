@@ -14,10 +14,11 @@ import { useGSAP } from '@gsap/react';
 
 const AVATAR_COLORS = ['#8B1A1A', '#C8956C', '#2D5F8B', '#4A7C59', '#7B5EA7', '#D4763C', '#3B8686', '#9B5DE5', '#E07A5F'];
 
-function getAvatarColor(name: string) {
+function getAvatarColor(name?: string) {
   let hash = 0;
-  for (let i = 0; i < (name?.length || 0); i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  const n = name || '';
+  for (let i = 0; i < n.length; i++) {
+    hash = n.charCodeAt(i) + ((hash << 5) - hash);
   }
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
@@ -157,10 +158,10 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
     return <div style={{ textAlign: 'center', padding: '4rem 0' }}>Profile unavailable.</div>;
   }
 
-  const nameParts = (member.name || '').split(' ');
-  const firstName = nameParts[0];
-  const lastName = nameParts.slice(1).join(' ');
-  const initials = (member.name || '?').split(' ').map(n => n?.[0]).join('');
+  const firstName = member.first_name || '';
+  const middleName = member.middle_name ? member.middle_name + ' ' : '';
+  const lastName = member.last_name || '';
+  const initials = `${firstName?.[0] || ''}${lastName?.[0] || ''}`;
 
   const canEdit = isMyProfile;
   const isCommitteeViewingOther = !isMyProfile && (role === 'admin' || role === 'committee');
@@ -206,7 +207,7 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
             {member.active ? 'Verified Member' : 'Member'}
           </p>
           <h1 className={styles.profileName}>
-            {firstName}<br />
+            {firstName} {middleName}<br />
             <span className={styles.profileNameItalic}>{lastName}</span>
           </h1>
           <p className={styles.profileBio}>

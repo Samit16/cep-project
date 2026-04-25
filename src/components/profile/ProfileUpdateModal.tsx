@@ -16,7 +16,9 @@ interface ProfileUpdateModalProps {
 
 export default function ProfileUpdateModal({ member, onClose, onUpdated, mode = 'self-update' }: ProfileUpdateModalProps) {
   const [formData, setFormData] = useState({
-    name: member.name || '',
+    first_name: member.first_name || '',
+    middle_name: member.middle_name || '',
+    last_name: member.last_name || '',
     occupation: member.occupation || '',
     marital_status: member.marital_status || '',
     current_place: member.current_place || '',
@@ -105,14 +107,40 @@ export default function ProfileUpdateModal({ member, onClose, onUpdated, mode = 
 
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.formGroup}>
-            <label className={styles.label}>Full Name</label>
+            <label className={styles.label}>First Name</label>
             <input 
               type="text" 
-              name="name"
+              name="first_name"
               className={styles.input} 
-              value={formData.name}
+              value={formData.first_name}
               onChange={handleChange}
-              placeholder="First Last"
+              placeholder="First Name"
+              required
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Middle Name</label>
+            <input 
+              type="text" 
+              name="middle_name"
+              className={styles.input} 
+              value={formData.middle_name}
+              onChange={handleChange}
+              placeholder="Middle Name (Optional)"
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Last Name</label>
+            <input 
+              type="text" 
+              name="last_name"
+              className={styles.input} 
+              value={formData.last_name}
+              onChange={handleChange}
+              placeholder="Last Name"
+              required
             />
           </div>
 

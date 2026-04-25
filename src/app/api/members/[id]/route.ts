@@ -29,12 +29,13 @@ export async function GET(
     const isOwner = user.member_id === member.id;
     const visible = member.contact_visibility === 'public' || isOwner;
 
-    const firstName = member.first_name || member.NAME || '';
-    const lastName = member.last_name || member['LAST NAME'] || '';
+    const firstName = member.first_name || '';
+    const middleName = member.middle_name || '';
+    const lastName = member.last_name || '';
 
     const response = {
       ...member,
-      name: `${firstName} ${lastName}`.trim() || 'Unknown Member',
+      name: `${firstName} ${middleName} ${lastName}`.replace(/\s+/g, ' ').trim() || 'Unknown Member',
       contact_numbers: visible ? (member.contact_numbers || []) : [],
     };
 

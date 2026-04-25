@@ -20,11 +20,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to export members' }, { status: 500 });
     }
 
-    const csvHeader = ['First Name', 'Last Name', 'Address', 'Contact Numbers', 'Email', 'Occupation', 'Town', 'Status'].join(',');
+    const csvHeader = ['First Name', 'Middle Name', 'Last Name', 'Address', 'Contact Numbers', 'Email', 'Occupation', 'Town', 'Status'].join(',');
     const csvRows = (members || [])
       .map((m: any) => [
-        `"${m.first_name}"`,
-        `"${m.last_name}"`,
+        `"${m.first_name || ''}"`,
+        `"${m.middle_name || ''}"`,
+        `"${m.last_name || ''}"`,
         `"${m.address ?? ''}"`,
         `"${(m.contact_numbers || []).join(';')}"`,
         `"${m.email || ''}"`,

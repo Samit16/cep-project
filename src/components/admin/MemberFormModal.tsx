@@ -5,7 +5,9 @@ import { X, User, Briefcase, Mail, Phone, MapPin } from 'lucide-react';
 import styles from './MemberFormModal.module.css';
 
 interface MemberFormData {
-  name: string;
+  first_name: string;
+  middle_name: string;
+  last_name: string;
   email: string;
   profession: string;
   city: string;
@@ -21,7 +23,9 @@ interface MemberFormModalProps {
 }
 
 const defaultValues: MemberFormData = {
-  name: '',
+  first_name: '',
+  middle_name: '',
+  last_name: '',
   email: '',
   profession: '',
   city: '',
@@ -65,15 +69,36 @@ export default function MemberFormModal({ isOpen, onClose, onSave, initialData }
         </div>
 
         <form onSubmit={handleSubmit} className={styles.form}>
-          <div className={styles.formGroup}>
-            <label><User size={14} /> Full Name</label>
-            <input
-              type="text"
-              required
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="e.g. Rajesh Kothari"
-            />
+          <div className={styles.row}>
+            <div className={styles.formGroup}>
+              <label><User size={14} /> First Name</label>
+              <input
+                type="text"
+                required
+                value={formData.first_name}
+                onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                placeholder="e.g. Rajesh"
+              />
+            </div>
+            <div className={styles.formGroup}>
+              <label><User size={14} /> Middle Name</label>
+              <input
+                type="text"
+                value={formData.middle_name}
+                onChange={(e) => setFormData({ ...formData, middle_name: e.target.value })}
+                placeholder="e.g. Kumar"
+              />
+            </div>
+            <div className={styles.formGroup}>
+              <label><User size={14} /> Last Name</label>
+              <input
+                type="text"
+                required
+                value={formData.last_name}
+                onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                placeholder="e.g. Kothari"
+              />
+            </div>
           </div>
 
           <div className={styles.row}>

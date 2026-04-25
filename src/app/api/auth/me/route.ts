@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
 
     // Fetch members block explicitly because the original single query via join might be empty if member_id was missing during evaluation
     const { data: memberData } = profile.member_id 
-      ? await supabase.from('members').select('id, first_name, last_name, email').eq('id', profile.member_id).single()
+      ? await supabase.from('members').select('id, first_name, middle_name, last_name, email').eq('id', profile.member_id).single()
       : { data: null };
 
     return NextResponse.json({

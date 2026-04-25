@@ -55,8 +55,6 @@ export async function GET(request: NextRequest) {
 
         // Fallback: return basic profile from auth session instead of crashing
         return NextResponse.json({
-          id: user.id,
-          name: firstName.charAt(0).toUpperCase() + firstName.slice(1) + (lastName ? ' ' + lastName.charAt(0).toUpperCase() + lastName.slice(1) : ''),
           first_name: firstName.charAt(0).toUpperCase() + firstName.slice(1),
           last_name: lastName.charAt(0).toUpperCase() + lastName.slice(1),
           email: user.email || '',
@@ -78,7 +76,7 @@ export async function GET(request: NextRequest) {
       // Return the newly created member directly
       return NextResponse.json({
         ...newMember,
-        name: `${newMember.first_name} ${newMember.last_name}`.trim(),
+        name: `${newMember.first_name || ''} ${newMember.middle_name || ''} ${newMember.last_name || ''}`.replace(/\s+/g, ' ').trim(),
       });
     }
 
@@ -93,12 +91,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
 
-    const firstName = member.first_name || member.NAME || '';
-    const lastName = member.last_name || member['LAST NAME'] || '';
+    const firstName = member.first_name || '';
+    const middleName = member.middle_name || '';
+    const lastName = member.last_name || '';
 
     return NextResponse.json({
       ...member,
-      name: `${firstName} ${lastName}`.trim(),
+      name: `${firstName} ${middleName} ${lastName}`.replace(/\s+/g, ' ').trim(),
     });
 
   } catch (error: any) {
@@ -124,7 +123,7 @@ export async function PUT(request: NextRequest) {
     // Only allow specific fields to be updated
     // Note: the DB uses contact_numbers (TEXT[]), not contact_no.
     // We accept contact_no from the frontend and map it to contact_numbers.
-    const allowedFields = ['occupation', 'marital_status', 'current_place', 'kutch_town', 'contact_numbers', 'email', 'nukh', 'birthplace', 'relations'];
+    const allowedFields = ['first_name', 'middle_name', 'last_name', 'occupation', 'marital_status', 'current_place', 'kutch_town', 'contact_numbers', 'email', 'nukh', 'birthplace', 'relations'];
     const updateData: Record<string, any> = {};
     for (const key of allowedFields) {
       if (changes[key] !== undefined) {
@@ -132,11 +131,9 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    if (changes['name'] !== undefined) {
-      const nameParts = String(changes['name']).trim().split(' ');
-      updateData['first_name'] = nameParts[0] || '';
-      updateData['last_name'] = nameParts.slice(1).join(' ');
-    }
+    if (changes['first_name'] !== undefined) updateData['first_name'] = changes['first_name'];
+    if (changes['middle_name'] !== undefined) updateData['middle_name'] = changes['middle_name'];
+    if (changes['last_name'] !== undefined) updateData['last_name'] = changes['last_name'];
 
     // Map contact_no (single string from UI) → contact_numbers (TEXT[] in DB)
     if (changes['contact_no'] !== undefined && changes['contact_no'] !== null) {
@@ -171,12 +168,13 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const firstName = updatedMember.first_name || updatedMember.NAME || '';
-    const lastName = updatedMember.last_name || updatedMember['LAST NAME'] || '';
+    const firstName = updatedMember.first_name || '';
+    const middleName = updatedMember.middle_name || '';
+    const lastName = updatedMember.last_name || '';
 
     return NextResponse.json({
       ...updatedMember,
-      name: `${firstName} ${lastName}`.trim(),
+      name: `${firstName} ${middleName} ${lastName}`.replace(/\s+/g, ' ').trim(),
     });
 
   } catch (error: any) {
