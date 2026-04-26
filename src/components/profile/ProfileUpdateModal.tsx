@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Save, AlertCircle, CheckCircle } from 'lucide-react';
 import styles from './ProfileUpdateModal.module.css';
 import { ApiClient } from '@/lib/api';
@@ -31,6 +31,13 @@ export default function ProfileUpdateModal({ member, onClose, onUpdated, mode = 
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

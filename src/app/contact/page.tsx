@@ -104,7 +104,7 @@ export default function ContactPage() {
           <div className={styles.mapWrapper}>
             <iframe
               title="KVO Nagpur — Satnami Nagar, Lakadganj, Nagpur"
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3720.8!2d79.0755!3d21.1575!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bd4c1003fff67c7%3A0x5c6c0751fa2c3f68!2sLakadganj%2C%20Nagpur%2C%20Maharashtra%20440008!5e0!3m2!1sen!2sin!4v1713400000000"
+              src="https://maps.google.com/maps?width=100%25&amp;height=100%25&amp;hl=en&amp;q=Shri%20Nagpur%20Kachi%20Visa%20Oswal%20Samaj,%20Nagpur&amp;t=&amp;z=17&amp;ie=UTF8&amp;iwloc=B&amp;output=embed"
               width="100%"
               height="100%"
               style={{ border: 0 }}
