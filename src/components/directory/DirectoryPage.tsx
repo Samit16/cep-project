@@ -152,7 +152,8 @@ export default function DirectoryPage() {
   }, { scope: gridRef, dependencies: [members, isLoading, viewMode] });
 
   return (
-    <div className={styles.directoryContent} onKeyDown={handleKeyDown}>
+    <div className={styles.directoryPage}>
+      <div className={styles.directoryContent} onKeyDown={handleKeyDown}>
       {/* Header */}
       <div ref={headerRef} className={styles.header}>
         <div className={styles.headerLeft}>
@@ -275,6 +276,7 @@ export default function DirectoryPage() {
           }
         />
       )}
+      </div>
     </div>
   );
 }
