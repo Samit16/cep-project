@@ -100,6 +100,7 @@ const FloatingLabelInput = ({ label, type = 'text', value, onChange, placeholder
 
 export default function AdminDashboard() {
   const [members, setMembers] = useState<MemberAdmin[]>([]);
+  const [totalMemberCount, setTotalMemberCount] = useState<number>(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -116,9 +117,11 @@ export default function AdminDashboard() {
   const router = useRouter();
   const { toast } = useToast();
   const { role, logout, isLoading } = useAuth();
+  const isLoggingOut = useRef(false);
 
-  // Protect Admin Route
+  // Protect Admin Route — skip during active logout
   useEffect(() => {
+    if (isLoggingOut.current) return;
     if (!isLoading && role !== 'admin' && role !== 'committee') {
       router.push('/login');
     }
@@ -141,6 +144,16 @@ export default function AdminDashboard() {
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Fetch real total count (not capped by pagination)
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await ApiClient.get<{ total: number }>('/admin/members/count');
+        setTotalMemberCount(data.total);
+      } catch { /* count is non-critical, fall back to members.length */ }
+    })();
   }, []);
 
   useEffect(() => {
@@ -208,8 +221,10 @@ export default function AdminDashboard() {
 
   const handleLogout = async () => {
     if (!window.confirm('Are you sure you want to log out?')) return;
-    await logout();
-    window.location.replace('/home');
+    isLoggingOut.current = true;
+    // Navigate immediately, don't wait for async signOut
+    router.replace('/home');
+    logout();
   };
 
   const handleExportCSV = () => {
@@ -358,7 +373,11 @@ export default function AdminDashboard() {
           </button>
         </nav>
 
-
+        <div className={styles.sidebarFooter}>
+          <button className={styles.sidebarLink} onClick={handleLogout}>
+            <LogOut size={16} /> Logout
+          </button>
+        </div>
       </aside>
 
       {/* Main Content */}
@@ -417,7 +436,7 @@ export default function AdminDashboard() {
                 <TrendingUp size={14} /> +12%
               </span>
             </div>
-            <div className={styles.statValue}>{members.length}+</div>
+            <div className={styles.statValue}>{totalMemberCount || members.length}</div>
             <div className={styles.statLabel}>Total Members Recorded</div>
           </div>
 

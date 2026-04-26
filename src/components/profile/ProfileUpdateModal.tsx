@@ -246,7 +246,7 @@ export default function ProfileUpdateModal({ member, onClose, onUpdated, mode = 
 
           <div className={styles.formGroupWrapper} style={{ gridColumn: '1 / -1', marginTop: '1rem', borderTop: '1px solid var(--color-border)', paddingTop: '1rem' }}>
              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <label className={styles.label} style={{ margin: 0 }}>Family Relations</label>
+                <label className={styles.label} style={{ margin: 0 }}>Family Members</label>
                 <button type="button" onClick={addRelation} style={{ padding: '6px 12px', background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', borderRadius: '6px', fontSize: '0.875rem', cursor: 'pointer' }}>
                   + Add Relation
                 </button>

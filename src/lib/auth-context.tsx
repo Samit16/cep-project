@@ -187,47 +187,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const logout = async () => {
+    // Clear React state first so UI updates immediately
+    setSession(null);
+    setProfile(null);
+
     try {
-      // Clear state immediately
-      setSession(null);
-      setProfile(null);
-
-      // Clear all Supabase keys from both localStorage and sessionStorage
-      if (typeof window !== 'undefined') {
-        const localKeys = [];
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key && key.startsWith('sb-')) localKeys.push(key);
-        }
-        localKeys.forEach(k => localStorage.removeItem(k));
-        localStorage.removeItem('kjo_token');
-
-        const sessionKeys = [];
-        for (let i = 0; i < sessionStorage.length; i++) {
-          const key = sessionStorage.key(i);
-          if (key && key.startsWith('sb-')) sessionKeys.push(key);
-        }
-        sessionKeys.forEach(k => sessionStorage.removeItem(k));
-        sessionStorage.removeItem('kjo_token');
-      }
-
-      // Clear all auth cookies explicitly
-      const pastDate = 'Thu, 01 Jan 1970 00:00:00 GMT';
-      document.cookie = `kjo_token=; expires=${pastDate}; path=/; samesite=lax`;
-      document.cookie = `${SUPABASE_STORAGE_KEY}=; expires=${pastDate}; path=/; samesite=lax`;
-      document.cookie = `${SUPABASE_STORAGE_KEY}=; expires=${pastDate}; path=/`;
-
-      window.dispatchEvent(new Event('kjo_auth_change'));
-
-      // Explicitly remove back button capability to the directory
-      window.history.replaceState(null, '', '/login');
-      window.location.replace('/login');
-
-      // Fire and forget server signout to avoid hanging the UI
-      supabase.auth.signOut().catch(err => console.error('Logout error:', err));
+      await supabase.auth.signOut();
     } catch (err) {
-      console.error('Logout sync error:', err);
+      console.error('Logout error:', err);
     }
+
+    // Clear all Supabase keys from both localStorage and sessionStorage
+    if (typeof window !== 'undefined') {
+      Object.keys(localStorage)
+        .filter(k => k.startsWith('sb-'))
+        .forEach(k => localStorage.removeItem(k));
+      localStorage.removeItem('kjo_token');
+      localStorage.removeItem('kjo_auth_method');
+      localStorage.removeItem('kjo_login_intent');
+
+      Object.keys(sessionStorage)
+        .filter(k => k.startsWith('sb-'))
+        .forEach(k => sessionStorage.removeItem(k));
+      sessionStorage.removeItem('kjo_token');
+    }
+
+    // Clear all auth cookies explicitly
+    const pastDate = 'Thu, 01 Jan 1970 00:00:00 GMT';
+    document.cookie = `kjo_token=; expires=${pastDate}; path=/; samesite=lax`;
+    document.cookie = `${SUPABASE_STORAGE_KEY}=; expires=${pastDate}; path=/; samesite=lax`;
+    document.cookie = `${SUPABASE_STORAGE_KEY}=; expires=${pastDate}; path=/`;
+
+    window.dispatchEvent(new Event('kjo_auth_change'));
   };
 
   // Determine the effective role and token
