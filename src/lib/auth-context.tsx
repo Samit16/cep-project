@@ -108,7 +108,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (newSession?.user) {
           // Set cookie for middleware
           document.cookie = `${SUPABASE_STORAGE_KEY}=${newSession.access_token}; path=/; max-age=${newSession.expires_in || 3600}; samesite=lax`;
-          await fetchProfile(newSession.user.id, newSession.user.email);
+          const fetchedProfile = await fetchProfile(newSession.user.id, newSession.user.email);
+          
+          if (fetchedProfile) {
+            const provider = newSession.user.app_metadata?.provider || 'email';
+            if (provider === 'google' && fetchedProfile.is_first_login) {
+              // Reject direct OAuth login if it is their first login
+              alert('Please login with your Member Username and Password first to verify your account. You can link Google afterwards.');
+              await supabase.auth.signOut();
+              
+              setSession(null);
+              setProfile(null);
+              setIsLoading(false);
+              return;
+            }
+          }
         } else {
           setProfile(null);
           // Clear cookie for middleware
@@ -153,22 +167,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       throw new Error(error.message);
     }
 
-    if (expectedTab && authData.user) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', authData.user.id)
-        .single();
+    if (authData.user) {
+      // Mark that they have successfully logged in with username/password
+      await supabase.from('profiles').update({ is_first_login: false }).eq('id', authData.user.id);
+
+      if (expectedTab) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', authData.user.id)
+          .single();
         
-      if (profile) {
-        const userRole = profile.role;
-        if (expectedTab === 'committee' && userRole !== 'admin' && userRole !== 'committee') {
-          await supabase.auth.signOut();
-          throw new Error("You are a member. Please log in via Member Login.");
-        }
-        if (expectedTab === 'member' && (userRole === 'admin' || userRole === 'committee')) {
-          await supabase.auth.signOut();
-          throw new Error("You are a committee member. Please log in via Committee Login.");
+        if (profile) {
+          const userRole = profile.role;
+          if (expectedTab === 'committee' && userRole !== 'admin' && userRole !== 'committee') {
+            await supabase.auth.signOut();
+            throw new Error("You are a member. Please log in via Member Login.");
+          }
+          if (expectedTab === 'member' && (userRole === 'admin' || userRole === 'committee')) {
+            await supabase.auth.signOut();
+            throw new Error("You are a committee member. Please log in via Committee Login.");
+          }
         }
       }
     }

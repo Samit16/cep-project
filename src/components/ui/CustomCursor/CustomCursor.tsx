@@ -7,7 +7,6 @@ import styles from './CustomCursor.module.css';
 export default function CustomCursor() {
   const dotRef = useRef<HTMLDivElement>(null);
   const ringRef = useRef<HTMLDivElement>(null);
-  const requestRef = useRef<number>(null);
 
   const [isVisible, setIsVisible] = useState(false);
   const [isPointerFine, setIsPointerFine] = useState(false);
@@ -17,6 +16,7 @@ export default function CustomCursor() {
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(pointer: fine)');
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsPointerFine(mediaQuery.matches);
     
     const updatePointerStatus = (e: MediaQueryListEvent) => {

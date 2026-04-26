@@ -22,6 +22,7 @@ export function sanitizeString(input: unknown): string {
  * Sanitize an object's string values (shallow, one level).
  * Non-string values are passed through unchanged.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function sanitizeObject<T extends Record<string, any>>(
   obj: T,
   fieldsToSanitize?: string[]
@@ -30,6 +31,7 @@ export function sanitizeObject<T extends Record<string, any>>(
   for (const key of Object.keys(result)) {
     if (typeof result[key] === 'string') {
       if (!fieldsToSanitize || fieldsToSanitize.includes(key)) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (result as any)[key] = sanitizeString(result[key]);
       }
     }

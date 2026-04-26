@@ -36,6 +36,7 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
   const [isRequestingUpdate, setIsRequestingUpdate] = useState(false);
 
   // Notification state for pending update requests on own profile
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [pendingNotification, setPendingNotification] = useState<any>(null);
   const [showPrivacyMenu, setShowPrivacyMenu] = useState(false);
   
@@ -97,6 +98,7 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
     
     async function checkNotifications() {
       try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const data = await ApiClient.get<any>('/members/me/notifications');
         if (data.hasPendingRequest && data.notification) {
           setPendingNotification(data.notification);

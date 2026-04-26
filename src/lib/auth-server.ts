@@ -16,7 +16,9 @@ export function createServerSupabase() {
 
 // Result type for the auth check
 export interface AuthResult {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   user: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   profile: any;
   error?: string;
   status?: number;
