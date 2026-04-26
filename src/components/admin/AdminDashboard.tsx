@@ -358,14 +358,7 @@ export default function AdminDashboard() {
           </button>
         </nav>
 
-        <div className={styles.sidebarFooter}>
-          <Link href="/profile" className={styles.sidebarLink} style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
-            <User size={16} /> My Profile
-          </Link>
-          <button className={styles.sidebarLink} onClick={handleLogout}>
-            <LogOut size={16} /> Logout
-          </button>
-        </div>
+
       </aside>
 
       {/* Main Content */}
@@ -826,12 +819,7 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {role === 'committee' && (
-          <Link href="/profile" className={styles.floatingProfileBtn} aria-label="My Profile">
-            <User size={16} />
-            <span style={{ marginLeft: '8px', fontWeight: 600 }}>My Profile</span>
-          </Link>
-        )}
+
 
         <Footer />
       </div>

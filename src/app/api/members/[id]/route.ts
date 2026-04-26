@@ -36,7 +36,7 @@ export async function GET(
     const response = {
       ...member,
       name: `${firstName} ${middleName} ${lastName}`.replace(/\s+/g, ' ').trim() || 'Unknown Member',
-      contact_numbers: visible ? (member.contact_numbers || []) : [],
+      contact_numbers: member.contact_numbers || [],
     };
 
     return NextResponse.json(response);

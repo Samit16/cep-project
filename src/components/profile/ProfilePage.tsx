@@ -36,6 +36,7 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
 
   // Notification state for pending update requests on own profile
   const [pendingNotification, setPendingNotification] = useState<any>(null);
+  const [showPrivacyMenu, setShowPrivacyMenu] = useState(false);
   
   const { profile, role, logout } = useAuth();
   const { toast } = useToast();
@@ -150,6 +151,19 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
     }
   };
 
+  const handlePrivacyChange = async (visibility: 'public' | 'private') => {
+    try {
+      await ApiClient.put('/members/me', {
+        contact_visibility: visibility
+      });
+      setMember(prev => prev ? { ...prev, contact_visibility: visibility } : prev);
+      toast(`Profile is now ${visibility}`, 'success');
+      setShowPrivacyMenu(false);
+    } catch (err) {
+      toast('Failed to update privacy settings', 'error');
+    }
+  };
+
   if (isLoading) {
     return <ProfileSkeleton />;
   }
@@ -231,9 +245,27 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
               </button>
             )}
             {isMyProfile && (
-              <button className={styles.privacyBtn}>
-                <Eye size={16} /> View Privacy Settings
-              </button>
+              <div style={{ position: 'relative' }}>
+                <button className={styles.privacyBtn} onClick={() => setShowPrivacyMenu(!showPrivacyMenu)}>
+                  <Eye size={16} /> Privacy Settings
+                </button>
+                {showPrivacyMenu && (
+                  <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '8px', background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 10, minWidth: '200px', overflow: 'hidden' }}>
+                    <button 
+                      onClick={() => handlePrivacyChange('public')}
+                      style={{ display: 'block', width: '100%', padding: '12px 16px', textAlign: 'left', background: 'transparent', border: 'none', borderBottom: '1px solid var(--color-border)', cursor: 'pointer', fontSize: '0.875rem', color: 'var(--color-text-primary)' }}
+                    >
+                      Make Profile Public
+                    </button>
+                    <button 
+                      onClick={() => handlePrivacyChange('private')}
+                      style={{ display: 'block', width: '100%', padding: '12px 16px', textAlign: 'left', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.875rem', color: 'var(--color-text-primary)' }}
+                    >
+                      Make Profile Private
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>
@@ -318,7 +350,9 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
         <div>
           <h3 className={styles.visibilityTitle}>Member Directory Visibility ({member.contact_visibility})</h3>
           <p className={styles.visibilityText}>
-            Depending on privacy settings, contact numbers are only visible to the profile owner or if explicitly marked public.
+            {member.contact_visibility === 'private' 
+              ? 'Your profile is private, meaning some details are hidden, but your contact number and email remain public for the community.'
+              : 'Your profile is fully public. All verified community members can view your details.'}
           </p>
         </div>
       </div>

@@ -188,23 +188,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const logout = async () => {
     try {
-      await supabase.auth.signOut();
-    } catch (err) {
-      console.error('Logout error:', err);
-    } finally {
+      // Clear state immediately
       setSession(null);
       setProfile(null);
 
       // Clear all Supabase keys from both localStorage and sessionStorage
       if (typeof window !== 'undefined') {
-        Object.keys(localStorage)
-          .filter(k => k.startsWith('sb-'))
-          .forEach(k => localStorage.removeItem(k));
+        const localKeys = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('sb-')) localKeys.push(key);
+        }
+        localKeys.forEach(k => localStorage.removeItem(k));
         localStorage.removeItem('kjo_token');
 
-        Object.keys(sessionStorage)
-          .filter(k => k.startsWith('sb-'))
-          .forEach(k => sessionStorage.removeItem(k));
+        const sessionKeys = [];
+        for (let i = 0; i < sessionStorage.length; i++) {
+          const key = sessionStorage.key(i);
+          if (key && key.startsWith('sb-')) sessionKeys.push(key);
+        }
+        sessionKeys.forEach(k => sessionStorage.removeItem(k));
         sessionStorage.removeItem('kjo_token');
       }
 
@@ -215,6 +218,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       document.cookie = `${SUPABASE_STORAGE_KEY}=; expires=${pastDate}; path=/`;
 
       window.dispatchEvent(new Event('kjo_auth_change'));
+
+      // Explicitly remove back button capability to the directory
+      window.history.replaceState(null, '', '/login');
+      window.location.replace('/login');
+
+      // Fire and forget server signout to avoid hanging the UI
+      supabase.auth.signOut().catch(err => console.error('Logout error:', err));
+    } catch (err) {
+      console.error('Logout sync error:', err);
     }
   };
 
