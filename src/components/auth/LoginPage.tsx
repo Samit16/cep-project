@@ -20,8 +20,10 @@ const GoogleIcon = () => (
   </svg>
 );
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const FormInput = ({ 
   label, icon: Icon, type, placeholder, value, onChange, disabled, isValid, showPasswordToggle = false, onTogglePassword 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 }: any) => {
   const [focused, setFocused] = useState(false);
   const hasInteracted = value.length > 0;
@@ -102,6 +104,8 @@ export default function LoginPage() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const { signInWithEmail, signInWithGoogle, token, role, isLoading: authLoading } = useAuth();
+  
+  const formRef = useGsapHeroEntrance<HTMLDivElement>('.gsap-login-anim');
 
   // Redirect if already authenticated (fires once auth check completes)
   useEffect(() => {
@@ -196,8 +200,6 @@ export default function LoginPage() {
   const isUsernameValid = username.length >= 3;
   const isPasswordValid = password.length >= 6;
 
-  const formRef = useGsapHeroEntrance<HTMLDivElement>('.gsap-login-anim');
-
   return (
     <div className={styles.loginPage}>
       <div className={styles.formSide}>
@@ -230,6 +232,7 @@ export default function LoginPage() {
                 type="text"
                 placeholder={activeTab === 'committee' ? 'admin' : 'first_last'}
                 value={username}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 onChange={(e: any) => setUsername(e.target.value)}
                 disabled={isLoading}
                 isValid={isUsernameValid}
@@ -241,6 +244,7 @@ export default function LoginPage() {
                 type={showPassword ? 'text' : 'password'}
                 placeholder="••••••••"
                 value={password}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 onChange={(e: any) => setPassword(e.target.value)}
                 disabled={isLoading}
                 isValid={isPasswordValid}

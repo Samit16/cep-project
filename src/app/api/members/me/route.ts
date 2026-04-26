@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
         .insert({
           first_name: firstName.charAt(0).toUpperCase() + firstName.slice(1),
           last_name: lastName.charAt(0).toUpperCase() + lastName.slice(1),
-          email: user.email || '',
+          email: user.email?.includes('@kvonagpur.com') ? '' : (user.email || ''),
           contact_numbers: [],
           active: true,
           contact_visibility: 'private',
@@ -96,6 +96,11 @@ export async function GET(request: NextRequest) {
     const middleName = member.middle_name || '';
     const lastName = member.last_name || '';
 
+    // Remove default email before returning
+    if (member.email && member.email.includes('@kvonagpur.com')) {
+      member.email = '';
+    }
+
     return NextResponse.json({
       ...member,
       name: `${firstName} ${middleName} ${lastName}`.replace(/\s+/g, ' ').trim(),
@@ -124,7 +129,7 @@ export async function PUT(request: NextRequest) {
     // Only allow specific fields to be updated
     // Note: the DB uses contact_numbers (TEXT[]), not contact_no.
     // We accept contact_no from the frontend and map it to contact_numbers.
-    const allowedFields = ['first_name', 'middle_name', 'last_name', 'occupation', 'marital_status', 'current_place', 'kutch_town', 'contact_numbers', 'email', 'nukh', 'birthplace', 'relations'];
+    const allowedFields = ['first_name', 'middle_name', 'last_name', 'occupation', 'marital_status', 'current_place', 'kutch_town', 'contact_numbers', 'email', 'nukh', 'birthplace', 'relations', 'contact_visibility'];
     const updateData: Record<string, any> = {};
     for (const key of allowedFields) {
       if (changes[key] !== undefined) {
@@ -168,9 +173,32 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    // Check if profile is complete
+    const isComplete = 
+      !!updatedMember.first_name &&
+      !!updatedMember.last_name &&
+      !!updatedMember.occupation &&
+      !!updatedMember.marital_status &&
+      !!updatedMember.current_place &&
+      !!updatedMember.kutch_town &&
+      !!updatedMember.nukh &&
+      !!updatedMember.birthplace &&
+      (updatedMember.contact_numbers && updatedMember.contact_numbers.length > 0) &&
+      !!updatedMember.email;
+
+    if (isComplete && !updatedMember.profile_complete) {
+      await supabase.from('members').update({ profile_complete: true }).eq('id', memberId);
+      updatedMember.profile_complete = true;
+    }
+
     const firstName = updatedMember.first_name || '';
     const middleName = updatedMember.middle_name || '';
     const lastName = updatedMember.last_name || '';
+
+    // Remove default email before returning
+    if (updatedMember.email && updatedMember.email.includes('@kvonagpur.com')) {
+      updatedMember.email = '';
+    }
 
     return NextResponse.json({
       ...updatedMember,
