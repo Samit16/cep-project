@@ -213,6 +213,23 @@ export default function LoginPage() {
               style={{ height: '64px', width: 'auto', margin: '0 auto', objectFit: 'contain' }}
             />
           </div>
+          <div style={{ display: 'flex', background: 'var(--color-bg-input)', borderRadius: '12px', padding: '4px', marginBottom: '1.5rem', position: 'relative', zIndex: 1 }} className="gsap-login-anim">
+            <button
+              type="button"
+              onClick={() => { setActiveTab('member'); setLoginError(null); router.replace('/login?tab=member'); }}
+              style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', background: activeTab === 'member' ? '#fff' : 'transparent', color: activeTab === 'member' ? 'var(--color-primary)' : 'var(--color-text-muted)', fontWeight: activeTab === 'member' ? 600 : 400, cursor: 'pointer', transition: 'all 0.2s', boxShadow: activeTab === 'member' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none' }}
+            >
+              Member
+            </button>
+            <button
+              type="button"
+              onClick={() => { setActiveTab('committee'); setLoginError(null); router.replace('/login?tab=committee'); }}
+              style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', background: activeTab === 'committee' ? '#fff' : 'transparent', color: activeTab === 'committee' ? 'var(--color-primary)' : 'var(--color-text-muted)', fontWeight: activeTab === 'committee' ? 600 : 400, cursor: 'pointer', transition: 'all 0.2s', boxShadow: activeTab === 'committee' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none' }}
+            >
+              Committee
+            </button>
+          </div>
+
           <h1 className={`${styles.welcomeTitle} gsap-login-anim`}>
             {activeTab === 'committee' ? 'Committee Login' : 'Member Login'}
           </h1>
