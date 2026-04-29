@@ -28,6 +28,8 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('members')
       .select('*')
+      .order('first_name', { ascending: true })
+      .order('last_name', { ascending: true })
       .range(skip, skip + take - 1);
 
     // Filter by active status (include true and null, exclude explicitly false)

@@ -33,9 +33,9 @@ interface MemberAdmin {
   current_place?: string;
   active: boolean;
   createdAt?: string;
-  updated_at?: string;
   created_at?: string;
   contact_numbers?: string[];
+  role?: string;
 }
 
 interface EventItem {
@@ -113,7 +113,6 @@ export default function AdminDashboard() {
   const [eventForm, setEventForm] = useState({ title: '', date: '', time: '', location: '', description: '' });
   const [activeTab, setActiveTab] = useState<'members' | 'events'>('members');
   
-  const fileInputRef = useRef<HTMLInputElement>(null); // eslint-disable-line @typescript-eslint/no-unused-vars
   const router = useRouter();
   const { toast } = useToast();
   const { role, logout, isLoading } = useAuth();
@@ -159,7 +158,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     (async () => {
       try {
-        const response = await ApiClient.get<MemberAdmin[]>('/members', {
+        const response = await ApiClient.get<MemberAdmin[]>('/admin/members', {
           page: 1, limit: 200, name: debouncedSearch,
         });
         setMembers(response);
@@ -181,15 +180,8 @@ export default function AdminDashboard() {
   }, []);
 
   useEffect(() => {
-    (async () => {
-      try {
-        const response = await ApiClient.get<EventItem[]>('/events');
-        setEvents(response);
-      } catch {
-        setEvents([]);
-      }
-    })();
-  }, []);
+    loadEvents();
+  }, [loadEvents]);
 
   // If the user arrived via the Google OAuth flow, intercept back navigation
   // so the account picker isn't exposed in history and user can confirm logout.
@@ -234,10 +226,42 @@ export default function AdminDashboard() {
 
 
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleAddMember = (_newMember: { first_name: string; middle_name: string; last_name: string; email: string; profession: string; city: string; phone: string; role: string }) => {
-    toast('Member record creation directly via UI coming soon (use CSV now).', 'success');
-    setIsModalOpen(false);
+  const handleAddMember = async (newMember: { first_name: string; middle_name: string; last_name: string; email: string; profession: string; city: string; phone: string; role: string }) => {
+    try {
+      await ApiClient.post('/admin/members', {
+        first_name: newMember.first_name,
+        middle_name: newMember.middle_name,
+        last_name: newMember.last_name,
+        email: newMember.email,
+        occupation: newMember.profession,
+        current_place: newMember.city,
+        contact_numbers: newMember.phone ? [newMember.phone] : [],
+        active: true,
+      });
+      toast('Member created successfully', 'success');
+      setIsModalOpen(false);
+      // Re-fetch members
+      const response = await ApiClient.get<MemberAdmin[]>('/admin/members', {
+        page: 1, limit: 200, name: debouncedSearch,
+      });
+      setMembers(response);
+    } catch (err: unknown) {
+      toast((err as Error).message || 'Failed to create member', 'error');
+    }
+  };
+
+  const handleToggleRole = async (memberId: string, currentRole?: string) => {
+    try {
+      const newRole = currentRole === 'committee' ? 'member' : 'committee';
+      await ApiClient.put(`/admin/members/${memberId}`, { role: newRole });
+      toast(`Role updated to ${newRole}`, 'success');
+      setOpenMenuId(null);
+      
+      // Update local state for immediate feedback
+      setMembers(members.map(m => m.id === memberId ? { ...m, role: newRole } : m));
+    } catch (err: unknown) {
+      toast((err as Error).message || 'Failed to update role', 'error');
+    }
   };
 
   const openCreateEvent = () => {
@@ -475,7 +499,7 @@ export default function AdminDashboard() {
             </div>
             <div className={styles.statValue}>
               {members.length > 0
-                ? Math.round((members.filter(m => m.updated_at && m.created_at && m.updated_at !== m.created_at).length / members.length) * 100)
+                ? Math.round((members.filter(m => (m.updated_at && m.created_at && m.updated_at !== m.created_at) || (m.contact_numbers && m.contact_numbers.length > 0)).length / members.length) * 100)
                 : 0}%
             </div>
             <div className={styles.statLabel}>Profile Completion Rate</div>
@@ -497,8 +521,8 @@ export default function AdminDashboard() {
             <h3 className={styles.insightTitle}>Profile Verification</h3>
             <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>Percentage of updated profiles in system</p>
             <OverviewRingChart 
-              active={members.filter(m => m.active || (m.updated_at && m.updated_at !== m.created_at)).length} 
-              pending={members.filter(m => !m.active && (!m.updated_at || m.updated_at === m.created_at)).length} 
+              active={members.filter(m => (m.updated_at && m.created_at && m.updated_at !== m.created_at) || (m.contact_numbers && m.contact_numbers.length > 0)).length} 
+              pending={members.filter(m => !((m.updated_at && m.created_at && m.updated_at !== m.created_at) || (m.contact_numbers && m.contact_numbers.length > 0))).length} 
             />
           </div>
 
@@ -530,7 +554,7 @@ export default function AdminDashboard() {
                 </p>
               </div>
               <div className={styles.pageActions}>
-                <button className={styles.actionBtn} onClick={() => toast('Direct member creation coming soon.', 'info')}>
+                <button className={styles.actionBtn} onClick={() => setIsModalOpen(true)}>
                   <UserPlus size={16} /> Add Member
                 </button>
                 <button className={styles.actionBtn} onClick={handleExportCSV}>
@@ -562,7 +586,11 @@ export default function AdminDashboard() {
                       {member.last_name?.[0] || ''}
                     </div>
                     <div>
-                      <div className={styles.memberCellName}>{member.name}</div>
+                      <div className={styles.memberCellName}>
+                        {member.name}
+                        {member.role === 'committee' && <span className={styles.professionBadge} style={{marginLeft: '8px', backgroundColor: '#e0e7ff', color: '#3730a3'}}>Committee</span>}
+                        {member.role === 'admin' && <span className={styles.professionBadge} style={{marginLeft: '8px', backgroundColor: '#fce7f3', color: '#9d174d'}}>Admin</span>}
+                      </div>
                       <div className={styles.memberCellEmail}>{member.email}</div>
                     </div>
                   </div>
@@ -612,6 +640,15 @@ export default function AdminDashboard() {
                         >
                           <Pencil size={14} /> Edit Member
                         </button>
+                        {member.role !== 'admin' && (
+                          <button
+                            className={styles.dropdownItem}
+                            onClick={() => handleToggleRole(member.id, member.role)}
+                          >
+                            <ShieldCheck size={14} /> 
+                            {member.role === 'committee' ? 'Make Regular Member' : 'Make Committee Member'}
+                          </button>
+                        )}
                         <button
                           className={`${styles.dropdownItem} ${styles.dropdownItemDanger}`}
                           onClick={() => {
