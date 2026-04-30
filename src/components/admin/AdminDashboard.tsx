@@ -34,6 +34,7 @@ interface MemberAdmin {
   active: boolean;
   createdAt?: string;
   created_at?: string;
+  updated_at?: string;
   contact_numbers?: string[];
   role?: string;
 }
