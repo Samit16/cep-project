@@ -24,7 +24,9 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from('members')
-      .select('*')
+      .select('*, profiles(role)')
+      .order('first_name', { ascending: true })
+      .order('last_name', { ascending: true })
       .range(skip, skip + take - 1);
 
     if (name) {
@@ -55,9 +57,13 @@ export async function GET(request: NextRequest) {
       const middleName = m.middle_name || '';
       const lastName = m.last_name || '';
       const fullName = `${firstName} ${middleName} ${lastName}`.replace(/\s+/g, ' ').trim();
+      const role = m.profiles && m.profiles.length > 0 ? m.profiles[0].role : 'member';
+      
+      const { profiles, ...memberData } = m;
       return {
-        ...m,
+        ...memberData,
         name: fullName || 'Unknown Member',
+        role
       };
     });
 
