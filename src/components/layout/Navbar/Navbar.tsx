@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { User, ChevronDown, Menu, X } from 'lucide-react';
+import { User, ChevronDown, Menu, X, Bell } from 'lucide-react';
 import styles from './Navbar.module.css';
 import { useAuth } from '@/lib/auth-context';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import LinkGooglePrompt from '@/components/auth/LinkGooglePrompt';
 import { useGsapNavbar, useGsapHover } from '@/hooks/useGsapAnimations';
+import { useNotifications } from '@/hooks/useNotifications';
 
 interface NavbarProps {
   variant?: 'public' | 'admin';
@@ -22,7 +23,10 @@ export default function Navbar({
   const pathname = usePathname();
   const [loginDropdownOpen, setLoginDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [notificationDropdownOpen, setNotificationDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const notifDropdownRef = useRef<HTMLDivElement>(null);
+  const { hasPendingRequest, notifications, markAsRead, deleteNotification } = useNotifications();
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -30,18 +34,21 @@ export default function Navbar({
     setMobileMenuOpen(false);
   }, [pathname]);
 
-  // Close dropdown on outside click
+  // Close dropdowns on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setLoginDropdownOpen(false);
       }
+      if (notifDropdownRef.current && !notifDropdownRef.current.contains(e.target as Node)) {
+        setNotificationDropdownOpen(false);
+      }
     };
-    if (loginDropdownOpen) {
+    if (loginDropdownOpen || notificationDropdownOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [loginDropdownOpen]);
+  }, [loginDropdownOpen, notificationDropdownOpen]);
 
   const handleLogout = async (e?: React.MouseEvent) => {
     if (e) e.preventDefault();
@@ -89,10 +96,67 @@ export default function Navbar({
           )}
 
           {user && (
-            <Link href="/directory/me" className={styles.profileLink}>
-              <User size={18} />
-              <span>My Profile</span>
-            </Link>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {/* Notification Bell */}
+              <div className={styles.notificationWrapper} ref={notifDropdownRef}>
+                <button 
+                  className={styles.notificationBtn}
+                  onClick={() => setNotificationDropdownOpen(!notificationDropdownOpen)}
+                >
+                  <Bell size={18} />
+                  {hasPendingRequest && <span className={styles.notificationBadge} />}
+                </button>
+                
+                {notificationDropdownOpen && (
+                  <div className={styles.notificationDropdown}>
+                    <div className={styles.notificationHeader}>Notifications</div>
+                    {notifications && notifications.length > 0 ? (
+                      <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                        {notifications.map((notif) => (
+                          <div key={notif.id} style={{ display: 'flex', alignItems: 'flex-start', borderBottom: '1px solid var(--color-border-light)' }}>
+                            <Link 
+                              href={notif.link || '#'} 
+                              className={styles.notificationItem} 
+                              style={{ flex: 1, backgroundColor: notif.is_read ? 'transparent' : 'var(--color-bg-section)' }}
+                              onClick={() => {
+                                markAsRead(notif.id);
+                                setNotificationDropdownOpen(false);
+                              }}
+                            >
+                              <div className={styles.notificationTitle} style={{ color: notif.type === 'profile_update' ? '#ef4444' : 'var(--color-primary)' }}>
+                                {notif.title}
+                              </div>
+                              <div className={styles.notificationDesc}>
+                                {notif.message}
+                              </div>
+                            </Link>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteNotification(notif.id);
+                              }}
+                              style={{ background: 'none', border: 'none', padding: '12px', cursor: 'pointer', color: 'var(--color-text-muted)' }}
+                              aria-label="Delete notification"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className={styles.notificationItem} style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: '24px 16px' }}>
+                        No new notifications
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <Link href="/directory/me" className={styles.profileLink}>
+                <User size={18} />
+                <span>My Profile</span>
+              </Link>
+            </div>
           )}
 
           {pathname !== '/login' && (
@@ -167,6 +231,11 @@ export default function Navbar({
           {(role === 'admin' || role === 'committee') && (
             <Link href="/dashboard" className={styles.mobileDashboardBtn}>
               Dashboard
+            </Link>
+          )}
+          {user && hasPendingRequest && (
+            <Link href="/directory/me" className={styles.mobileProfileLink} style={{ color: '#ef4444' }}>
+              <Bell size={18} /> Update Requested
             </Link>
           )}
           {user && (
