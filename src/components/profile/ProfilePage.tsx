@@ -2,13 +2,15 @@
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Pencil, Eye, ShieldCheck, Mail, Phone, CheckCircle2, LogOut, AlertTriangle, X, Send } from 'lucide-react';
+import { Pencil, Eye, ShieldCheck, Mail, Phone, CheckCircle2, LogOut, AlertTriangle, X, Send, KeyRound, Settings } from 'lucide-react';
 import styles from './ProfilePage.module.css';
 import { ApiClient } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { ProfileSkeleton } from '@/components/ui/Skeleton/Skeleton';
 import ProfileUpdateModal from './ProfileUpdateModal';
+import ChangePasswordModal from './ChangePasswordModal';
+import VerifyEmailModal from './VerifyEmailModal';
 import { Member } from '@/types';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
@@ -34,11 +36,13 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [updateModalMode, setUpdateModalMode] = useState<'self-update' | 'request-update'>('self-update');
   const [isRequestingUpdate, setIsRequestingUpdate] = useState(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
 
   // Notification state for pending update requests on own profile
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [pendingNotification, setPendingNotification] = useState<any>(null);
-  const [showPrivacyMenu, setShowPrivacyMenu] = useState(false);
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  const [isVerifyEmailModalOpen, setIsVerifyEmailModalOpen] = useState(false);
   
   const { profile, role, logout } = useAuth();
   const { toast } = useToast();
@@ -100,11 +104,12 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const data = await ApiClient.get<any>('/members/me/notifications');
-        if (data.hasPendingRequest && data.notification) {
-          setPendingNotification(data.notification);
+        const profileUpdateNotif = data.notifications?.find((n: any) => n.type === 'profile_update' && !n.is_read);
+        if (profileUpdateNotif) {
+          setPendingNotification(profileUpdateNotif);
         }
       } catch {
-        // Silently fail — notifications are not critical
+        // Silently fail
       }
     }
     checkNotifications();
@@ -158,7 +163,7 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
       });
       setMember(prev => prev ? { ...prev, contact_visibility: visibility } : prev);
       toast(`Profile is now ${visibility}`, 'success');
-      setShowPrivacyMenu(false);
+      setShowSettingsMenu(false);
     } catch (err) {
       toast('Failed to update privacy settings', 'error');
     }
@@ -208,8 +213,7 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
           </div>
         </div>
       )}
-
-      {/* Profile Hero */}
+      
       <div className={`${styles.profileHero} gsap-profile-anim`}>
         <div className={styles.profilePhoto}>
           <div className={styles.profilePhotoInitials} style={{ backgroundColor: getAvatarColor(member.name) }}>
@@ -246,22 +250,41 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
             )}
             {isMyProfile && (
               <div style={{ position: 'relative' }}>
-                <button className={styles.privacyBtn} onClick={() => setShowPrivacyMenu(!showPrivacyMenu)}>
-                  <Eye size={16} /> Privacy Settings
+                <button className={styles.privacyBtn} onClick={() => setShowSettingsMenu(!showSettingsMenu)}>
+                  <Settings size={16} /> Settings
                 </button>
-                {showPrivacyMenu && (
-                  <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '8px', background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 10, minWidth: '200px', overflow: 'hidden' }}>
+                {showSettingsMenu && (
+                  <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '8px', background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 10, minWidth: '220px', overflow: 'hidden' }}>
+                    <div style={{ padding: '8px 12px', fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', background: 'var(--color-bg-section-alt)' }}>
+                      Privacy
+                    </div>
                     <button 
-                      onClick={() => handlePrivacyChange('public')}
-                      style={{ display: 'block', width: '100%', padding: '12px 16px', textAlign: 'left', background: 'transparent', border: 'none', borderBottom: '1px solid var(--color-border)', cursor: 'pointer', fontSize: '0.875rem', color: 'var(--color-text-primary)' }}
+                      onClick={() => { handlePrivacyChange('public'); setShowSettingsMenu(false); }}
+                      style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '10px 16px', textAlign: 'left', background: 'transparent', border: 'none', borderBottom: '1px solid var(--color-border-light)', cursor: 'pointer', fontSize: '0.875rem', color: 'var(--color-text-primary)' }}
                     >
-                      Make Profile Public
+                      <Eye size={14} /> Make Profile Public
                     </button>
                     <button 
-                      onClick={() => handlePrivacyChange('private')}
-                      style={{ display: 'block', width: '100%', padding: '12px 16px', textAlign: 'left', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.875rem', color: 'var(--color-text-primary)' }}
+                      onClick={() => { handlePrivacyChange('private'); setShowSettingsMenu(false); }}
+                      style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '10px 16px', textAlign: 'left', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.875rem', color: 'var(--color-text-primary)' }}
                     >
-                      Make Profile Private
+                      <ShieldCheck size={14} /> Make Profile Private
+                    </button>
+                    
+                    <div style={{ padding: '8px 12px', fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', background: 'var(--color-bg-section-alt)', borderTop: '1px solid var(--color-border)' }}>
+                      Security
+                    </div>
+                    <button 
+                      onClick={() => { setIsPasswordModalOpen(true); setShowSettingsMenu(false); }}
+                      style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '10px 16px', textAlign: 'left', background: 'transparent', border: 'none', borderBottom: '1px solid var(--color-border-light)', cursor: 'pointer', fontSize: '0.875rem', color: 'var(--color-text-primary)' }}
+                    >
+                      <KeyRound size={14} /> Change Password
+                    </button>
+                    <button 
+                      onClick={() => { setIsVerifyEmailModalOpen(true); setShowSettingsMenu(false); }}
+                      style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '10px 16px', textAlign: 'left', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.875rem', color: 'var(--color-text-primary)' }}
+                    >
+                      <Mail size={14} /> Verify Email
                     </button>
                   </div>
                 )}
@@ -379,6 +402,22 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
           onClose={() => setIsUpdateModalOpen(false)}
           onUpdated={handleProfileUpdated}
           mode={updateModalMode}
+        />
+      )}
+
+      {isPasswordModalOpen && (
+        <ChangePasswordModal
+          onClose={() => setIsPasswordModalOpen(false)}
+        />
+      )}
+
+      {isVerifyEmailModalOpen && (
+        <VerifyEmailModal
+          onClose={() => setIsVerifyEmailModalOpen(false)}
+          onSuccess={(newEmail) => {
+            setMember(prev => prev ? { ...prev, email: newEmail } : prev);
+            setIsVerifyEmailModalOpen(false);
+          }}
         />
       )}
     </div>

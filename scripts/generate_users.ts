@@ -69,13 +69,16 @@ async function run() {
 
     // Generate credentials
     const cleanFirstName = firstName.toLowerCase().replace(/\s+/g, '');
+    const cleanMiddleName = (member.middle_name || '').toLowerCase().replace(/\s+/g, '');
     const cleanLastName = lastName.toLowerCase().replace(/\s+/g, '');
-    const username = `${cleanFirstName}_${cleanLastName}`;
+    
+    // Construct username: firstnamemiddlename_lastname
+    const username = `${cleanFirstName}${cleanMiddleName}_${cleanLastName}`;
     const email = `${username}@kvonagpur.com`; // Needed internally for Supabase auth
-    const password = `${cleanFirstName}_123`; // Note: Supabase requires min 6 chars by default
+    const password = username; // Password exactly same as username
 
-    // Fallback if password is < 6 chars
-    const safePassword = password.length < 6 ? password + "456" : password;
+    // Fallback if password is < 6 chars (Supabase default minimum)
+    const safePassword = password.length < 6 ? password.padEnd(6, '123') : password;
 
     try {
       // 3. Create auth user bypassing constraints

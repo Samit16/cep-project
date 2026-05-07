@@ -229,6 +229,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .filter(k => k.startsWith('sb-'))
         .forEach(k => sessionStorage.removeItem(k));
       sessionStorage.removeItem('kjo_token');
+      sessionStorage.removeItem('kjo_prompt_dismissed');
     }
 
     // Clear all auth cookies explicitly

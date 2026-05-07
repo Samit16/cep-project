@@ -80,6 +80,29 @@ export async function POST(request: NextRequest) {
     }
 
     const parts = (event.location || '').split('|');
+
+    // Fetch all active user profiles
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('is_active', true);
+
+    if (profiles && profiles.length > 0) {
+      const notifications = profiles.map(p => ({
+        user_id: p.id,
+        type: 'event_new',
+        title: 'New Event Added',
+        message: `A new event "${event.title}" has been scheduled for ${new Date(event.date).toLocaleDateString()}.`,
+        link: '/home', // Or link to the events page if one exists
+      }));
+
+      // Insert notifications in bulk
+      const { error: notifError } = await supabase.from('notifications').insert(notifications);
+      if (notifError) {
+        console.error('Failed to insert new event notifications:', notifError);
+      }
+    }
+
     return NextResponse.json({ ...event, location: parts[0], time: parts[1] || '' }, { status: 201 });
 
   } catch (error: any) {

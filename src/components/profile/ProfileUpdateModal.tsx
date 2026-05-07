@@ -26,7 +26,6 @@ export default function ProfileUpdateModal({ member, onClose, onUpdated, mode = 
     nukh: member.nukh || '',
     birthplace: member.birthplace || '',
     contact_no: member.contact_no || (member.contact_numbers?.length ? member.contact_numbers[0] : ''),
-    email: member.email || '',
     relations: member.relations || [],
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -43,7 +42,6 @@ export default function ProfileUpdateModal({ member, onClose, onUpdated, mode = 
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      console.log('Submitting profile update:', formData);
       if (mode === 'self-update') {
         // Direct update to the database
         const updatedMember = await ApiClient.put<Member>('/members/me', formData);
@@ -58,7 +56,6 @@ export default function ProfileUpdateModal({ member, onClose, onUpdated, mode = 
       }
       onClose();
     } catch (err: unknown) {
-      console.error('Profile update failed:', err);
       const errorMessage = (err as Error).message || 'Failed to update profile';
       toast(errorMessage, 'error');
     } finally {
@@ -236,18 +233,6 @@ export default function ProfileUpdateModal({ member, onClose, onUpdated, mode = 
               value={formData.contact_no}
               onChange={handleChange}
               placeholder="e.g. +91 9876543210"
-            />
-          </div>
-
-          <div className={styles.formGroup}>
-            <label className={styles.label}>Email Address</label>
-            <input 
-              type="email" 
-              name="email"
-              className={styles.input} 
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="e.g. name@example.com"
             />
           </div>
 

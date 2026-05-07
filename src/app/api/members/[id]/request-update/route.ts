@@ -45,6 +45,23 @@ export async function POST(
       return NextResponse.json({ error: 'Failed to create update request.' }, { status: 500 });
     }
 
+    // Fetch the profile ID for the target member
+    const { data: targetProfile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('member_id', targetMemberId)
+      .single();
+
+    if (targetProfile) {
+      await supabase.from('notifications').insert({
+        user_id: targetProfile.id,
+        type: 'profile_update',
+        title: 'Update Requested',
+        message: 'The committee has requested you to update your profile information.',
+        link: '/directory/me',
+      });
+    }
+
     return NextResponse.json({ message: 'Update request sent successfully' });
 
   } catch (error: any) {

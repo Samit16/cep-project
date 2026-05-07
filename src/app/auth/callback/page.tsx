@@ -32,10 +32,33 @@ export default function AuthCallbackPage() {
 
           const role = profile?.role;
 
-          // If they connected google, clear the first login flag
+          // If they connected google, clear the first login flag and sync email
           const hasGoogle = session.user.identities?.some((i: any) => i.provider === 'google');
-          if (profile?.is_first_login && hasGoogle) {
-            await supabase.from('profiles').update({ is_first_login: false }).eq('id', session.user.id);
+          if (hasGoogle) {
+            if (profile?.is_first_login) {
+              await supabase.from('profiles').update({ is_first_login: false }).eq('id', session.user.id);
+            }
+
+            // Sync Google email to member record
+            const googleIdentity = session.user.identities?.find((i: any) => i.provider === 'google');
+            const googleEmail = googleIdentity?.identity_data?.email || session.user.email;
+
+            if (googleEmail) {
+              // Fetch member_id from profile
+              const { data: fullProfile } = await supabase
+                .from('profiles')
+                .select('member_id')
+                .eq('id', session.user.id)
+                .single();
+
+              if (fullProfile?.member_id) {
+                // Auto-sync the Google email (overwrites any existing email)
+                await supabase
+                  .from('members')
+                  .update({ email: googleEmail })
+                  .eq('id', fullProfile.member_id);
+              }
+            }
           }
 
           const intent = localStorage.getItem('kjo_login_intent');

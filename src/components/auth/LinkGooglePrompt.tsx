@@ -7,23 +7,36 @@ import styles from './LoginPage.module.css'; // Re-use styling variables
 import { Shield, Mail, X } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 
+const DISMISS_KEY = 'kjo_prompt_dismissed';
+
 export default function LinkGooglePrompt({ onDismiss }: { onDismiss?: () => void }) {
   const { profile, user, signInWithGoogle } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = React.useState(false);
-  const [dismissed, setDismissed] = React.useState(false);
 
-  React.useEffect(() => {
-    // Auto-dismiss after 15 seconds
-    const timer = setTimeout(() => {
-      setDismissed(true);
-      if (onDismiss) onDismiss();
-    }, 15000);
-    return () => clearTimeout(timer);
+  // Check sessionStorage on every render (persists across page navigations)
+  const isDismissed = typeof window !== 'undefined' && sessionStorage.getItem(DISMISS_KEY) === 'true';
+
+  const handleDismiss = React.useCallback(() => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem(DISMISS_KEY, 'true');
+    }
+    if (onDismiss) onDismiss();
+    // Force re-render by using a dummy state update
+    setLoading(prev => prev); // no-op but triggers re-render path
   }, [onDismiss]);
 
+  React.useEffect(() => {
+    if (isDismissed) return;
+    // Auto-dismiss after 15 seconds
+    const timer = setTimeout(() => {
+      handleDismiss();
+    }, 15000);
+    return () => clearTimeout(timer);
+  }, [isDismissed, handleDismiss]);
+
   // If there's no user, or profile doesn't require first-time setup, render nothing
-  if (!user || !profile || !profile.is_first_login || dismissed) return null;
+  if (!user || !profile || !profile.is_first_login || isDismissed) return null;
 
   // Check if they already have a google identity linked
   const hasGoogleLinked = user.identities?.some(i => i.provider === 'google');
@@ -57,10 +70,7 @@ export default function LinkGooglePrompt({ onDismiss }: { onDismiss?: () => void
       borderLeft: '4px solid var(--color-primary)'
     }}>
       <button 
-        onClick={() => {
-          setDismissed(true);
-          if (onDismiss) onDismiss();
-        }}
+        onClick={handleDismiss}
         style={{ position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' }}
       >
         <X size={16} />
@@ -74,7 +84,7 @@ export default function LinkGooglePrompt({ onDismiss }: { onDismiss?: () => void
       </div>
       
       <p style={{ margin: '0 0 16px', fontSize: '0.875rem', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
-        Welcome back! You logged in via a generated credential. To ensure you never lose access, please link your Google Account now. Next time, just click "Sign in with Google"!
+        Welcome back! You logged in via a generated credential. To ensure you never lose access, please link your Google Account now. Next time, just click &quot;Sign in with Google&quot;!
       </p>
 
       <button
