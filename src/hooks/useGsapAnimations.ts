@@ -383,8 +383,8 @@ export function useGsapNavbar<T extends HTMLElement = HTMLElement>() {
           if (self.direction === -1) {
             showAnim.play();
             gsap.to(el, {
-              backgroundColor: 'rgba(253, 251, 248, 0.95)',
-              backdropFilter: 'blur(8px)',
+              backgroundColor: 'var(--color-navbar-bg)',
+              backdropFilter: 'blur(12px)',
               duration: 0.3,
             });
           } else if (self.direction === 1 && self.scroll() > 50) {

@@ -19,7 +19,6 @@ export class ApiClient {
 
     let token: string | null = null;
 
-    // 1. Check Supabase sessionStorage (where the client stores sessions)
     try {
       const sessionData = sessionStorage.getItem(SUPABASE_STORAGE_KEY);
       if (sessionData) {
@@ -32,7 +31,7 @@ export class ApiClient {
       }
     } catch { /* ignore parse errors */ }
 
-    // 2. Fallback: scan all sessionStorage keys for any Supabase session
+ 
     if (!token) {
       try {
         for (let i = 0; i < sessionStorage.length; i++) {
@@ -78,7 +77,7 @@ export class ApiClient {
         this._cacheExpiry = Date.now() + 30_000;
         return session.access_token;
       }
-    } catch { /* ignore */ }
+    } catch { }
 
     return null;
   }
@@ -96,7 +95,6 @@ export class ApiClient {
     }
     return headers;
   }
-
   private static async handleResponse<T>(response: Response): Promise<T> {
     if (response.status === 401) {
       if (typeof window !== 'undefined') {
@@ -127,7 +125,6 @@ export class ApiClient {
       ).toString();
       if (query) url += `?${query}`;
     }
-
     const token = await this.getTokenAsync();
     const response = await fetch(url, {
       method: 'GET',
@@ -170,7 +167,6 @@ export class ApiClient {
     });
     return this.handleResponse<T>(response);
   }
-
   static async delete<T>(endpoint: string): Promise<T> {
     const token = await this.getTokenAsync();
     const headers = this.getHeaders({}, token);

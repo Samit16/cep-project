@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import LinkGooglePrompt from '@/components/auth/LinkGooglePrompt';
 import { useGsapNavbar, useGsapHover } from '@/hooks/useGsapAnimations';
+import ThemeToggle from '@/components/ui/ThemeToggle/ThemeToggle';
 
 interface NavbarProps {
   variant?: 'public' | 'admin';
@@ -82,6 +83,7 @@ export default function Navbar({
         </div>
 
         <div className={styles.navActions}>
+          <ThemeToggle />
           {(role === 'admin' || role === 'committee') && (
             <Link href="/dashboard" className={styles.dashboardBtn}>
               Dashboard
@@ -164,6 +166,10 @@ export default function Navbar({
         </div>
         
         <div className={styles.mobileNavActions}>
+          <div className={styles.mobileThemeToggle}>
+            <span className={styles.mobileThemeLabel}>Theme</span>
+            <ThemeToggle />
+          </div>
           {(role === 'admin' || role === 'committee') && (
             <Link href="/dashboard" className={styles.mobileDashboardBtn}>
               Dashboard

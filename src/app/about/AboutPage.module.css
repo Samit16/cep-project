@@ -3,7 +3,7 @@
    ============================================ */
 
 .aboutContainer {
-  background-color: var(--color-bg-warm);
+  background-color: var(--color-bg-page);
   min-height: 100vh;
   font-family: var(--font-sans);
   color: var(--color-text-primary);
@@ -13,7 +13,7 @@
 .hero {
   padding: var(--space-24) var(--space-10) var(--space-20);
   text-align: center;
-  background: radial-gradient(ellipse at top, var(--color-bg-card) 0%, var(--color-bg-warm) 70%);
+  background: radial-gradient(ellipse at top, var(--color-bg-card) 0%, var(--color-bg-page) 70%);
   position: relative;
   overflow: hidden;
 }
@@ -102,7 +102,7 @@
 /* --- Timeline --- */
 .timelineSection {
   padding: var(--space-20) var(--space-10);
-  background-color: #fff;
+  background-color: var(--color-bg-warm);
 }
 
 .timelineHeader {
@@ -255,7 +255,7 @@
 .valueCard:hover .valueIcon {
   transform: scale(1.1);
   background-color: var(--color-primary);
-  color: #fff;
+  color: var(--color-bg-card);
 }
 
 .valueTitle {
@@ -284,7 +284,7 @@
 /* --- Mission & Vision --- */
 .missionSection {
   padding: var(--space-16) var(--space-10);
-  background-color: #fff;
+  background-color: var(--color-bg-warm);
 }
 
 .missionGrid {
@@ -313,7 +313,7 @@
   height: 56px;
   border-radius: 50%;
   background: var(--color-primary);
-  color: #fff;
+  color: var(--color-bg-card);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -338,6 +338,11 @@
 .impactSection {
   padding: var(--space-16) var(--space-10);
   background: var(--color-primary);
+  transition: background-color var(--theme-transition);
+}
+
+:global([data-theme="dark"]) .impactSection {
+  background: var(--color-primary-dark);
 }
 
 .impactGrid {

@@ -48,7 +48,7 @@ export default function LinkGooglePrompt({ onDismiss }: { onDismiss?: () => void
       position: 'fixed',
       bottom: '24px',
       left: '24px',
-      background: '#fff',
+      background: 'var(--color-bg-card)',
       padding: '24px',
       borderRadius: '16px',
       boxShadow: '0 10px 40px rgba(0,0,0,0.15)',

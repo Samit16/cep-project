@@ -5,7 +5,6 @@ import { checkRateLimit } from '@/lib/rate-limit';
 export function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
-  // ─── Rate Limiting for API routes ───
   if (path.startsWith('/api/')) {
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
       || request.headers.get('x-real-ip')
@@ -13,9 +12,8 @@ export function middleware(request: NextRequest) {
 
     // Stricter limit for auth endpoints (brute-force protection)
     const isAuthEndpoint = path.startsWith('/api/auth') || path === '/api/members/me';
-    const limit = isAuthEndpoint ? 20 : 60;  // requests per window
-    const windowMs = 60_000;                 // 1 minute window
-
+    const limit = isAuthEndpoint ? 20 : 60;
+    const windowMs = 60_000;
     const result = checkRateLimit(`api:${ip}:${isAuthEndpoint ? 'auth' : 'general'}`, limit, windowMs);
 
     if (!result.allowed) {
@@ -31,15 +29,11 @@ export function middleware(request: NextRequest) {
         }
       );
     }
-
-    // For allowed requests, continue but add rate limit info headers
     const response = NextResponse.next();
     response.headers.set('X-RateLimit-Limit', String(limit));
     response.headers.set('X-RateLimit-Remaining', String(result.remaining));
     return response;
   }
-
-  // ─── Page Route Protection ───
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
   const projectId = supabaseUrl.match(/https:\/\/(.*?)\.supabase\.co/)?.[1] || 'uevmyvwbmxqreyukbvkq';
   const cookieName = `sb-${projectId}-auth-token`;
@@ -78,18 +72,14 @@ export function middleware(request: NextRequest) {
     const dest = (role === 'admin' || role === 'committee') ? '/dashboard' : '/directory';
     return NextResponse.redirect(new URL(dest, request.url));
   }
-
   const response = NextResponse.next();
-  
   if (isMemberPath || isAdminPath) {
     response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     response.headers.set('Pragma', 'no-cache');
     response.headers.set('Expires', '0');
   }
-
   return response;
 }
-
 export const config = {
   matcher: [
     '/api/:path*',
@@ -100,4 +90,3 @@ export const config = {
     '/login',
   ],
 };
-

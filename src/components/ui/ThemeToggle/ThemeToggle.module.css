@@ -1,0 +1,251 @@
+/* ============================================
+   Theme Toggle — Premium Celestial Morph
+   ============================================
+   Inspired by the Dribbble sun/moon toggle with
+   smooth morphing, glowing track, and fluid motion.
+*/
+
+/* Placeholder for SSR (prevents layout shift) */
+.placeholder {
+  width: 58px;
+  height: 30px;
+  border-radius: 999px;
+  opacity: 0;
+}
+
+/* ---- Toggle Button ---- */
+.toggle {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+  z-index: 10;
+}
+
+.toggle:focus-visible .track {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ---- Track ---- */
+.track {
+  position: relative;
+  width: 58px;
+  height: 30px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  transition:
+    background-color 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Light state track */
+.light .track {
+  background-color: #E8E4DE;
+  border: 1.5px solid #D1CBC2;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.06),
+    inset 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+/* Dark state track */
+.dark .track {
+  background-color: #1a1a2e;
+  border: 1.5px solid #2a2a4a;
+  box-shadow:
+    0 1px 8px rgba(0, 0, 0, 0.3),
+    inset 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* ---- Track Glow (transition accent) ---- */
+.trackGlow {
+  position: absolute;
+  inset: -3px;
+  border-radius: 999px;
+  opacity: 0;
+  transition: opacity 0.5s ease, box-shadow 0.5s ease;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.light .trackGlow {
+  box-shadow:
+    0 0 12px 2px rgba(234, 210, 50, 0.35),
+    0 0 24px 4px rgba(234, 210, 50, 0.15);
+}
+
+.dark .trackGlow {
+  box-shadow:
+    0 0 12px 2px rgba(148, 163, 184, 0.15),
+    0 0 24px 4px rgba(148, 163, 184, 0.05);
+}
+
+/* Show glow on hover */
+.toggle:hover .trackGlow {
+  opacity: 1;
+}
+
+/* ---- Celestial Orb ---- */
+.orb {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  z-index: 2;
+  transition:
+    transform 0.55s cubic-bezier(0.68, -0.3, 0.32, 1.3),
+    background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: visible;
+}
+
+/* Moon (dark mode) — white crescent, positioned left */
+.dark .orb {
+  transform: translateX(5px);
+  background-color: #E8E4DE;
+  box-shadow:
+    0 0 8px rgba(232, 228, 222, 0.3),
+    0 0 16px rgba(232, 228, 222, 0.1);
+}
+
+/* Sun (light mode) — yellow orb, positioned right */
+.light .orb {
+  transform: translateX(29px);
+  background-color: #F5D83C;
+  box-shadow:
+    0 0 14px 4px rgba(245, 216, 60, 0.5),
+    0 0 28px 8px rgba(245, 216, 60, 0.25),
+    0 0 42px 12px rgba(245, 216, 60, 0.1);
+}
+
+/* ---- Moon Bite (crescent overlay) ---- */
+.moonBite {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  top: 1px;
+  right: -2px;
+  z-index: 3;
+  transition:
+    transform 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.4s ease,
+    background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Dark: bite is visible (creates crescent) */
+.dark .moonBite {
+  background-color: #1a1a2e;
+  transform: scale(1) translate(0, 0);
+  opacity: 1;
+}
+
+/* Light: bite shrinks away */
+.light .moonBite {
+  background-color: #E8E4DE;
+  transform: scale(0) translate(4px, -4px);
+  opacity: 0;
+}
+
+/* ---- Sun Rays ---- */
+.sunRays {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease;
+}
+
+.dark .sunRays {
+  opacity: 0;
+  transform: rotate(-60deg) scale(0.5);
+}
+
+.light .sunRays {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
+}
+
+.ray {
+  position: absolute;
+  width: 2px;
+  height: 4px; /* Slightly shorter to avoid clipping */
+  background-color: #F5D83C;
+  border-radius: 999px;
+  /* Position exactly in the center of the 22px orb */
+  left: 11px;
+  top: 11px;
+  margin-left: -1px;
+  margin-top: -15px; /* Closer to the sun */
+  transform-origin: 1px 15px; /* Perfect rotation around center */
+  transform: rotate(calc(var(--ray-index) * 45deg));
+  transition: opacity 0.4s ease, height 0.3s ease;
+}
+
+.light .ray {
+  opacity: 0.85;
+  animation: rayPulse 3s ease-in-out infinite;
+  animation-delay: calc(var(--ray-index) * 0.15s);
+}
+
+.dark .ray {
+  opacity: 0;
+}
+
+/* ---- Ray pulse animation ---- */
+@keyframes rayPulse {
+  0%, 100% {
+    height: 5px;
+    opacity: 0.7;
+  }
+  50% {
+    height: 6.5px;
+    opacity: 1;
+  }
+}
+
+/* ---- Hover / Active states ---- */
+.toggle:hover .orb {
+  filter: brightness(1.08);
+}
+
+.toggle:active .orb {
+  transform: translateX(5px) scale(0.9);
+  transition-duration: 0.15s;
+}
+
+.light .toggle:active .orb,
+.toggle.light:active .orb {
+  transform: translateX(29px) scale(0.9);
+}
+
+.dark .toggle:active .orb,
+.toggle.dark:active .orb {
+  transform: translateX(5px) scale(0.9);
+}
+
+/* ---- Reduced Motion ---- */
+@media (prefers-reduced-motion: reduce) {
+  .orb,
+  .moonBite,
+  .sunRays,
+  .track,
+  .trackGlow {
+    transition-duration: 0.01ms !important;
+    animation: none !important;
+  }
+
+  .ray {
+    animation: none !important;
+  }
+}

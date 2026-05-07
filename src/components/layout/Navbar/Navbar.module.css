@@ -4,11 +4,17 @@
   justify-content: space-between;
   height: var(--navbar-height);
   padding: 0 var(--space-10);
-  background-color: var(--color-bg-warm);
+  background-color: var(--color-navbar-bg);
   border-bottom: 1px solid var(--color-border-light);
   position: sticky;
   top: 0;
   z-index: 100;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition:
+    background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .logo {
@@ -192,10 +198,10 @@
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
-  background: #fff;
+  background: var(--color-dropdown-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 8px 24px var(--color-dropdown-shadow);
   min-width: 180px;
   z-index: 200;
   overflow: hidden;
@@ -370,4 +376,20 @@
   .mobileMenuBtn {
     display: block;
   }
+}
+
+/* ---- Mobile Theme Toggle ---- */
+.mobileThemeToggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-border-light);
+  margin-bottom: var(--space-2);
+}
+
+.mobileThemeLabel {
+  font-size: 0.9375rem;
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary);
 }

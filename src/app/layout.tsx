@@ -4,6 +4,7 @@ import { ToastProvider } from "@/components/ui/Toast/ToastProvider";
 import { AuthProvider } from "@/lib/auth-context";
 import { ClientAuthGuard } from "@/components/auth/ClientAuthGuard";
 import { GsapInteractionsProvider } from "@/components/GsapInteractionsProvider";
+import { ThemeProvider, THEME_INIT_SCRIPT } from "@/lib/theme-context";
 
 import "./globals.css";
 
@@ -34,18 +35,24 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${playfairDisplay.variable} ${inter.variable}`}>
+    <html lang="en" className={`${playfairDisplay.variable} ${inter.variable}`} suppressHydrationWarning>
+      <head>
+        {/* Inline script prevents flash-of-wrong-theme before React hydrates */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body>
-        <AuthProvider>
-          <ToastProvider>
-            <ClientAuthGuard>
-              <GsapInteractionsProvider>
-                {children}
+        <ThemeProvider>
+          <AuthProvider>
+            <ToastProvider>
+              <ClientAuthGuard>
+                <GsapInteractionsProvider>
+                  {children}
 
-              </GsapInteractionsProvider>
-            </ClientAuthGuard>
-          </ToastProvider>
-        </AuthProvider>
+                </GsapInteractionsProvider>
+              </ClientAuthGuard>
+            </ToastProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -463,7 +463,7 @@
 
 .visibilityIcon {
   color: var(--color-status-verified);
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 50%;
   padding: 4px;
 }

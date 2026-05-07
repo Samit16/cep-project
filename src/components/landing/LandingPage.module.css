@@ -132,7 +132,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(to right, rgba(253, 251, 248, 1) 0%, rgba(253, 251, 248, 0.95) 25%, rgba(253, 251, 248, 0.6) 45%, rgba(253, 251, 248, 0.1) 65%, rgba(253, 251, 248, 0) 100%);
+  background: linear-gradient(to right, var(--color-bg-warm) 0%, color-mix(in srgb, var(--color-bg-warm) 95%, transparent) 25%, color-mix(in srgb, var(--color-bg-warm) 60%, transparent) 45%, color-mix(in srgb, var(--color-bg-warm) 10%, transparent) 65%, transparent 100%);
   pointer-events: none;
   z-index: 2;
 }
@@ -717,7 +717,7 @@
   }
   
   .heroImage::after {
-    background: linear-gradient(to bottom, rgba(253, 251, 248, 1) 0%, rgba(253, 251, 248, 0.4) 25%, rgba(253, 251, 248, 0) 100%);
+    background: linear-gradient(to bottom, var(--color-bg-warm) 0%, color-mix(in srgb, var(--color-bg-warm) 40%, transparent) 25%, transparent 100%);
   }
 
   .historySection, .achievementsSection, .eventsSection, .ctaBanner {

@@ -2,7 +2,8 @@
    KVO NAGPUR — Design System Tokens
    ============================================ */
 
-:root {
+:root,
+[data-theme="light"] {
   /* --- Colors --- */
   --color-primary: #8B1A1A; /* Heritage Red */
   --color-primary-dark: #6B1414;
@@ -23,6 +24,7 @@
   --color-bg-sidebar-active: #8B1A1A;
   --color-bg-input: #FFFFFF;
   --color-bg-cta: #8B1A1A;
+  --color-navbar-bg: rgba(253, 251, 248, 0.85); /* Glassmorphism light */
 
   /* Text - Moving away from absolute blacks to deep slate/charcoal */
   --color-text-primary: #1E293B; /* Slate 800 */
@@ -50,6 +52,28 @@
   /* Tags */
   --color-tag-bg: #F8FAFC;
   --color-tag-border: #E2E8F0;
+
+  /* Overlays & Misc */
+  --color-overlay: rgba(0, 0, 0, 0.45);
+  --color-backdrop: rgba(0, 0, 0, 0.04);
+  --color-white-alpha-06: rgba(255, 255, 255, 0.06);
+  --color-white-alpha-08: rgba(255, 255, 255, 0.08);
+  --color-white-alpha-15: rgba(255, 255, 255, 0.15);
+  --color-white-alpha-85: rgba(255, 255, 255, 0.85);
+
+  /* Footer specific (dark footer in light theme) */
+  --color-footer-bg: #1E293B;
+  --color-footer-text: #CBD5E1;
+  --color-footer-muted: #94A3B8;
+  --color-footer-heading: #F1F5F9;
+  --color-footer-disabled: #64748B;
+  --color-footer-border: rgba(255, 255, 255, 0.08);
+  --color-footer-icon-bg: rgba(255, 255, 255, 0.06);
+  --color-footer-copyright: #64748B;
+
+  /* Dropdown */
+  --color-dropdown-bg: #FFFFFF;
+  --color-dropdown-shadow: rgba(0, 0, 0, 0.12);
 
   /* --- Typography --- */
   --font-serif: 'Playfair Display', Georgia, serif;
@@ -123,6 +147,122 @@
   --navbar-height: clamp(3.5rem, 5vw + 2rem, 4.5rem); /* 56px to 72px */
   --content-max-width: 1200px;
   --page-padding: clamp(1rem, 5vw, 4rem); /* Responsive page padding */
+
+  /* Theme transition */
+  --theme-transition: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ============================================
+   DARK THEME — Heritage-Complementary Palette
+   Preserves community heritage feel, uses warm
+   dark tones instead of generic black/gray.
+   ============================================ */
+
+[data-theme="dark"] {
+  /* --- Colors --- */
+  --color-primary: #D4534A;      /* Warmer, brighter heritage red for contrast */
+  --color-primary-dark: #B83B33;
+  --color-primary-light: #E87A73;
+  --color-primary-lightest: rgba(212, 83, 74, 0.1);
+  --color-accent-gold: #D4A574;
+  --color-accent-gold-light: #E5C9A8;
+
+  /* Focus Rings */
+  --color-focus-ring: rgba(212, 83, 74, 0.4);
+
+  /* Backgrounds — warm, deep tones with slight warmth */
+  --color-bg-page: #121018;          /* Very deep, slightly warm black */
+  --color-bg-warm: #16131E;          /* Warm dark for sections */
+  --color-bg-card: #1C1826;          /* Card surfaces — subtle purple warmth */
+  --color-bg-section-alt: #221E2C;   /* Alternate section bg */
+  --color-bg-sidebar: #16131E;
+  --color-bg-sidebar-active: #D4534A;
+  --color-bg-input: #1C1826;
+  --color-bg-cta: #D4534A;
+  --color-navbar-bg: rgba(22, 19, 30, 0.9); /* Glassmorphism dark */
+
+  /* Text */
+  --color-text-primary: #EDE8F0;     /* Warm off-white */
+  --color-text-secondary: #A09AAE;   /* Muted lavender */
+  --color-text-muted: #6B6578;       /* Soft muted */
+  --color-text-on-primary: #FFFFFF;
+  --color-text-on-cta: #FFFFFF;
+
+  /* Borders */
+  --color-border: #2E2A38;           /* Subtle warm border */
+  --color-border-light: #252130;     /* Lighter variant */
+  --color-border-input: #3A3548;     /* Input borders */
+
+  /* Status */
+  --color-status-verified: #34D399;
+  --color-status-verified-bg: rgba(52, 211, 153, 0.1);
+  --color-status-pending: #FB923C;
+  --color-status-pending-bg: rgba(251, 146, 60, 0.1);
+  --color-status-inactive: #6B7280;
+
+  /* Links */
+  --color-link: #E87A73;
+  --color-link-hover: #D4534A;
+
+  /* Tags */
+  --color-tag-bg: #221E2C;
+  --color-tag-border: #2E2A38;
+
+  /* Overlays & Misc */
+  --color-overlay: rgba(0, 0, 0, 0.65);
+  --color-backdrop: rgba(255, 255, 255, 0.03);
+  --color-white-alpha-06: rgba(255, 255, 255, 0.04);
+  --color-white-alpha-08: rgba(255, 255, 255, 0.06);
+  --color-white-alpha-15: rgba(255, 255, 255, 0.1);
+  --color-white-alpha-85: rgba(255, 255, 255, 0.8);
+
+  /* Footer (integrates with dark bg — slightly deeper) */
+  --color-footer-bg: #0D0B12;
+  --color-footer-text: #A09AAE;
+  --color-footer-muted: #6B6578;
+  --color-footer-heading: #EDE8F0;
+  --color-footer-disabled: #4A4558;
+  --color-footer-border: rgba(255, 255, 255, 0.05);
+  --color-footer-icon-bg: rgba(255, 255, 255, 0.04);
+  --color-footer-copyright: #4A4558;
+
+  /* Dropdown */
+  --color-dropdown-bg: #1C1826;
+  --color-dropdown-shadow: rgba(0, 0, 0, 0.4);
+
+  /* Shadows — darker, more diffused */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+
+  color-scheme: dark;
+}
+
+/* ============================================
+   Theme Transition — Smooth animated switch
+   Applied to all elements for seamless theme switching.
+   ============================================ */
+html[data-theme] body {
+  transition:
+    background-color var(--theme-transition),
+    color var(--theme-transition),
+    border-color var(--theme-transition),
+    box-shadow var(--theme-transition);
+}
+
+html[data-theme] *:not(svg):not(path):not(img):not(video):not(canvas):not(iframe) {
+  transition:
+    background-color var(--theme-transition),
+    color var(--theme-transition),
+    border-color var(--theme-transition),
+    box-shadow var(--theme-transition);
+}
+
+/* Disable theme transitions on page load to prevent initial flash */
+html:not([data-theme]) body * {
+  transition: none !important;
 }
 
 /* ============================================
@@ -191,6 +331,12 @@ input:focus, select:focus, textarea:focus {
   outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(139, 26, 26, 0.12);
+}
+
+[data-theme="dark"] input:focus,
+[data-theme="dark"] select:focus,
+[data-theme="dark"] textarea:focus {
+  box-shadow: 0 0 0 2px rgba(212, 83, 74, 0.2);
 }
 
 h1, h2, h3, h4, h5, h6 {

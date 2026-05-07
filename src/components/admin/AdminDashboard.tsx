@@ -1,5 +1,4 @@
 'use client';
-
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -63,7 +62,7 @@ const FloatingLabelInput = ({ label, type = 'text', value, onChange, placeholder
         position: 'absolute',
         top: focused || value ? '-10px' : '14px',
         left: '14px',
-        background: '#fff',
+        background: 'var(--color-bg-card)',
         padding: '0 4px',
         fontSize: focused || value ? '0.75rem' : '0.9375rem',
         color: focused ? 'var(--color-primary)' : 'var(--color-text-muted)',
@@ -90,7 +89,7 @@ const FloatingLabelInput = ({ label, type = 'text', value, onChange, placeholder
           fontSize: '0.9375rem',
           outline: 'none',
           boxShadow: focused ? '0 0 0 3px rgba(139,26,26,0.1)' : 'none',
-          background: hasInteracted && isValid && !focused ? '#f0fdf4' : '#fff',
+          background: hasInteracted && isValid && !focused ? 'var(--color-status-verified-bg)' : 'var(--color-bg-input)',
           transition: 'all 0.2s',
           boxSizing: 'border-box'
         }}
@@ -126,8 +125,6 @@ export default function AdminDashboard() {
       router.push('/login');
     }
   }, [isLoading, role, router]);
-
-
 
   // Debounce search
   useEffect(() => {
@@ -226,7 +223,6 @@ export default function AdminDashboard() {
   };
 
 
-
   const handleAddMember = async (newMember: { first_name: string; middle_name: string; last_name: string; email: string; profession: string; city: string; phone: string; role: string }) => {
     try {
       await ApiClient.post('/admin/members', {
@@ -305,7 +301,7 @@ export default function AdminDashboard() {
       }
       setIsEventModalOpen(false);
       setEditingEvent(null);
-      await loadEvents(); // Refresh from backend
+      await loadEvents();
     } catch (err: unknown) {
       toast((err as Error).message || 'Failed to save event.', 'error');
     }
@@ -315,7 +311,7 @@ export default function AdminDashboard() {
     try {
       await ApiClient.delete(`/events/${id}`);
       toast('Event deleted.', 'success');
-      await loadEvents(); // Refresh from backend
+      await loadEvents(); 
     } catch (err: unknown) {
       toast((err as Error).message || 'Failed to delete event.', 'error');
     }
@@ -589,8 +585,8 @@ export default function AdminDashboard() {
                     <div>
                       <div className={styles.memberCellName}>
                         {member.name}
-                        {member.role === 'committee' && <span className={styles.professionBadge} style={{marginLeft: '8px', backgroundColor: '#e0e7ff', color: '#3730a3'}}>Committee</span>}
-                        {member.role === 'admin' && <span className={styles.professionBadge} style={{marginLeft: '8px', backgroundColor: '#fce7f3', color: '#9d174d'}}>Admin</span>}
+                        {member.role === 'committee' && <span className={styles.professionBadge} style={{marginLeft: '8px', backgroundColor: 'var(--color-primary-lightest)', color: 'var(--color-primary)'}}>Committee</span>}
+                        {member.role === 'admin' && <span className={styles.professionBadge} style={{marginLeft: '8px', backgroundColor: 'var(--color-primary-lightest)', color: 'var(--color-primary-dark)'}}>Admin</span>}
                       </div>
                       <div className={styles.memberCellEmail}>{member.email}</div>
                     </div>
@@ -687,7 +683,6 @@ export default function AdminDashboard() {
         </div>
         )}
 
-        {/* ========== EVENTS MANAGEMENT TAB ========== */}
         {activeTab === 'events' && (
           <div className={styles.dashboardContent}>
             <div className={styles.pageHeader}>
@@ -774,7 +769,7 @@ export default function AdminDashboard() {
             background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)',
           }}>
             <div style={{
-              background: '#fff', borderRadius: '16px', padding: '2rem', width: '100%', maxWidth: '520px',
+              background: 'var(--color-bg-card)', borderRadius: '16px', padding: '2rem', width: '100%', maxWidth: '520px',
               boxShadow: '0 20px 60px rgba(0,0,0,0.15)', position: 'relative',
               animation: 'fadeUp 0.3s ease',
             }}>
@@ -826,7 +821,7 @@ export default function AdminDashboard() {
                           const val = eventForm.time.replace(/ (AM|PM)$/, '') || '12:00';
                           setEventForm(f => ({ ...f, time: `${val} ${e.target.value}` }));
                         }}
-                        style={{ padding: '12px', border: '1.5px solid var(--color-border)', borderRadius: '8px', background: '#fff', fontSize: '0.9375rem', cursor: 'pointer', outline: 'none' }}
+                        style={{ padding: '12px', border: '1.5px solid var(--color-border)', borderRadius: '8px', background: 'var(--color-bg-input)', fontSize: '0.9375rem', cursor: 'pointer', outline: 'none' }}
                         onFocus={(e) => e.target.style.borderColor = 'var(--color-primary)'}
                         onBlur={(e) => e.target.style.borderColor = 'var(--color-border)'}
                       >
@@ -875,9 +870,6 @@ export default function AdminDashboard() {
             </div>
           </div>
         )}
-
-
-
         <Footer />
       </div>
     </div>

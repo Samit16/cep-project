@@ -216,15 +216,15 @@ export default function LoginPage() {
           <div style={{ display: 'flex', background: 'var(--color-bg-input)', borderRadius: '12px', padding: '4px', marginBottom: '1.5rem', position: 'relative', zIndex: 1 }} className="gsap-login-anim">
             <button
               type="button"
-              onClick={() => { setActiveTab('member'); setLoginError(null); router.replace('/login?tab=member'); }}
-              style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', background: activeTab === 'member' ? '#fff' : 'transparent', color: activeTab === 'member' ? 'var(--color-primary)' : 'var(--color-text-muted)', fontWeight: activeTab === 'member' ? 600 : 400, cursor: 'pointer', transition: 'all 0.2s', boxShadow: activeTab === 'member' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none' }}
+              onClick={() => { setActiveTab('member'); setLoginError(null); window.history.replaceState(null, '', '/login?tab=member'); }}
+              style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', background: activeTab === 'member' ? 'var(--color-bg-card)' : 'transparent', color: activeTab === 'member' ? 'var(--color-primary)' : 'var(--color-text-muted)', fontWeight: activeTab === 'member' ? 600 : 400, cursor: 'pointer', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', boxShadow: activeTab === 'member' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none' }}
             >
               Member
             </button>
             <button
               type="button"
-              onClick={() => { setActiveTab('committee'); setLoginError(null); router.replace('/login?tab=committee'); }}
-              style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', background: activeTab === 'committee' ? '#fff' : 'transparent', color: activeTab === 'committee' ? 'var(--color-primary)' : 'var(--color-text-muted)', fontWeight: activeTab === 'committee' ? 600 : 400, cursor: 'pointer', transition: 'all 0.2s', boxShadow: activeTab === 'committee' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none' }}
+              onClick={() => { setActiveTab('committee'); setLoginError(null); window.history.replaceState(null, '', '/login?tab=committee'); }}
+              style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', background: activeTab === 'committee' ? 'var(--color-bg-card)' : 'transparent', color: activeTab === 'committee' ? 'var(--color-primary)' : 'var(--color-text-muted)', fontWeight: activeTab === 'committee' ? 600 : 400, cursor: 'pointer', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', boxShadow: activeTab === 'committee' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none' }}
             >
               Committee
             </button>
@@ -286,7 +286,7 @@ export default function LoginPage() {
                 className={styles.googleBtn}
                 onClick={handleGoogleSignIn}
                 disabled={isGoogleLoading || isLoading}
-                style={{ borderRadius: '8px', padding: '12px', background: '#fff', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', gap: '8px', cursor: 'pointer', transition: 'all 0.2s' }}
+                style={{ borderRadius: '8px', padding: '12px', background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', gap: '8px', cursor: 'pointer', transition: 'all 0.2s' }}
               >
                 <GoogleIcon />
                 {isGoogleLoading ? 'Redirecting...' : 'Sign in with Google'}

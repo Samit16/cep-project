@@ -45,7 +45,7 @@ async function createTestUser(username: string, password: string, role: 'member'
     .upsert({
       id: userId,
       role: role,
-      is_first_login: false, // Set to false so testing is direct
+      is_first_login: false,
     });
 
   if (profileError) {
@@ -60,5 +60,4 @@ async function run() {
   await createTestUser('committee123', 'committee123', 'committee');
   console.log('Test user creation finished.');
 }
-
 run();
