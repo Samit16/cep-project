@@ -36,10 +36,11 @@ export async function GET(request: NextRequest) {
     query = query.or('active.is.null,active.eq.true');
 
     if (name) {
-      const q = name.trim();
-
-      // Prefix search for a more natural typeahead experience.
-      query = query.or(`first_name.ilike.%${q}%,middle_name.ilike.%${q}%,last_name.ilike.%${q}%`);
+      // Sanitize to prevent PostgREST filter injection
+      const q = name.trim().replace(/[%_(),.]/g, '');
+      if (q.length > 0 && q.length <= 100) {
+        query = query.or(`first_name.ilike.%${q}%,middle_name.ilike.%${q}%,last_name.ilike.%${q}%`);
+      }
     }
     if (city) {
       query = query.eq('current_place', city);

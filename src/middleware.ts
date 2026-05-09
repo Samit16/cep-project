@@ -12,8 +12,8 @@ export function middleware(request: NextRequest) {
 
     // Stricter limit for auth endpoints (brute-force protection)
     const isAuthEndpoint = path.startsWith('/api/auth') || path === '/api/members/me';
-    const limit = isAuthEndpoint ? 20 : 60;
-    const windowMs = 60_000;
+    const limit = isAuthEndpoint ? 5 : 60;
+    const windowMs = isAuthEndpoint ? 15 * 60_000 : 60_000;
     const result = checkRateLimit(`api:${ip}:${isAuthEndpoint ? 'auth' : 'general'}`, limit, windowMs);
 
     if (!result.allowed) {
@@ -35,7 +35,7 @@ export function middleware(request: NextRequest) {
     return response;
   }
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  const projectId = supabaseUrl.match(/https:\/\/(.*?)\.supabase\.co/)?.[1] || 'uevmyvwbmxqreyukbvkq';
+  const projectId = supabaseUrl.match(/https:\/\/(.*?)\.supabase\.co/)?.[1] || '';
   const cookieName = `sb-${projectId}-auth-token`;
 
   const supabaseToken = request.cookies.get(cookieName)?.value;

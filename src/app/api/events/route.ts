@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { requireRole, createServerSupabase } from '@/lib/auth-server';
+import { sanitizeObject } from '@/lib/sanitize';
 
 function getPagination(searchParams: URLSearchParams) {
   const page = parseInt(searchParams.get('page') || '1', 10);
@@ -58,15 +59,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Event data is required.' }, { status: 400 });
     }
 
+    // Sanitize all string inputs to prevent stored XSS
+    const sanitized = sanitizeObject(data, ['title', 'description', 'location', 'time']);
+
     const supabase = createServerSupabase();
 
-    const combinedLocation = data.time ? `${data.location || ''}|${data.time}` : data.location;
+    const combinedLocation = sanitized.time ? `${sanitized.location || ''}|${sanitized.time}` : sanitized.location;
 
     const { data: event, error } = await supabase
       .from('events')
       .insert({
-        title: data.title,
-        description: data.description,
+        title: sanitized.title,
+        description: sanitized.description,
         date: data.date,
         location: combinedLocation,
         is_public: data.isPublic ?? data.is_public ?? true,

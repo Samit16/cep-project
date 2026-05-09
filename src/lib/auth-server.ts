@@ -2,8 +2,12 @@ import { createClient } from '@supabase/supabase-js';
 import { NextRequest } from 'next/server';
 
 export function createServerSupabase() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://uevmyvwbmxqreyukbvkq.supabase.co';
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVldm15dndibXhxcmV5dWtidmtxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTY4ODM1MiwiZXhwIjoyMDkxMjY0MzUyfQ.NcK5a5Er3hrErtEjJukMSqrGwaOf_JDnFCp_CWEGk9Y';
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !key) {
+    throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables.');
+  }
 
   return createClient(url, key, {
       auth: {
@@ -33,7 +37,7 @@ function extractToken(request: NextRequest): string | null {
   
   // Try cookie fallback for server actions/routes that might pass it
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  const projectId = supabaseUrl.match(/https:\/\/(.*?)\.supabase\.co/)?.[1] || 'uevmyvwbmxqreyukbvkq';
+  const projectId = supabaseUrl.match(/https:\/\/(.*?)\.supabase\.co/)?.[1] || '';
   const cookieName = `sb-${projectId}-auth-token`;
   
   const sbCookie = request.cookies.get(cookieName);

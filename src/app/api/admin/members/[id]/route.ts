@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { requireRole, createServerSupabase } from '@/lib/auth-server';
+import { sanitizeObject } from '@/lib/sanitize';
 
 export async function PUT(
   request: NextRequest,
@@ -66,9 +67,15 @@ export async function PUT(
 
     let member = null;
     if (Object.keys(memberData).length > 0) {
+      // Sanitize member input data
+      const sanitized = sanitizeObject(memberData, [
+        'first_name', 'middle_name', 'last_name', 'address', 'email',
+        'occupation', 'marital_status', 'current_place', 'kutch_town'
+      ]);
+
       const { data: updatedMember, error } = await supabase
         .from('members')
-        .update(memberData)
+        .update(sanitized)
         .eq('id', id)
         .select()
         .single();

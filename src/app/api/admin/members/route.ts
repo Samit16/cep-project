@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { requireRole, createServerSupabase } from '@/lib/auth-server';
+import { sanitizeObject } from '@/lib/sanitize';
 
 function getPagination(searchParams: URLSearchParams) {
   const page = parseInt(searchParams.get('page') || '1', 10);
@@ -30,15 +31,18 @@ export async function GET(request: NextRequest) {
       .range(skip, skip + take - 1);
 
     if (name) {
-      const q = name.trim();
-      const parts = q.split(/\s+/);
-      
-      if (parts.length > 1) {
-        const f = parts[0];
-        const l = parts.slice(1).join(' ');
-        query = query.or(`and(first_name.ilike.%${f}%,last_name.ilike.%${l}%),middle_name.ilike.%${q}%`);
-      } else {
-        query = query.or(`first_name.ilike.%${q}%,middle_name.ilike.%${q}%,last_name.ilike.%${q}%`);
+      // Sanitize to prevent PostgREST filter injection
+      const q = name.trim().replace(/[%_(),.]/g, '');
+      if (q.length > 0 && q.length <= 100) {
+        const parts = q.split(/\s+/);
+        
+        if (parts.length > 1) {
+          const f = parts[0];
+          const l = parts.slice(1).join(' ');
+          query = query.or(`and(first_name.ilike.%${f}%,last_name.ilike.%${l}%),middle_name.ilike.%${q}%`);
+        } else {
+          query = query.or(`first_name.ilike.%${q}%,middle_name.ilike.%${q}%,last_name.ilike.%${q}%`);
+        }
       }
     }
 
@@ -92,19 +96,25 @@ export async function POST(request: NextRequest) {
 
     const supabase = createServerSupabase();
 
+    // Sanitize member input data
+    const sanitized = sanitizeObject(data, [
+      'first_name', 'middle_name', 'last_name', 'address', 'email',
+      'occupation', 'marital_status', 'current_place', 'kutch_town'
+    ]);
+
     const { data: member, error } = await supabase
       .from('members')
       .insert({
-        first_name: data.first_name,
-        middle_name: data.middle_name,
-        last_name: data.last_name,
-        address: data.address,
+        first_name: sanitized.first_name,
+        middle_name: sanitized.middle_name,
+        last_name: sanitized.last_name,
+        address: sanitized.address,
         contact_numbers: data.contact_numbers || [],
-        email: data.email,
-        occupation: data.occupation,
-        marital_status: data.marital_status,
-        current_place: data.current_place,
-        kutch_town: data.kutch_town,
+        email: sanitized.email,
+        occupation: sanitized.occupation,
+        marital_status: sanitized.marital_status,
+        current_place: sanitized.current_place,
+        kutch_town: sanitized.kutch_town,
         family_members: data.family_members || [],
         is_alive: data.is_alive ?? true,
         active: data.active ?? true,

@@ -8,7 +8,7 @@ import { createClient } from '@supabase/supabase-js';
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
-    const expectedSecret = process.env.CRON_SECRET || 'development_secret';
+    const expectedSecret = process.env.CRON_SECRET;
     
     // Allow if we are in dev, or if the correct secret is provided
     if (process.env.NODE_ENV !== 'development' && authHeader !== `Bearer ${expectedSecret}`) {

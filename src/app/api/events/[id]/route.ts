@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { requireRole, createServerSupabase } from '@/lib/auth-server';
+import { sanitizeObject } from '@/lib/sanitize';
 
 export async function PUT(
   request: NextRequest,
@@ -19,13 +20,16 @@ export async function PUT(
       return NextResponse.json({ error: 'Update data is required.' }, { status: 400 });
     }
 
+    // Sanitize all string inputs to prevent stored XSS
+    const sanitized = sanitizeObject(data, ['title', 'description', 'location', 'time']);
+
     const supabase = createServerSupabase();
 
-    const updatePayload: any = { ...data };
-    if (data.location !== undefined || data.time !== undefined) {
+    const updatePayload: any = { ...sanitized };
+    if (sanitized.location !== undefined || sanitized.time !== undefined) {
       const parts = (updatePayload.location || '').split('|');
-      const baseLoc = data.location !== undefined ? data.location : parts[0];
-      const newTime = data.time !== undefined ? data.time : (parts[1] || '');
+      const baseLoc = sanitized.location !== undefined ? sanitized.location : parts[0];
+      const newTime = sanitized.time !== undefined ? sanitized.time : (parts[1] || '');
       updatePayload.location = newTime ? `${baseLoc}|${newTime}` : baseLoc;
       delete updatePayload.time; // prevent DB failure
     }
