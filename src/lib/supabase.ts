@@ -12,9 +12,12 @@ const projectId = supabaseUrl.match(/https:\/\/(.*?)\.supabase\.co/)?.[1] || 'mi
 export const SUPABASE_PROJECT_ID = projectId;
 export const SUPABASE_STORAGE_KEY = `sb-${projectId}-auth-token`;
 
+const validUrl = supabaseUrl.startsWith('http') ? supabaseUrl : 'https://missing.supabase.co';
+const validKey = supabaseAnonKey || 'missing-key';
+
 export const supabase = createClient(
-  supabaseUrl || 'https://missing.supabase.co',
-  supabaseAnonKey || 'missing-key',
+  validUrl,
+  validKey,
   {
     auth: {
       storage: typeof window !== 'undefined' ? window.sessionStorage : undefined,
