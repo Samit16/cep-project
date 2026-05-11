@@ -52,9 +52,18 @@ export default function ChangePasswordModal({ onClose }: ChangePasswordModalProp
     setError(null);
     try {
       // Use Supabase's built-in password reset which sends an OTP to the email
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(linkedEmail, {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      });
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timed out. Please try again.')), 8000)
+      );
+
+      const response = await Promise.race([
+        supabase.auth.resetPasswordForEmail(linkedEmail, {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        }),
+        timeoutPromise
+      ]) as any;
+
+      const { error: resetError } = response;
 
       if (resetError) {
         throw new Error(resetError.message);

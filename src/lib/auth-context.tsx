@@ -210,13 +210,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setSession(null);
     setProfile(null);
 
-    try {
-      await supabase.auth.signOut();
-    } catch (err) {
-      console.error('Logout error:', err);
-    }
-
-    // Clear all Supabase keys from both localStorage and sessionStorage
+    // Clear all Supabase keys from both localStorage and sessionStorage synchronously
     if (typeof window !== 'undefined') {
       Object.keys(localStorage)
         .filter(k => k.startsWith('sb-'))
@@ -238,7 +232,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     document.cookie = `${SUPABASE_STORAGE_KEY}=; expires=${pastDate}; path=/; samesite=lax`;
     document.cookie = `${SUPABASE_STORAGE_KEY}=; expires=${pastDate}; path=/`;
 
-    window.dispatchEvent(new Event('kjo_auth_change'));
+    // Dispatch event immediately
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('kjo_auth_change'));
+    }
+
+    // Call Supabase signOut with a timeout so it doesn't hang the UI
+    try {
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Sign out timeout')), 2000)
+      );
+      await Promise.race([supabase.auth.signOut(), timeoutPromise]);
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
   };
 
   // Determine the effective role and token

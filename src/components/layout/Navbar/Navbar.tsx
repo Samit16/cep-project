@@ -5,7 +5,7 @@ import { User, ChevronDown, Menu, X, Bell } from 'lucide-react';
 import styles from './Navbar.module.css';
 import { useAuth } from '@/lib/auth-context';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import LinkGooglePrompt from '@/components/auth/LinkGooglePrompt';
 import { useGsapNavbar, useGsapHover } from '@/hooks/useGsapAnimations';
 import ThemeToggle from '@/components/ui/ThemeToggle/ThemeToggle';
@@ -22,6 +22,7 @@ export default function Navbar({
   const navRef = useGsapNavbar<HTMLElement>();
   const { user, role, logout } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
   const [loginDropdownOpen, setLoginDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notificationDropdownOpen, setNotificationDropdownOpen] = useState(false);
@@ -57,7 +58,7 @@ export default function Navbar({
     if (!window.confirm('Are you sure you want to log out?')) return;
 
     await logout();
-    window.location.replace('/home');
+    router.replace('/home');
   };
 
   const links = [

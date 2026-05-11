@@ -49,7 +49,16 @@ export default function VerifyEmailModal({ onClose, onSuccess }: VerifyEmailModa
     setError(null);
     try {
       // Use Supabase updateUser to initiate an email change, which sends an OTP
-      const { error: updateError } = await supabase.auth.updateUser({ email });
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timed out after 25 seconds. If this persists, the email server may be misconfigured.')), 25000)
+      );
+      
+      const response = await Promise.race([
+        supabase.auth.updateUser({ email }, { emailRedirectTo: `${window.location.origin}/auth/callback` }),
+        timeoutPromise
+      ]) as any;
+      
+      const { error: updateError } = response;
 
       if (updateError) {
         throw new Error(updateError.message);
