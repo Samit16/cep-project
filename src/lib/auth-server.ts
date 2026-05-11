@@ -9,9 +9,12 @@ export function createServerSupabase() {
     console.warn('⚠️ Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables.');
   }
 
+  const validUrl = url.startsWith('http') ? url : 'https://missing.supabase.co';
+  const validKey = key || 'missing-key';
+
   return createClient(
-    url || 'https://missing.supabase.co',
-    key || 'missing-key',
+    validUrl,
+    validKey,
     {
       auth: {
         autoRefreshToken: false,
