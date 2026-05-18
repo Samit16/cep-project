@@ -158,6 +158,11 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
     if (pendingNotification) {
       handleDismissNotification();
     }
+    // If email is present but not verified, prompt them to verify it
+    if (updatedMember.email && !updatedMember.email_verified) {
+      setEmailModalMode('verify');
+      setIsVerifyEmailModalOpen(true);
+    }
   };
 
   const handlePrivacyChange = async (visibility: 'public' | 'private') => {
@@ -286,15 +291,9 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
                     </button>
                     <button 
                       onClick={() => { setEmailModalMode('verify'); setIsVerifyEmailModalOpen(true); setShowSettingsMenu(false); }}
-                      style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '10px 16px', textAlign: 'left', background: 'transparent', border: 'none', borderBottom: '1px solid var(--color-border-light)', cursor: 'pointer', fontSize: '0.875rem', color: 'var(--color-text-primary)' }}
-                    >
-                      <CheckCircle2 size={14} /> Verify Email
-                    </button>
-                    <button 
-                      onClick={() => { setEmailModalMode('change'); setIsVerifyEmailModalOpen(true); setShowSettingsMenu(false); }}
                       style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '10px 16px', textAlign: 'left', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.875rem', color: 'var(--color-text-primary)' }}
                     >
-                      <Mail size={14} /> Change Email
+                      <CheckCircle2 size={14} /> Verify Email
                     </button>
                   </div>
                 )}
@@ -431,9 +430,10 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
       {isVerifyEmailModalOpen && (
         <VerifyEmailModal
           mode={emailModalMode}
+          initialEmail={member?.email}
           onClose={() => setIsVerifyEmailModalOpen(false)}
           onSuccess={(newEmail) => {
-            setMember(prev => prev ? { ...prev, email: newEmail } : prev);
+            setMember(prev => prev ? { ...prev, email: newEmail, email_verified: true } : prev);
             setIsVerifyEmailModalOpen(false);
           }}
         />
