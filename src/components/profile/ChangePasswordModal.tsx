@@ -20,8 +20,8 @@ export default function ChangePasswordModal({ onClose }: ChangePasswordModalProp
   const googleIdentity = user?.identities?.find(i => i.provider === 'google');
   const linkedEmail = googleIdentity?.identity_data?.email || user?.email || '';
 
-  // Steps: 'check-email' | 'send-otp' | 'verify-otp' | 'success'
-  const [step, setStep] = useState<'check-email' | 'send-otp' | 'verify-otp' | 'success'>(
+  // Steps: 'check-email' | 'send-otp' | 'verify-otp' | 'set-password' | 'success'
+  const [step, setStep] = useState<'check-email' | 'send-otp' | 'verify-otp' | 'set-password' | 'success'>(
     hasGoogleLinked ? 'send-otp' : 'check-email'
   );
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -111,28 +111,16 @@ export default function ChangePasswordModal({ onClose }: ChangePasswordModalProp
     otpRefs.current[nextIndex]?.focus();
   };
 
-  const handleChangePassword = async () => {
+  const handleVerifyOtp = async () => {
     setError(null);
-
     const otpCode = otp.join('');
     if (otpCode.length !== 6) {
       setError('Please enter the complete 6-digit code');
       return;
     }
 
-    if (newPassword.length < 6) {
-      setError('Password must be at least 6 characters');
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
     setIsLoading(true);
     try {
-      // Verify OTP with Supabase
       const { error: verifyError } = await supabase.auth.verifyOtp({
         email: linkedEmail,
         token: otpCode,
@@ -143,7 +131,27 @@ export default function ChangePasswordModal({ onClose }: ChangePasswordModalProp
         throw new Error(verifyError.message || 'Invalid or expired code');
       }
 
-      // OTP is verified, now update the password
+      setStep('set-password');
+    } catch (err: unknown) {
+      setError((err as Error).message || 'Failed to verify code');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSetPassword = async () => {
+    setError(null);
+    if (newPassword.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
       const { error: updateError } = await supabase.auth.updateUser({
         password: newPassword,
       });
@@ -259,13 +267,13 @@ export default function ChangePasswordModal({ onClose }: ChangePasswordModalProp
             </>
           )}
 
-          {/* Step: Verify OTP and set new password */}
+          {/* Step: Verify OTP */}
           {step === 'verify-otp' && (
             <>
               <div className={`${styles.iconContainer} ${styles.iconContainerPrimary}`}>
                 <Lock size={28} />
               </div>
-              <h3 className={styles.stepTitle}>Enter Code & New Password</h3>
+              <h3 className={styles.stepTitle}>Enter Verification Code</h3>
               <p className={styles.stepDescription}>
                 Enter the 6-digit code sent to <strong>{linkedEmail}</strong>
               </p>
@@ -288,6 +296,39 @@ export default function ChangePasswordModal({ onClose }: ChangePasswordModalProp
                 ))}
               </div>
 
+              <button
+                className={styles.primaryBtn}
+                onClick={handleVerifyOtp}
+                disabled={isLoading || !otpComplete}
+              >
+                <Lock size={16} />
+                {isLoading ? 'Verifying...' : 'Verify Code'}
+              </button>
+
+              {/* Resend OTP */}
+              <div className={styles.resendRow}>
+                <button
+                  className={styles.resendBtn}
+                  onClick={handleSendOtp}
+                  disabled={resendCooldown > 0 || isLoading}
+                >
+                  {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend Code'}
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* Step: Set New Password */}
+          {step === 'set-password' && (
+            <>
+              <div className={`${styles.iconContainer} ${styles.iconContainerPrimary}`}>
+                <KeyRound size={28} />
+              </div>
+              <h3 className={styles.stepTitle}>Set New Password</h3>
+              <p className={styles.stepDescription}>
+                Please enter your new password below.
+              </p>
+
               {/* New Password */}
               <div className={styles.formGroup}>
                 <label className={styles.label}>New Password</label>
@@ -297,6 +338,7 @@ export default function ChangePasswordModal({ onClose }: ChangePasswordModalProp
                   placeholder="Minimum 6 characters"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
+                  autoFocus
                 />
                 {newPassword.length > 0 && newPassword.length < 6 && (
                   <span className={`${styles.passwordHint} ${styles.passwordMismatch}`}>
@@ -324,23 +366,12 @@ export default function ChangePasswordModal({ onClose }: ChangePasswordModalProp
 
               <button
                 className={styles.primaryBtn}
-                onClick={handleChangePassword}
+                onClick={handleSetPassword}
                 disabled={isLoading || !canSubmit}
               >
                 <Lock size={16} />
-                {isLoading ? 'Changing Password...' : 'Change Password'}
+                {isLoading ? 'Updating...' : 'Update Password'}
               </button>
-
-              {/* Resend OTP */}
-              <div className={styles.resendRow}>
-                <button
-                  className={styles.resendBtn}
-                  onClick={handleSendOtp}
-                  disabled={resendCooldown > 0 || isLoading}
-                >
-                  {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend Code'}
-                </button>
-              </div>
             </>
           )}
 
