@@ -7,17 +7,21 @@ import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { ApiClient } from '@/lib/api';
 
+import { useAuth } from '@/lib/auth-context';
+
 interface VerifyEmailModalProps {
+  mode: 'verify' | 'change';
   onClose: () => void;
   onSuccess: (newEmail: string) => void;
 }
 
-export default function VerifyEmailModal({ onClose, onSuccess }: VerifyEmailModalProps) {
+export default function VerifyEmailModal({ mode, onClose, onSuccess }: VerifyEmailModalProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
 
   // Steps: 'enter-email' | 'verify-otp' | 'success'
-  const [step, setStep] = useState<'enter-email' | 'verify-otp' | 'success'>('enter-email');
-  const [email, setEmail] = useState('');
+  const [step, setStep] = useState<'enter-email' | 'verify-otp' | 'success'>(mode === 'verify' ? 'enter-email' : 'enter-email');
+  const [email, setEmail] = useState(mode === 'verify' ? (user?.email || '') : '');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,19 +52,28 @@ export default function VerifyEmailModal({ onClose, onSuccess }: VerifyEmailModa
     setIsLoading(true);
     setError(null);
     try {
-      // Use Supabase updateUser to initiate an email change, which sends an OTP
+      // Use Supabase updateUser or resend based on mode
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Request timed out after 25 seconds. If this persists, the email server may be misconfigured.')), 25000)
+        setTimeout(() => reject(new Error('Request timed out after 15 seconds. The email might still be sending in the background.')), 15000)
       );
       
+      const apiCall = mode === 'change' 
+        ? supabase.auth.updateUser({ email }, { emailRedirectTo: `${window.location.origin}/auth/callback` })
+        : supabase.auth.resend({ type: 'signup', email });
+
       const response = await Promise.race([
-        supabase.auth.updateUser({ email }, { emailRedirectTo: `${window.location.origin}/auth/callback` }),
+        apiCall,
         timeoutPromise
-      ]) as any;
+      ]) as { error: { message: string } | null };
       
       const { error: updateError } = response;
 
       if (updateError) {
+        if (updateError.message.includes('already confirmed')) {
+          toast('Your email is already verified!', 'success');
+          onSuccess(email);
+          return;
+        }
         throw new Error(updateError.message);
       }
 
@@ -72,7 +85,7 @@ export default function VerifyEmailModal({ onClose, onSuccess }: VerifyEmailModa
     } finally {
       setIsLoading(false);
     }
-  }, [email, toast]);
+  }, [email, toast, mode, onSuccess]);
 
   const handleOtpChange = (index: number, value: string) => {
     const digit = value.replace(/\D/g, '').slice(-1);
@@ -114,11 +127,11 @@ export default function VerifyEmailModal({ onClose, onSuccess }: VerifyEmailModa
 
     setIsLoading(true);
     try {
-      // Verify OTP with Supabase for email change
+      // Verify OTP with Supabase
       const { error: verifyError } = await supabase.auth.verifyOtp({
         email,
         token: otpCode,
-        type: 'email_change',
+        type: mode === 'change' ? 'email_change' : 'signup',
       });
 
       if (verifyError) {
@@ -171,9 +184,13 @@ export default function VerifyEmailModal({ onClose, onSuccess }: VerifyEmailModa
               <div className={`${styles.iconContainer} ${styles.iconContainerPrimary}`}>
                 <LinkIcon size={28} />
               </div>
-              <h3 className={styles.stepTitle}>Enter Your Email</h3>
+              <h3 className={styles.stepTitle}>
+                {mode === 'change' ? 'Enter Your New Email' : 'Verify Current Email'}
+              </h3>
               <p className={styles.stepDescription}>
-                Enter the email address you want to link to your profile. We will send a 6-digit code to verify it.
+                {mode === 'change' 
+                  ? 'Enter the email address you want to link to your profile. We will send a 6-digit code to verify it.'
+                  : 'We will send a 6-digit verification code to your current email address to verify it.'}
               </p>
 
               <div className={styles.formGroup}>
@@ -184,7 +201,9 @@ export default function VerifyEmailModal({ onClose, onSuccess }: VerifyEmailModa
                   placeholder="e.g. name@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  autoFocus
+                  readOnly={mode === 'verify'}
+                  autoFocus={mode === 'change'}
+                  style={mode === 'verify' ? { backgroundColor: 'var(--color-bg-section-alt)', color: 'var(--color-text-muted)' } : {}}
                 />
               </div>
 

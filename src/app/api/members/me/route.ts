@@ -96,6 +96,12 @@ export async function GET(request: NextRequest) {
     const middleName = member.middle_name || '';
     const lastName = member.last_name || '';
 
+    // Auto-sync email verification status from Supabase Auth
+    if (user.email_confirmed_at && !member.email_verified && user.email === member.email) {
+      member.email_verified = true;
+      await supabase.from('members').update({ email_verified: true }).eq('id', memberId);
+    }
+
     // Remove default email before returning
     if (member.email && member.email.includes('@kvonagpur.com')) {
       member.email = '';
@@ -145,6 +151,17 @@ export async function PUT(request: NextRequest) {
 
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json({ error: 'No valid fields provided.' }, { status: 400 });
+    }
+
+    // Auto-sync email verification status from Supabase Auth
+    if (user.email_confirmed_at) {
+      // If they are explicitly updating the email to match their verified Auth email, set verified to true
+      if (updateData['email'] && updateData['email'] === user.email) {
+        updateData['email_verified'] = true;
+      } else if (!updateData['email']) {
+        // Just a regular profile update, sync the flag if it's not present
+        updateData['email_verified'] = true;
+      }
     }
 
     // Sanitize all string fields to strip HTML tags (XSS prevention)

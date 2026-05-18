@@ -8,6 +8,7 @@ export interface Member {
   middle_name?: string;
   last_name?: string;
   email: string;
+  email_verified?: boolean;
   phone?: string;
   contact_no?: string;
   contact_numbers?: string[];

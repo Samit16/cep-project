@@ -43,6 +43,7 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
   const [pendingNotification, setPendingNotification] = useState<any>(null);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [isVerifyEmailModalOpen, setIsVerifyEmailModalOpen] = useState(false);
+  const [emailModalMode, setEmailModalMode] = useState<'verify' | 'change'>('verify');
   
   const { profile, role, logout } = useAuth();
   const { toast } = useToast();
@@ -102,9 +103,12 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
     
     async function checkNotifications() {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const data = await ApiClient.get<any>('/members/me/notifications');
-        const profileUpdateNotif = data.notifications?.find((n: any) => n.type === 'profile_update' && !n.is_read);
+        interface Notification {
+          type: string;
+          is_read: boolean;
+        }
+        const data = await ApiClient.get<{ notifications: Notification[] }>('/members/me/notifications');
+        const profileUpdateNotif = data.notifications?.find(n => n.type === 'profile_update' && !n.is_read);
         if (profileUpdateNotif) {
           setPendingNotification(profileUpdateNotif);
         }
@@ -164,7 +168,7 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
       setMember(prev => prev ? { ...prev, contact_visibility: visibility } : prev);
       toast(`Profile is now ${visibility}`, 'success');
       setShowSettingsMenu(false);
-    } catch (err) {
+    } catch {
       toast('Failed to update privacy settings', 'error');
     }
   };
@@ -281,10 +285,16 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
                       <KeyRound size={14} /> Change Password
                     </button>
                     <button 
-                      onClick={() => { setIsVerifyEmailModalOpen(true); setShowSettingsMenu(false); }}
+                      onClick={() => { setEmailModalMode('verify'); setIsVerifyEmailModalOpen(true); setShowSettingsMenu(false); }}
+                      style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '10px 16px', textAlign: 'left', background: 'transparent', border: 'none', borderBottom: '1px solid var(--color-border-light)', cursor: 'pointer', fontSize: '0.875rem', color: 'var(--color-text-primary)' }}
+                    >
+                      <CheckCircle2 size={14} /> Verify Email
+                    </button>
+                    <button 
+                      onClick={() => { setEmailModalMode('change'); setIsVerifyEmailModalOpen(true); setShowSettingsMenu(false); }}
                       style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '10px 16px', textAlign: 'left', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.875rem', color: 'var(--color-text-primary)' }}
                     >
-                      <Mail size={14} /> Verify Email
+                      <Mail size={14} /> Change Email
                     </button>
                   </div>
                 )}
@@ -346,7 +356,14 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
           <Mail size={18} className={styles.contactIcon} />
           <div>
             <div className={styles.contactLabel}>Email Address</div>
-            <div className={styles.contactValue}>{member.email || 'Not available'}</div>
+            <div className={styles.contactValue} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {member.email || 'Not available'}
+              {member.email_verified && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: '#16a34a', backgroundColor: '#dcfce7', padding: '2px 6px', borderRadius: '12px', fontWeight: 'bold' }}>
+                  <CheckCircle2 size={12} /> Verified
+                </span>
+              )}
+            </div>
           </div>
         </div>
         <div className={styles.contactRow}>
@@ -413,6 +430,7 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
 
       {isVerifyEmailModalOpen && (
         <VerifyEmailModal
+          mode={emailModalMode}
           onClose={() => setIsVerifyEmailModalOpen(false)}
           onSuccess={(newEmail) => {
             setMember(prev => prev ? { ...prev, email: newEmail } : prev);

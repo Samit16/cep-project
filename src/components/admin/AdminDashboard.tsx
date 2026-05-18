@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { 
   LayoutDashboard, Users, Calendar, LogOut, 
   Search, Download, UserPlus, TrendingUp, ClipboardList, 
-  ShieldCheck, Pencil, MoreVertical, User, Plus, Trash2, X, MapPin, Activity
+  ShieldCheck, Pencil, MoreVertical, User, Plus, Trash2, X, MapPin, Activity, CheckCircle2
 } from 'lucide-react';
 import styles from './AdminDashboard.module.css';
 import Footer from '@/components/layout/Footer/Footer';
@@ -28,6 +28,7 @@ interface MemberAdmin {
   last_name?: string;
   contact_no?: string;
   email: string;
+  email_verified?: boolean;
   occupation?: string;
   current_place?: string;
   active: boolean;
@@ -588,7 +589,10 @@ export default function AdminDashboard() {
                         {member.role === 'committee' && <span className={styles.professionBadge} style={{marginLeft: '8px', backgroundColor: 'var(--color-primary-lightest)', color: 'var(--color-primary)'}}>Committee</span>}
                         {member.role === 'admin' && <span className={styles.professionBadge} style={{marginLeft: '8px', backgroundColor: 'var(--color-primary-lightest)', color: 'var(--color-primary-dark)'}}>Admin</span>}
                       </div>
-                      <div className={styles.memberCellEmail}>{member.email}</div>
+                      <div className={styles.memberCellEmail} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        {member.email}
+                        {member.email_verified && <CheckCircle2 size={12} color="#16a34a" />}
+                      </div>
                     </div>
                   </div>
                   <div className={styles.tableCell}>
