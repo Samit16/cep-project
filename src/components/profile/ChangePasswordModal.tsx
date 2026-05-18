@@ -125,20 +125,29 @@ export default function ChangePasswordModal({ onClose }: ChangePasswordModalProp
         setTimeout(() => reject(new Error('Verification timed out. Please try again.')), 15000)
       );
 
-      const response = await Promise.race([
-        supabase.auth.verifyOtp({
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+      const verifyRequest = fetch(`${supabaseUrl}/auth/v1/verify`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': anonKey || '',
+        },
+        body: JSON.stringify({
+          type: 'recovery',
           email: linkedEmail,
           token: otpCode,
-          type: 'recovery',
         }),
-        timeoutPromise
-      ]) as { error: { message: string } | null };
+      }).then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.message || data.msg || 'Invalid or expired code');
+        }
+        return data;
+      });
 
-      const { error: verifyError } = response;
-
-      if (verifyError) {
-        throw new Error(verifyError.message || 'Invalid or expired code');
-      }
+      await Promise.race([verifyRequest, timeoutPromise]);
 
       setStep('set-password');
     } catch (err: unknown) {
