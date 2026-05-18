@@ -175,6 +175,26 @@ export async function PUT(request: NextRequest) {
 
     const supabase = createServerSupabase();
 
+    // If user is updating their email, also update it in Supabase Auth
+    // and trigger a verification email. This is the KEY step that makes the
+    // email system work: saving from Edit Profile updates both the members
+    // table AND the auth.users table.
+    const newEmail = sanitizedData['email'];
+    const currentAuthEmail = user.email || '';
+    if (newEmail && newEmail !== currentAuthEmail && !newEmail.includes('@kvonagpur.com')) {
+      const { error: authUpdateError } = await supabase.auth.admin.updateUserById(user.id, {
+        email: newEmail,
+        email_confirm: false, // Keep unconfirmed so they must verify via OTP
+      });
+      if (authUpdateError) {
+        console.error('Failed to update auth email:', authUpdateError.message);
+        // Do NOT block the member table update — still save the email in members table
+        // The mandatory prompt will ask them to verify it on next login
+      }
+      // Mark as unverified since the auth email just changed
+      sanitizedData['email_verified'] = false;
+    }
+
     const { data: updatedMember, error } = await supabase
       .from('members')
       .update(sanitizedData)
@@ -212,7 +232,7 @@ export async function PUT(request: NextRequest) {
     const middleName = updatedMember.middle_name || '';
     const lastName = updatedMember.last_name || '';
 
-    // Remove default email before returning
+    // Strip dummy email before returning to client
     if (updatedMember.email && updatedMember.email.includes('@kvonagpur.com')) {
       updatedMember.email = '';
     }
@@ -222,7 +242,7 @@ export async function PUT(request: NextRequest) {
       name: `${firstName} ${middleName} ${lastName}`.replace(/\s+/g, ' ').trim(),
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in PUT /api/members/me:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

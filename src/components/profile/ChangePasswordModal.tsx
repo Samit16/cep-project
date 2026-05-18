@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Mail, Lock, CheckCircle2, AlertTriangle, Send, KeyRound, LinkIcon } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Mail, Lock, CheckCircle2, AlertTriangle, Send, KeyRound } from 'lucide-react';
 import styles from './ChangePasswordModal.module.css';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
@@ -12,18 +12,11 @@ interface ChangePasswordModalProps {
 }
 
 export default function ChangePasswordModal({ onClose }: ChangePasswordModalProps) {
-  const { user, signInWithGoogle } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
 
-  // Check if user has a linked Google identity (real email)
-  const hasGoogleLinked = user?.identities?.some(i => i.provider === 'google');
-  const googleIdentity = user?.identities?.find(i => i.provider === 'google');
-  const linkedEmail = googleIdentity?.identity_data?.email || user?.email || '';
-
-  // Steps: 'check-email' | 'send-otp' | 'verify-otp' | 'set-password' | 'success'
-  const [step, setStep] = useState<'check-email' | 'send-otp' | 'verify-otp' | 'set-password' | 'success'>(
-    hasGoogleLinked ? 'send-otp' : 'check-email'
-  );
+  // Steps: 'send-otp' | 'verify-otp' | 'set-password' | 'success'
+  const [step, setStep] = useState<'send-otp' | 'verify-otp' | 'set-password' | 'success'>('send-otp');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -47,46 +40,38 @@ export default function ChangePasswordModal({ onClose }: ChangePasswordModalProp
     return () => clearTimeout(timer);
   }, [resendCooldown]);
 
-  const handleSendOtp = useCallback(async () => {
+  // Step 1: Send OTP to the user's verified email
+  const handleSendOtp = async () => {
+    if (!user?.email) {
+      setError('No email address linked to your account. Please verify your email first.');
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
     try {
-      // Use Supabase's built-in password reset which sends an OTP to the email
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Request timed out. Please try again.')), 8000)
-      );
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(user.email, {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      });
 
-      const response = await Promise.race([
-        supabase.auth.resetPasswordForEmail(linkedEmail, {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        }),
-        timeoutPromise
-      ]) as any;
-
-      const { error: resetError } = response;
-
-      if (resetError) {
-        throw new Error(resetError.message);
-      }
+      if (resetError) throw new Error(resetError.message);
 
       setStep('verify-otp');
       setResendCooldown(60);
-      toast('Verification code sent to your email!', 'success');
+      toast('Verification code sent to ' + user.email, 'success');
     } catch (err: unknown) {
-      setError((err as Error).message || 'Failed to send verification code');
+      setError((err as Error).message || 'Failed to send verification code.');
     } finally {
       setIsLoading(false);
     }
-  }, [linkedEmail, toast]);
+  };
 
+  // OTP input handlers
   const handleOtpChange = (index: number, value: string) => {
-    // Only allow digits
     const digit = value.replace(/\D/g, '').slice(-1);
     const newOtp = [...otp];
     newOtp[index] = digit;
     setOtp(newOtp);
-
-    // Auto-focus next input
     if (digit && index < 5) {
       otpRefs.current[index + 1]?.focus();
     }
@@ -106,111 +91,77 @@ export default function ChangePasswordModal({ onClose }: ChangePasswordModalProp
       newOtp[i] = pastedData[i];
     }
     setOtp(newOtp);
-    // Focus last filled input or the next empty one
     const nextIndex = Math.min(pastedData.length, 5);
     otpRefs.current[nextIndex]?.focus();
   };
 
+  // Step 2: Verify OTP
   const handleVerifyOtp = async () => {
-    setError(null);
     const otpCode = otp.join('');
     if (otpCode.length !== 6) {
-      setError('Please enter the complete 6-digit code');
+      setError('Please enter the full 6-digit code.');
       return;
     }
 
     setIsLoading(true);
+    setError(null);
     try {
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Verification timed out. Please try again.')), 15000)
-      );
-
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-      const verifyRequest = fetch(`${supabaseUrl}/auth/v1/verify`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': anonKey || '',
-        },
-        body: JSON.stringify({
-          type: 'recovery',
-          email: linkedEmail,
-          token: otpCode,
-        }),
-      }).then(async (res) => {
-        const data = await res.json();
-        if (!res.ok) {
-          throw new Error(data.message || data.msg || 'Invalid or expired code');
-        }
-        return data;
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        email: user?.email || '',
+        token: otpCode,
+        type: 'recovery',
       });
 
-      await Promise.race([verifyRequest, timeoutPromise]);
+      if (verifyError) throw new Error(verifyError.message);
 
       setStep('set-password');
+      toast('Identity verified!', 'success');
     } catch (err: unknown) {
-      setError((err as Error).message || 'Failed to verify code');
+      const msg = (err as Error).message || '';
+      if (msg.toLowerCase().includes('expired') || msg.toLowerCase().includes('invalid')) {
+        setError('Code is incorrect or expired. Please request a new one.');
+      } else {
+        setError(msg || 'Verification failed.');
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Step 3: Set new password
   const handleSetPassword = async () => {
     setError(null);
     if (newPassword.length < 6) {
-      setError('Password must be at least 6 characters');
+      setError('Password must be at least 6 characters.');
       return;
     }
     if (newPassword !== confirmPassword) {
-      setError('Passwords do not match');
+      setError('Passwords do not match.');
       return;
     }
 
     setIsLoading(true);
     try {
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Update timed out. Please try again.')), 15000)
-      );
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
 
-      const response = await Promise.race([
-        supabase.auth.updateUser({
-          password: newPassword,
-        }),
-        timeoutPromise
-      ]) as { error: { message: string } | null };
-
-      const { error: updateError } = response;
-
-      if (updateError) {
-        throw new Error(updateError.message || 'Failed to update password');
-      }
+      if (updateError) throw new Error(updateError.message);
 
       setStep('success');
       toast('Password changed successfully!', 'success');
     } catch (err: unknown) {
-      setError((err as Error).message || 'Failed to change password');
+      setError((err as Error).message || 'Failed to change password.');
     } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleLinkGoogle = async () => {
-    setIsLoading(true);
-    try {
-      await signInWithGoogle();
-    } catch (err: unknown) {
-      toast((err as Error).message || 'Failed to start Google linking', 'error');
       setIsLoading(false);
     }
   };
 
   const otpComplete = otp.every(d => d !== '');
   const passwordsMatch = newPassword.length > 0 && newPassword === confirmPassword;
-  const canSubmit = otpComplete && newPassword.length >= 6 && passwordsMatch;
+  const canSubmit = newPassword.length >= 6 && passwordsMatch;
 
-  const currentStepIndex = step === 'check-email' ? 0 : step === 'send-otp' ? 0 : step === 'verify-otp' ? 1 : 2;
+  const currentStepIndex = step === 'send-otp' ? 0 : step === 'verify-otp' ? 1 : step === 'set-password' ? 2 : 3;
 
   return (
     <div className={styles.modalOverlay} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
@@ -224,13 +175,11 @@ export default function ChangePasswordModal({ onClose }: ChangePasswordModalProp
 
         <div className={styles.modalBody}>
           {/* Step indicator */}
-          {step !== 'check-email' && (
-            <div className={styles.stepIndicator}>
-              <div className={`${styles.stepDot} ${currentStepIndex >= 0 ? styles.stepDotActive : ''} ${currentStepIndex > 0 ? styles.stepDotCompleted : ''}`} />
-              <div className={`${styles.stepDot} ${currentStepIndex >= 1 ? styles.stepDotActive : ''} ${currentStepIndex > 1 ? styles.stepDotCompleted : ''}`} />
-              <div className={`${styles.stepDot} ${currentStepIndex >= 2 ? styles.stepDotActive : ''}`} />
-            </div>
-          )}
+          <div className={styles.stepIndicator}>
+            <div className={`${styles.stepDot} ${currentStepIndex >= 0 ? styles.stepDotActive : ''} ${currentStepIndex > 0 ? styles.stepDotCompleted : ''}`} />
+            <div className={`${styles.stepDot} ${currentStepIndex >= 1 ? styles.stepDotActive : ''} ${currentStepIndex > 1 ? styles.stepDotCompleted : ''}`} />
+            <div className={`${styles.stepDot} ${currentStepIndex >= 2 ? styles.stepDotActive : ''} ${currentStepIndex > 2 ? styles.stepDotCompleted : ''}`} />
+          </div>
 
           {error && (
             <div className={styles.errorMsg}>
@@ -239,46 +188,23 @@ export default function ChangePasswordModal({ onClose }: ChangePasswordModalProp
             </div>
           )}
 
-          {/* Step: No email linked */}
-          {step === 'check-email' && (
-            <>
-              <div className={`${styles.iconContainer} ${styles.iconContainerWarning}`}>
-                <LinkIcon size={28} />
-              </div>
-              <h3 className={styles.stepTitle}>Link Your Email First</h3>
-              <p className={styles.stepDescription}>
-                To change your password, you need a linked Google email where we can send a verification code.
-                Please link your Google account first.
-              </p>
-              <button
-                className={styles.primaryBtn}
-                onClick={handleLinkGoogle}
-                disabled={isLoading}
-              >
-                <Mail size={16} />
-                {isLoading ? 'Redirecting...' : 'Link Google Account'}
-              </button>
-              <button className={styles.secondaryBtn} onClick={onClose}>
-                Cancel
-              </button>
-            </>
-          )}
-
           {/* Step: Send OTP */}
           {step === 'send-otp' && (
             <>
               <div className={`${styles.iconContainer} ${styles.iconContainerPrimary}`}>
-                <KeyRound size={28} />
+                <Mail size={28} />
               </div>
               <h3 className={styles.stepTitle}>Verify Your Identity</h3>
               <p className={styles.stepDescription}>
-                We&apos;ll send a 6-digit verification code to your linked email address to confirm it&apos;s you.
+                For security, we&apos;ll send a verification code to your email before allowing a password change.
               </p>
 
-              <div className={styles.emailDisplay}>
-                <Mail size={18} className={styles.emailIcon} />
-                <span className={styles.emailText}>{linkedEmail}</span>
-              </div>
+              {user?.email && (
+                <div className={styles.emailDisplay}>
+                  <Mail size={16} className={styles.emailIcon} />
+                  <span className={styles.emailText}>{user.email}</span>
+                </div>
+              )}
 
               <button
                 className={styles.primaryBtn}
@@ -286,7 +212,7 @@ export default function ChangePasswordModal({ onClose }: ChangePasswordModalProp
                 disabled={isLoading}
               >
                 <Send size={16} />
-                {isLoading ? 'Sending...' : 'Send Verification Code'}
+                {isLoading ? 'Sending Code...' : 'Send Verification Code'}
               </button>
               <button className={styles.secondaryBtn} onClick={onClose}>
                 Cancel
@@ -302,10 +228,9 @@ export default function ChangePasswordModal({ onClose }: ChangePasswordModalProp
               </div>
               <h3 className={styles.stepTitle}>Enter Verification Code</h3>
               <p className={styles.stepDescription}>
-                Enter the 6-digit code sent to <strong>{linkedEmail}</strong>
+                Enter the 6-digit code sent to <strong>{user?.email}</strong>
               </p>
 
-              {/* OTP Input */}
               <div className={styles.otpContainer} onPaste={handleOtpPaste}>
                 {otp.map((digit, index) => (
                   <input
@@ -328,11 +253,10 @@ export default function ChangePasswordModal({ onClose }: ChangePasswordModalProp
                 onClick={handleVerifyOtp}
                 disabled={isLoading || !otpComplete}
               >
-                <Lock size={16} />
+                <CheckCircle2 size={16} />
                 {isLoading ? 'Verifying...' : 'Verify Code'}
               </button>
 
-              {/* Resend OTP */}
               <div className={styles.resendRow}>
                 <button
                   className={styles.resendBtn}
@@ -353,10 +277,9 @@ export default function ChangePasswordModal({ onClose }: ChangePasswordModalProp
               </div>
               <h3 className={styles.stepTitle}>Set New Password</h3>
               <p className={styles.stepDescription}>
-                Please enter your new password below.
+                Your identity has been verified. Please enter your new password below.
               </p>
 
-              {/* New Password */}
               <div className={styles.formGroup}>
                 <label className={styles.label}>New Password</label>
                 <input
@@ -374,7 +297,6 @@ export default function ChangePasswordModal({ onClose }: ChangePasswordModalProp
                 )}
               </div>
 
-              {/* Confirm Password */}
               <div className={styles.formGroup}>
                 <label className={styles.label}>Confirm Password</label>
                 <input

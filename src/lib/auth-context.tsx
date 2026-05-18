@@ -102,34 +102,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Listen for Supabase auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
+      (event, newSession) => {
         setSession(newSession);
 
         if (newSession?.user) {
           // Set cookie for middleware
           document.cookie = `${SUPABASE_STORAGE_KEY}=${newSession.access_token}; path=/; max-age=${newSession.expires_in || 3600}; samesite=lax`;
-          const fetchedProfile = await fetchProfile(newSession.user.id, newSession.user.email);
           
-          if (fetchedProfile) {
-            const provider = newSession.user.app_metadata?.provider || 'email';
-            if (provider === 'google' && fetchedProfile.is_first_login) {
-              // Reject direct OAuth login if it is their first login
-              alert('Please login with your Member Username and Password first to verify your account. You can link Google afterwards.');
-              await supabase.auth.signOut();
-              
-              setSession(null);
-              setProfile(null);
-              setIsLoading(false);
-              return;
+          fetchProfile(newSession.user.id, newSession.user.email).then(fetchedProfile => {
+            if (fetchedProfile) {
+              const provider = newSession.user.app_metadata?.provider || 'email';
+              if (provider === 'google' && fetchedProfile.is_first_login) {
+                // Reject direct OAuth login if it is their first login
+                alert('Please login with your Member Username and Password first to verify your account. You can link Google afterwards.');
+                supabase.auth.signOut().then(() => {
+                  setSession(null);
+                  setProfile(null);
+                  setIsLoading(false);
+                });
+                return;
+              }
             }
-          }
+            setIsLoading(false);
+          });
         } else {
           setProfile(null);
           // Clear cookie for middleware
           document.cookie = `${SUPABASE_STORAGE_KEY}=; path=/; max-age=0;`;
+          setIsLoading(false);
         }
-
-        setIsLoading(false);
       }
     );
 
@@ -157,26 +158,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   // Sign in with email/password
-  const signInWithEmail = async (email: string, password: string, expectedTab?: 'member' | 'committee') => {
-    const { data: authData, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+  const signInWithEmail = async (emailOrUsername: string, password: string, expectedTab?: 'member' | 'committee') => {
+    setIsLoading(true);
+    try {
+      // 1. Call our secure backend resolver which handles the dummy email logic
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: emailOrUsername, password }),
+      });
 
-    if (error) {
-      throw new Error(error.message);
-    }
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Invalid credentials');
+      }
 
-    if (authData.user) {
-      // Mark that they have successfully logged in with username/password
-      await supabase.from('profiles').update({ is_first_login: false }).eq('id', authData.user.id);
+      // 2. Hydrate the client-side session using the session returned by the server
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token,
+      });
 
-      if (expectedTab) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', authData.user.id)
-          .single();
+      if (sessionError) throw sessionError;
+
+      // 3. The onAuthStateChange listener will now trigger and fetch the profile.
+      // We manually fetch the profile here to ensure we have it immediately for role checking.
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.session.user.id)
+        .single();
         
         if (profile) {
           const userRole = profile.role;
@@ -187,9 +198,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           if (expectedTab === 'member' && (userRole === 'admin' || userRole === 'committee')) {
             await supabase.auth.signOut();
             throw new Error("You are a committee member. Please log in via Committee Login.");
-          }
         }
       }
+    } catch (err: unknown) {
+      setIsLoading(false);
+      throw new Error((err as Error).message || 'Login failed');
+    } finally {
+      setIsLoading(false);
     }
   };
 

@@ -6,7 +6,7 @@ import styles from './Navbar.module.css';
 import { useAuth } from '@/lib/auth-context';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import LinkGooglePrompt from '@/components/auth/LinkGooglePrompt';
+import MandatoryEmailPrompt from '@/components/auth/MandatoryEmailPrompt';
 import { useGsapNavbar, useGsapHover } from '@/hooks/useGsapAnimations';
 import ThemeToggle from '@/components/ui/ThemeToggle/ThemeToggle';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -260,7 +260,7 @@ export default function Navbar({
           )}
         </div>
       </div>
-      <LinkGooglePrompt />
+      <MandatoryEmailPrompt />
     </nav>
   );
 }

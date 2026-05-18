@@ -25,6 +25,7 @@ export default function ProfileUpdateModal({ member, onClose, onUpdated, mode = 
     kutch_town: member.kutch_town || '',
     nukh: member.nukh || '',
     birthplace: member.birthplace || '',
+    email: member.email || '',
     contact_no: member.contact_no || (member.contact_numbers?.length ? member.contact_numbers[0] : ''),
     relations: member.relations || [],
   });
@@ -221,6 +222,18 @@ export default function ProfileUpdateModal({ member, onClose, onUpdated, mode = 
               value={formData.birthplace}
               onChange={handleChange}
               placeholder="e.g. Nagpur"
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Email Address</label>
+            <input 
+              type="email" 
+              name="email"
+              className={styles.input} 
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="e.g. name@example.com"
             />
           </div>
 

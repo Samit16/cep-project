@@ -11,17 +11,18 @@ import { useAuth } from '@/lib/auth-context';
 
 interface VerifyEmailModalProps {
   mode: 'verify' | 'change';
+  initialEmail?: string;
   onClose: () => void;
   onSuccess: (newEmail: string) => void;
 }
 
-export default function VerifyEmailModal({ mode, onClose, onSuccess }: VerifyEmailModalProps) {
+export default function VerifyEmailModal({ mode, initialEmail, onClose, onSuccess }: VerifyEmailModalProps) {
   const { toast } = useToast();
   const { user } = useAuth();
 
   // Steps: 'enter-email' | 'verify-otp' | 'success'
-  const [step, setStep] = useState<'enter-email' | 'verify-otp' | 'success'>(mode === 'verify' ? 'enter-email' : 'enter-email');
-  const [email, setEmail] = useState(mode === 'verify' ? (user?.email || '') : '');
+  const [step, setStep] = useState<'enter-email' | 'verify-otp' | 'success'>('enter-email');
+  const [email, setEmail] = useState(initialEmail || user?.email || '');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,21 +52,56 @@ export default function VerifyEmailModal({ mode, onClose, onSuccess }: VerifyEma
 
     setIsLoading(true);
     setError(null);
+    const isActuallyChanging = mode === 'change' || email !== user?.email;
+    if (isActuallyChanging && email === user?.email) {
+      setError('This is already your current email address.');
+      setIsLoading(false);
+      return;
+    }
+
+    if (!isActuallyChanging && user?.email_confirmed_at) {
+      toast('Your email is already verified!', 'success');
+      onSuccess(email);
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      // Use Supabase updateUser or resend based on mode
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Request timed out after 15 seconds. The email might still be sending in the background.')), 15000)
-      );
-      
-      const apiCall = mode === 'change' 
+      // If changing email, first clean up any conflicts via our server API
+      if (isActuallyChanging) {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token;
+        if (token) {
+          const prepareRes = await fetch('/api/auth/update-email', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ email, mode: 'prepare' }),
+          });
+          const prepareData = await prepareRes.json();
+
+          if (!prepareRes.ok) {
+            throw new Error(prepareData.error || 'Failed to prepare email change.');
+          }
+
+          // If email is already set, we're done
+          if (prepareData.alreadySet) {
+            toast('Your email is already verified!', 'success');
+            onSuccess(email);
+            return;
+          }
+        }
+      }
+
+      // Now use Supabase's built-in updateUser or resend
+      const apiCall = isActuallyChanging
         ? supabase.auth.updateUser({ email }, { emailRedirectTo: `${window.location.origin}/auth/callback` })
         : supabase.auth.resend({ type: 'signup', email });
 
-      const response = await Promise.race([
-        apiCall,
-        timeoutPromise
-      ]) as { error: { message: string } | null };
-      
+      const response = await apiCall as { error: { message: string } | null };
+
       const { error: updateError } = response;
 
       if (updateError) {
@@ -85,7 +121,7 @@ export default function VerifyEmailModal({ mode, onClose, onSuccess }: VerifyEma
     } finally {
       setIsLoading(false);
     }
-  }, [email, toast, mode, onSuccess]);
+  }, [email, toast, mode, onSuccess, user]);
 
   const handleOtpChange = (index: number, value: string) => {
     const digit = value.replace(/\D/g, '').slice(-1);
@@ -127,36 +163,33 @@ export default function VerifyEmailModal({ mode, onClose, onSuccess }: VerifyEma
 
     setIsLoading(true);
     try {
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Verification timed out. Please try again.')), 15000)
-      );
-
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-      const verifyRequest = fetch(`${supabaseUrl}/auth/v1/verify`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': anonKey || '',
-        },
-        body: JSON.stringify({
-          type: mode === 'change' ? 'email_change' : 'signup',
-          email,
-          token: otpCode,
-        }),
-      }).then(async (res) => {
-        const data = await res.json();
-        if (!res.ok) {
-          throw new Error(data.message || data.msg || 'Invalid or expired code');
-        }
-        return data;
+      const isActuallyChanging = mode === 'change' || email !== user?.email;
+      const response = await supabase.auth.verifyOtp({
+        email,
+        token: otpCode,
+        type: isActuallyChanging ? 'email_change' : 'signup',
       });
 
-      await Promise.race([verifyRequest, timeoutPromise]);
+      if (response?.error) {
+        throw new Error(response.error.message || 'Invalid or expired code');
+      }
 
-      // Automatically update the members table with the new verified email
-      await ApiClient.put('/members/me', { email });
+      // Update the members table via our server API
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (token) {
+        await fetch('/api/auth/update-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ email, mode: 'finalize' }),
+        });
+      }
+
+      // Refresh the session to get updated JWT with new email
+      await supabase.auth.refreshSession();
 
       setStep('success');
       toast('Email verified and updated successfully!', 'success');
@@ -202,12 +235,10 @@ export default function VerifyEmailModal({ mode, onClose, onSuccess }: VerifyEma
                 <LinkIcon size={28} />
               </div>
               <h3 className={styles.stepTitle}>
-                {mode === 'change' ? 'Enter Your New Email' : 'Verify Current Email'}
+                Verify Your Email
               </h3>
               <p className={styles.stepDescription}>
-                {mode === 'change' 
-                  ? 'Enter the email address you want to link to your profile. We will send a 6-digit code to verify it.'
-                  : 'We will send a 6-digit verification code to your current email address to verify it.'}
+                Please enter the email address you want to link to your profile. We will send a 6-digit code to verify it.
               </p>
 
               <div className={styles.formGroup}>
@@ -218,9 +249,7 @@ export default function VerifyEmailModal({ mode, onClose, onSuccess }: VerifyEma
                   placeholder="e.g. name@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  readOnly={mode === 'verify'}
-                  autoFocus={mode === 'change'}
-                  style={mode === 'verify' ? { backgroundColor: 'var(--color-bg-section-alt)', color: 'var(--color-text-muted)' } : {}}
+                  autoFocus
                 />
               </div>
 

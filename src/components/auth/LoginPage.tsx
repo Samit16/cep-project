@@ -163,7 +163,7 @@ export default function LoginPage() {
 
     setIsLoading(true);
     try {
-      await signInWithEmail(`${username}@kvonagpur.com`, password, 'member');
+      await signInWithEmail(username, password, 'member');
       toast('Login Successful!', 'success');
       router.replace('/home');
     } catch (err: unknown) {
@@ -185,7 +185,7 @@ export default function LoginPage() {
 
     setIsLoading(true);
     try {
-      await signInWithEmail(`${username}@kvonagpur.com`, password, 'committee');
+      await signInWithEmail(username, password, 'committee');
       toast('Login Successful: Welcome back', 'success');
       router.replace('/home');
     } catch (err: unknown) {
@@ -244,10 +244,10 @@ export default function LoginPage() {
 
             <div onKeyDown={(e) => { if (e.key === 'Enter') activeTab === 'member' ? handleMemberLogin(e) : handleAdminLogin(e); }}>
               <FormInput 
-                label={activeTab === 'committee' ? 'Staff Username' : 'Member Username'}
+                label={activeTab === 'committee' ? 'Staff Username / Email' : 'Member Username / Email'}
                 icon={activeTab === 'committee' ? Shield : User}
                 type="text"
-                placeholder={activeTab === 'committee' ? 'admin' : 'first_last'}
+                placeholder={activeTab === 'committee' ? 'admin' : 'first_last or email'}
                 value={username}
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 onChange={(e: any) => setUsername(e.target.value)}
