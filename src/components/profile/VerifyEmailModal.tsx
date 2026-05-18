@@ -128,11 +128,20 @@ export default function VerifyEmailModal({ mode, onClose, onSuccess }: VerifyEma
     setIsLoading(true);
     try {
       // Verify OTP with Supabase
-      const { error: verifyError } = await supabase.auth.verifyOtp({
-        email,
-        token: otpCode,
-        type: mode === 'change' ? 'email_change' : 'signup',
-      });
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Verification timed out. Please try again.')), 15000)
+      );
+
+      const response = await Promise.race([
+        supabase.auth.verifyOtp({
+          email,
+          token: otpCode,
+          type: mode === 'change' ? 'email_change' : 'signup',
+        }),
+        timeoutPromise
+      ]) as { error: { message: string } | null };
+
+      const { error: verifyError } = response;
 
       if (verifyError) {
         throw new Error(verifyError.message || 'Invalid or expired code');

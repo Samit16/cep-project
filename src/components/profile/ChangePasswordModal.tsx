@@ -121,11 +121,20 @@ export default function ChangePasswordModal({ onClose }: ChangePasswordModalProp
 
     setIsLoading(true);
     try {
-      const { error: verifyError } = await supabase.auth.verifyOtp({
-        email: linkedEmail,
-        token: otpCode,
-        type: 'recovery',
-      });
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Verification timed out. Please try again.')), 15000)
+      );
+
+      const response = await Promise.race([
+        supabase.auth.verifyOtp({
+          email: linkedEmail,
+          token: otpCode,
+          type: 'recovery',
+        }),
+        timeoutPromise
+      ]) as { error: { message: string } | null };
+
+      const { error: verifyError } = response;
 
       if (verifyError) {
         throw new Error(verifyError.message || 'Invalid or expired code');
@@ -152,9 +161,18 @@ export default function ChangePasswordModal({ onClose }: ChangePasswordModalProp
 
     setIsLoading(true);
     try {
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: newPassword,
-      });
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Update timed out. Please try again.')), 15000)
+      );
+
+      const response = await Promise.race([
+        supabase.auth.updateUser({
+          password: newPassword,
+        }),
+        timeoutPromise
+      ]) as { error: { message: string } | null };
+
+      const { error: updateError } = response;
 
       if (updateError) {
         throw new Error(updateError.message || 'Failed to update password');
