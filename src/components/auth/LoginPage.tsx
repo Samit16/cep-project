@@ -20,7 +20,7 @@ const GoogleIcon = () => (
   </svg>
 );
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 const FormInput = ({ 
   label, icon: Icon, type, placeholder, value, onChange, disabled, isValid, showPasswordToggle = false, onTogglePassword 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -242,7 +242,7 @@ export default function LoginPage() {
               </div>
             )}
 
-            <div onKeyDown={(e) => { if (e.key === 'Enter') activeTab === 'member' ? handleMemberLogin(e) : handleAdminLogin(e); }}>
+            <div onKeyDown={(e) => { if (e.key === 'Enter') { if (activeTab === 'member') handleMemberLogin(e); else handleAdminLogin(e); } }}>
               <FormInput 
                 label={activeTab === 'committee' ? 'Staff Username / Email' : 'Member Username / Email'}
                 icon={activeTab === 'committee' ? Shield : User}
