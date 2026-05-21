@@ -2,15 +2,17 @@
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Pencil, Eye, ShieldCheck, Mail, Phone, CheckCircle2, LogOut, AlertTriangle, X, Send, KeyRound, Settings } from 'lucide-react';
+import { Pencil, Eye, ShieldCheck, Mail, Phone, CheckCircle2, LogOut, AlertTriangle, X, Send, KeyRound, Settings, UserPlus, Users, MessageSquare } from 'lucide-react';
 import styles from './ProfilePage.module.css';
 import { ApiClient } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { ProfileSkeleton } from '@/components/ui/Skeleton/Skeleton';
 import ProfileUpdateModal from './ProfileUpdateModal';
+import FamilyMemberModal from './FamilyMemberModal';
 import ChangePasswordModal from './ChangePasswordModal';
 import VerifyEmailModal from './VerifyEmailModal';
+import VerifyWhatsAppModal from './VerifyWhatsAppModal';
 import { Member } from '@/types';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
@@ -31,54 +33,75 @@ interface ProfilePageProps {
 }
 
 export default function ProfilePage({ memberId }: ProfilePageProps) {
+  // `member` is the main logged in user (or the main profile being viewed)
   const [member, setMember] = useState<Member | null>(null);
+  
+  // New state for Family Dashboard
+  const [familyMembers, setFamilyMembers] = useState<Member[]>([]);
+  const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+  const [isFamilyModalOpen, setIsFamilyModalOpen] = useState(false);
+  const [editingMember, setEditingMember] = useState<Member | null>(null);
+
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Legacy modal state for non-family updates or requests
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [updateModalMode, setUpdateModalMode] = useState<'self-update' | 'request-update'>('self-update');
+  
   const [isRequestingUpdate, setIsRequestingUpdate] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
 
-  // Notification state for pending update requests on own profile
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [pendingNotification, setPendingNotification] = useState<any>(null);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [isVerifyEmailModalOpen, setIsVerifyEmailModalOpen] = useState(false);
   const [emailModalMode, setEmailModalMode] = useState<'verify' | 'change'>('verify');
+  const [isVerifyWhatsAppModalOpen, setIsVerifyWhatsAppModalOpen] = useState(false);
   
   const { profile, role, logout } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
 
-  // GSAP animation ref
   const profileRef = useRef<HTMLDivElement>(null);
 
   const handleLogout = async (e: React.MouseEvent) => {
     e.preventDefault();
-    // Navigate immediately, cleanup runs in background
     router.replace('/home');
     logout();
   };
 
+  const isMyProfile = !memberId || memberId === 'me' || profile?.member_id === (member?._id || member?.id);
+
   const loadProfile = useCallback(async () => {
     setIsLoading(true);
     try {
-      const endpoint = memberId ? `/members/${memberId}` : '/members/me';
+      const endpoint = memberId && memberId !== 'me' ? `/members/${memberId}` : '/members/me';
       const data = await ApiClient.get<Member>(endpoint);
       setMember(data);
+      setSelectedMember(data);
+
+      // If it's my profile, fetch the whole family
+      if (!memberId || memberId === 'me' || profile?.member_id === data.id) {
+        try {
+          const familyData = await ApiClient.get<{ members: Member[] }>('/members/family');
+          setFamilyMembers(familyData.members || []);
+        } catch (e) {
+          console.error("Failed to fetch family members", e);
+        }
+      }
     } catch (err: unknown) {
       toast((err as Error).message || 'Failed to load profile', 'error');
     } finally {
       setIsLoading(false);
     }
-  }, [memberId, toast]);
+  }, [memberId, profile?.member_id, toast]);
 
   useEffect(() => {
     loadProfile();
   }, [loadProfile]);
 
-  // Progressive entrance animation
   useGSAP(() => {
-    if (!profileRef.current || isLoading || !member) return;
+    if (!profileRef.current || isLoading || !selectedMember) return;
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReducedMotion) return;
 
@@ -93,10 +116,7 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
         clearProps: 'transform,opacity',
       }
     );
-  }, { scope: profileRef, dependencies: [member, isLoading] });
-
-  // Check for pending update-request notifications on own profile
-  const isMyProfile = !memberId || memberId === 'me' || profile?.member_id === (member?._id || member?.id);
+  }, { scope: profileRef, dependencies: [selectedMember, isLoading] });
 
   useEffect(() => {
     if (!isMyProfile) return;
@@ -130,9 +150,8 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
     }
   };
 
-  // Committee member requests another member to update profile
   const handleRequestUpdate = async () => {
-    const targetId = member?._id || member?.id;
+    const targetId = selectedMember?._id || selectedMember?.id;
     if (!targetId) return;
 
     setIsRequestingUpdate(true);
@@ -146,31 +165,58 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
     }
   };
 
-  // Open edit modal for own profile
   const handleEditProfile = () => {
     setUpdateModalMode('self-update');
     setIsUpdateModalOpen(true);
   };
 
-  // Callback after successful profile update
-  const handleProfileUpdated = (updatedMember: Member) => {
-    setMember(updatedMember);
-    if (pendingNotification) {
+  const handleEditFamilyMember = (m: Member) => {
+    setEditingMember(m);
+    setIsFamilyModalOpen(true);
+  };
+
+  const handleAddFamilyMember = () => {
+    setEditingMember(null);
+    setIsFamilyModalOpen(true);
+  };
+
+  const handleFamilyMemberSaved = (savedMember: Member) => {
+    // Update local state
+    if (editingMember) {
+      // It was an edit
+      setFamilyMembers(prev => prev.map(m => m.id === savedMember.id ? savedMember : m));
+      if (selectedMember?.id === savedMember.id) {
+        setSelectedMember(savedMember);
+      }
+      if (member?.id === savedMember.id) {
+        setMember(savedMember);
+      }
+    } else {
+      // It was an add
+      setFamilyMembers(prev => [...prev, savedMember]);
+      setSelectedMember(savedMember);
+    }
+    
+    if (pendingNotification && savedMember.id === member?.id) {
       handleDismissNotification();
     }
-    // If email is present but not verified, prompt them to verify it
-    if (updatedMember.email && !updatedMember.email_verified) {
+    
+    // Check if email needs verification (only for the main logged-in user)
+    if (savedMember.id === member?.id && savedMember.email && !savedMember.email_verified) {
       setEmailModalMode('verify');
       setIsVerifyEmailModalOpen(true);
     }
   };
 
   const handlePrivacyChange = async (visibility: 'public' | 'private') => {
+    if (!selectedMember) return;
     try {
-      await ApiClient.put('/members/me', {
+      // Assume updating visibility applies to the selected member via PUT family
+      await ApiClient.put(`/members/family/${selectedMember.id}`, {
         contact_visibility: visibility
       });
-      setMember(prev => prev ? { ...prev, contact_visibility: visibility } : prev);
+      setSelectedMember(prev => prev ? { ...prev, contact_visibility: visibility } : prev);
+      setFamilyMembers(prev => prev.map(m => m.id === selectedMember.id ? { ...m, contact_visibility: visibility } : m));
       toast(`Profile is now ${visibility}`, 'success');
       setShowSettingsMenu(false);
     } catch {
@@ -182,22 +228,24 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
     return <ProfileSkeleton />;
   }
 
-  if (!member) {
+  if (!selectedMember) {
     return <div style={{ textAlign: 'center', padding: '4rem 0' }}>Profile unavailable.</div>;
   }
 
-  const firstName = member.first_name || '';
-  const middleName = member.middle_name ? member.middle_name + ' ' : '';
-  const lastName = member.last_name || '';
+  const displayMember = selectedMember;
+  const firstName = displayMember.first_name || '';
+  const middleName = displayMember.middle_name ? displayMember.middle_name + ' ' : '';
+  const lastName = displayMember.last_name || '';
   const initials = `${firstName?.[0] || ''}${lastName?.[0] || ''}`;
 
-  const canEdit = isMyProfile;
   const isCommitteeViewingOther = !isMyProfile && (role === 'admin' || role === 'committee');
-  
-  return (
-    <div ref={profileRef} className={styles.profileContent}>
+  // True if the user is looking at their own personal record within the family
+  const isSelectedMyOwn = isMyProfile && displayMember.id === member?.id;
+
+  const renderProfileDetail = () => (
+    <div className={styles.detailPanel}>
       {/* Pending Update Notification Banner */}
-      {isMyProfile && pendingNotification && (
+      {isSelectedMyOwn && pendingNotification && (
         <div className={`${styles.notificationBanner} gsap-profile-anim`}>
           <div className={styles.notificationContent}>
             <AlertTriangle size={20} className={styles.notificationIcon} />
@@ -209,7 +257,7 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
           <div className={styles.notificationActions}>
             <button 
               className={styles.notificationUpdateBtn}
-              onClick={handleEditProfile}
+              onClick={() => handleEditFamilyMember(displayMember)}
             >
               <Pencil size={14} /> Update Now
             </button>
@@ -225,13 +273,13 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
       
       <div className={`${styles.profileHero} gsap-profile-anim`}>
         <div className={styles.profilePhoto}>
-          <div className={styles.profilePhotoInitials} style={{ backgroundColor: getAvatarColor(member.name) }}>
+          <div className={styles.profilePhotoInitials} style={{ backgroundColor: getAvatarColor(displayMember.name) }}>
             {initials}
           </div>
         </div>
         <div className={styles.profileHeroInfo}>
           <p className={styles.verifiedLabel}>
-            {member.active ? 'Verified Member' : 'Member'}
+            {displayMember.active ? 'Verified Member' : 'Member'}
           </p>
           <h1 className={styles.profileName}>
             {firstName} {middleName}<br />
@@ -241,13 +289,14 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
             A valued member of the KVO Nagpur community.
           </p>
           <div className={styles.profileActions}>
-            {/* Edit Profile — only on your own profile */}
-            {canEdit && (
-              <button className={styles.editProfileBtn} onClick={handleEditProfile}>
-                <Pencil size={16} /> Edit Profile
+            {/* Edit Profile — only if managing own family */}
+            {isMyProfile && (
+              <button className={styles.editProfileBtn} onClick={() => handleEditFamilyMember(displayMember)}>
+                <Pencil size={16} /> Edit Member
               </button>
             )}
-            {/* Request Update — only for committee/admin viewing someone else */}
+            
+            {/* Request Update — only for committee viewing someone else */}
             {isCommitteeViewingOther && (
               <button 
                 className={styles.requestUpdateBtn} 
@@ -257,7 +306,9 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
                 <Send size={16} /> {isRequestingUpdate ? 'Sending...' : 'Request Update'}
               </button>
             )}
-            {isMyProfile && (
+            
+            {/* Settings drop down - only available for the primary logged in user's own profile */}
+            {isSelectedMyOwn && (
               <div style={{ position: 'relative' }}>
                 <button className={styles.privacyBtn} onClick={() => setShowSettingsMenu(!showSettingsMenu)}>
                   <Settings size={16} /> Settings
@@ -268,13 +319,13 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
                       Privacy
                     </div>
                     <button 
-                      onClick={() => { handlePrivacyChange('public'); setShowSettingsMenu(false); }}
+                      onClick={() => { handlePrivacyChange('public'); }}
                       style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '10px 16px', textAlign: 'left', background: 'transparent', border: 'none', borderBottom: '1px solid var(--color-border-light)', cursor: 'pointer', fontSize: '0.875rem', color: 'var(--color-text-primary)' }}
                     >
                       <Eye size={14} /> Make Profile Public
                     </button>
                     <button 
-                      onClick={() => { handlePrivacyChange('private'); setShowSettingsMenu(false); }}
+                      onClick={() => { handlePrivacyChange('private'); }}
                       style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '10px 16px', textAlign: 'left', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.875rem', color: 'var(--color-text-primary)' }}
                     >
                       <ShieldCheck size={14} /> Make Profile Private
@@ -291,9 +342,15 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
                     </button>
                     <button 
                       onClick={() => { setEmailModalMode('verify'); setIsVerifyEmailModalOpen(true); setShowSettingsMenu(false); }}
-                      style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '10px 16px', textAlign: 'left', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.875rem', color: 'var(--color-text-primary)' }}
+                      style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '10px 16px', textAlign: 'left', background: 'transparent', border: 'none', borderBottom: '1px solid var(--color-border-light)', cursor: 'pointer', fontSize: '0.875rem', color: 'var(--color-text-primary)' }}
                     >
                       <CheckCircle2 size={14} /> Verify Email
+                    </button>
+                    <button 
+                      onClick={() => { setIsVerifyWhatsAppModalOpen(true); setShowSettingsMenu(false); }}
+                      style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '10px 16px', textAlign: 'left', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.875rem', color: 'var(--color-text-primary)' }}
+                    >
+                      <MessageSquare size={14} /> Verify WhatsApp
                     </button>
                   </div>
                 )}
@@ -312,20 +369,13 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
             <span className={styles.sectionTitle}>Personal</span>
           </div>
           <div className={styles.infoLabel}>Origin Kutch Town</div>
-          <div className={styles.infoValue}>{member.kutch_town || 'Not specified'}</div>
+          <div className={styles.infoValue}>{displayMember.kutch_town || 'Not specified'}</div>
           <div className={styles.infoLabel}>Nukh</div>
-          <div className={styles.infoValue}>{member.nukh || 'Not specified'}</div>
+          <div className={styles.infoValue}>{displayMember.nukh || 'Not specified'}</div>
           <div className={styles.infoLabel}>Birthplace</div>
-          <div className={styles.infoValue}>{member.birthplace || 'Not specified'}</div>
+          <div className={styles.infoValue}>{displayMember.birthplace || 'Not specified'}</div>
           <div className={styles.infoLabel}>Marital Status</div>
-          <div className={styles.infoValue}>{member.marital_status || 'Not specified'}</div>
-          
-          <div className={styles.infoLabel}>Family Members</div>
-          <div className={styles.infoValue}>
-            {member.relations && member.relations.length > 0 
-              ? member.relations.map(r => `${r.name} (${r.relation})`).join(', ') 
-              : 'None listed'}
-          </div>
+          <div className={styles.infoValue}>{displayMember.marital_status || 'Not specified'}</div>
         </div>
 
         {/* Professional Standing */}
@@ -337,11 +387,11 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
           </div>
           <div className={styles.infoLabel}>Current Occupation</div>
           <div className={`${styles.infoValue} ${styles.infoValueLarge}`}>
-            {member.occupation || 'Not specified'}
+            {displayMember.occupation || 'Not specified'}
           </div>
           <div className={styles.separator} />
           <div className={styles.infoLabel}>Current Residence</div>
-          <div className={styles.infoValue}>{member.current_place || 'Not specified'}</div>
+          <div className={styles.infoValue}>{displayMember.current_place || 'Not specified'}</div>
         </div>
       </div>
 
@@ -356,11 +406,42 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
           <div>
             <div className={styles.contactLabel}>Email Address</div>
             <div className={styles.contactValue} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              {member.email || 'Not available'}
-              {member.email_verified && (
+              {displayMember.email || 'Not available'}
+              {displayMember.email_verified ? (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: '#16a34a', backgroundColor: '#dcfce7', padding: '2px 6px', borderRadius: '12px', fontWeight: 'bold' }}>
                   <CheckCircle2 size={12} /> Verified
                 </span>
+              ) : (
+                isMyProfile && displayMember.email && (
+                  <button
+                    onClick={() => {
+                      setEmailModalMode('verify');
+                      setIsVerifyEmailModalOpen(true);
+                    }}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '0.75rem',
+                      color: 'var(--color-primary)',
+                      backgroundColor: 'rgba(139, 26, 26, 0.08)',
+                      border: '1px solid var(--color-primary)',
+                      padding: '2px 8px',
+                      borderRadius: '12px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = 'rgba(139, 26, 26, 0.15)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'rgba(139, 26, 26, 0.08)';
+                    }}
+                  >
+                    Verify Email
+                  </button>
+                )
               )}
             </div>
           </div>
@@ -370,12 +451,56 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
           <div>
             <div className={styles.contactLabel}>Phone Number</div>
             <div className={styles.contactValue}>
-              {member.contact_numbers?.length 
-                ? member.contact_numbers.join(', ')
-                : member.contact_no 
-                  ? member.contact_no 
+              {displayMember.contact_numbers?.length 
+                ? displayMember.contact_numbers.join(', ')
+                : displayMember.contact_no 
+                  ? displayMember.contact_no 
                   : <span style={{ fontStyle: 'italic', color: '#666' }}>Number is private</span>
               }
+            </div>
+          </div>
+        </div>
+        <div className={styles.contactRow}>
+          <MessageSquare size={18} className={styles.contactIcon} style={{ color: '#25D366' }} />
+          <div>
+            <div className={styles.contactLabel}>WhatsApp Number</div>
+            <div className={styles.contactValue} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {displayMember.whatsapp || 'Not available'}
+              {displayMember.whatsapp_verified ? (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: '#16a34a', backgroundColor: '#dcfce7', padding: '2px 6px', borderRadius: '12px', fontWeight: 'bold' }}>
+                  <CheckCircle2 size={12} /> Verified
+                </span>
+              ) : (
+                isMyProfile && displayMember.whatsapp && (
+                  <button
+                    onClick={() => {
+                      setIsVerifyWhatsAppModalOpen(true);
+                    }}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '0.75rem',
+                      color: 'var(--color-primary)',
+                      backgroundColor: 'rgba(139, 26, 26, 0.08)',
+                      border: '1px solid var(--color-primary)',
+                      padding: '2px 8px',
+                      borderRadius: '12px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = 'rgba(139, 26, 26, 0.15)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'rgba(139, 26, 26, 0.08)';
+                    }}
+                  >
+                    Verify WhatsApp
+                  </button>
+                )
+              )}
             </div>
           </div>
         </div>
@@ -385,9 +510,9 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
       <div className={`${styles.visibilityBanner} gsap-profile-anim`}>
         <ShieldCheck size={24} className={styles.visibilityIcon} />
         <div>
-          <h3 className={styles.visibilityTitle}>Member Directory Visibility ({member.contact_visibility})</h3>
+          <h3 className={styles.visibilityTitle}>Member Directory Visibility ({displayMember.contact_visibility})</h3>
           <p className={styles.visibilityText}>
-            {member.contact_visibility === 'private' 
+            {displayMember.contact_visibility === 'private' 
               ? 'Your profile is private, meaning some details are hidden, but your contact number and email remain public for the community.'
               : 'Your profile is fully public. All verified community members can view your details.'}
           </p>
@@ -395,7 +520,7 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
       </div>
 
       {/* Logout Button */}
-      {isMyProfile && (
+      {isSelectedMyOwn && (
         <div className="gsap-profile-anim" style={{ marginTop: '3rem', display: 'flex', justifyContent: 'center' }}>
           <button
             onClick={handleLogout}
@@ -411,12 +536,68 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
           </button>
         </div>
       )}
+    </div>
+  );
 
-      {isUpdateModalOpen && (
+  return (
+    <div ref={profileRef} className={styles.profileContent}>
+      {isMyProfile && familyMembers.length > 0 ? (
+        <div className={styles.dashboardLayout}>
+          {/* Left Sidebar: Family Members List */}
+          <div className={`${styles.familySidebar} gsap-profile-anim`}>
+            <div className={styles.familySidebarHeader}>
+              <h2 className={styles.familySidebarTitle}>Family Dashboard</h2>
+              <Users size={20} style={{ color: 'var(--color-primary)' }} />
+            </div>
+            
+            <div className={styles.familyList}>
+              {familyMembers.map((fm) => (
+                <button 
+                  key={fm.id}
+                  className={`${styles.familyMemberItem} ${selectedMember?.id === fm.id ? styles.active : ''}`}
+                  onClick={() => setSelectedMember(fm)}
+                >
+                  <div className={styles.familyMemberAvatar} style={{ backgroundColor: getAvatarColor(fm.name) }}>
+                    {`${fm.first_name?.[0] || ''}${fm.last_name?.[0] || ''}`}
+                  </div>
+                  <div className={styles.familyMemberInfo}>
+                    <div className={styles.familyMemberName}>{fm.name || `${fm.first_name} ${fm.last_name}`}</div>
+                    <div className={styles.familyMemberRelation}>
+                      {fm.id === member?.id ? 'Primary Account' : (fm.relation || 'Family Member')}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <button className={styles.addMemberBtn} onClick={handleAddFamilyMember}>
+              <UserPlus size={16} /> Add Family Member
+            </button>
+          </div>
+
+          {/* Right Panel: Selected Member Details */}
+          {renderProfileDetail()}
+        </div>
+      ) : (
+        renderProfileDetail()
+      )}
+
+      {/* Modals */}
+      {isFamilyModalOpen && (
+        <FamilyMemberModal 
+          member={editingMember} 
+          isPrimary={editingMember?.id === member?.id}
+          onClose={() => setIsFamilyModalOpen(false)}
+          onSaved={handleFamilyMemberSaved}
+        />
+      )}
+
+      {/* Legacy self-update modal (if needed elsewhere) */}
+      {isUpdateModalOpen && !isMyProfile && (
         <ProfileUpdateModal 
-          member={member} 
+          member={selectedMember} 
           onClose={() => setIsUpdateModalOpen(false)}
-          onUpdated={handleProfileUpdated}
+          onUpdated={handleFamilyMemberSaved}
           mode={updateModalMode}
         />
       )}
@@ -430,11 +611,36 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
       {isVerifyEmailModalOpen && (
         <VerifyEmailModal
           mode={emailModalMode}
-          initialEmail={member?.email}
+          initialEmail={selectedMember?.email}
+          familyMemberId={isSelectedMyOwn ? undefined : selectedMember?.id}
           onClose={() => setIsVerifyEmailModalOpen(false)}
           onSuccess={(newEmail) => {
-            setMember(prev => prev ? { ...prev, email: newEmail, email_verified: true } : prev);
+            if (!selectedMember) return;
+            const updated = { ...selectedMember, email: newEmail, email_verified: true };
+            setSelectedMember(updated);
+            if (member?.id === selectedMember.id) {
+               setMember(updated);
+            }
+            setFamilyMembers(prev => prev.map(m => m.id === selectedMember.id ? updated : m));
             setIsVerifyEmailModalOpen(false);
+          }}
+        />
+      )}
+
+      {isVerifyWhatsAppModalOpen && (
+        <VerifyWhatsAppModal
+          memberId={selectedMember.id || ''}
+          initialWhatsApp={selectedMember.whatsapp}
+          onClose={() => setIsVerifyWhatsAppModalOpen(false)}
+          onSuccess={(newWhatsApp) => {
+            if (!selectedMember) return;
+            const updated = { ...selectedMember, whatsapp: newWhatsApp, whatsapp_verified: true };
+            setSelectedMember(updated);
+            if (member?.id === selectedMember.id) {
+               setMember(updated);
+            }
+            setFamilyMembers(prev => prev.map(m => m.id === selectedMember.id ? updated : m));
+            setIsVerifyWhatsAppModalOpen(false);
           }}
         />
       )}

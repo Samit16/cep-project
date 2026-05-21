@@ -3,12 +3,15 @@
 export interface Member {
   id?: string;
   _id?: string;
+  family_id?: string;
   name?: string; // Keep for backward compatibility/computed purposes
   first_name?: string;
   middle_name?: string;
   last_name?: string;
   email: string;
   email_verified?: boolean;
+  whatsapp?: string;
+  whatsapp_verified?: boolean;
   phone?: string;
   contact_no?: string;
   contact_numbers?: string[];
@@ -26,6 +29,7 @@ export interface Member {
   marital_status?: string;
   family_members?: string[];
   relations?: { name: string; relation: string }[];
+  relation?: string;
   joinDate?: string;
   nukh?: string;
   birthplace?: string;

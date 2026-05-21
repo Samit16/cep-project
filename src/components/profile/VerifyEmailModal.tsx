@@ -1,22 +1,22 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { X, Mail, CheckCircle2, AlertTriangle, Send, LinkIcon } from 'lucide-react';
 import styles from './ChangePasswordModal.module.css'; // Reusing styles from ChangePasswordModal
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
-import { ApiClient } from '@/lib/api';
-
+import { createClient } from '@supabase/supabase-js';
 import { useAuth } from '@/lib/auth-context';
 
 interface VerifyEmailModalProps {
   mode: 'verify' | 'change';
   initialEmail?: string;
+  familyMemberId?: string;
   onClose: () => void;
   onSuccess: (newEmail: string) => void;
 }
 
-export default function VerifyEmailModal({ mode, initialEmail, onClose, onSuccess }: VerifyEmailModalProps) {
+export default function VerifyEmailModal({ mode, initialEmail, familyMemberId, onClose, onSuccess }: VerifyEmailModalProps) {
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -29,6 +29,25 @@ export default function VerifyEmailModal({ mode, initialEmail, onClose, onSucces
   const [resendCooldown, setResendCooldown] = useState(0);
 
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // If verifying a family member, initialize a temporary client that doesn't persist the session.
+  // Otherwise, use the standard shared supabase client.
+  const supabaseClient = useMemo(() => {
+    if (familyMemberId) {
+      return createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+            detectSessionInUrl: false,
+          },
+        }
+      );
+    }
+    return supabase;
+  }, [familyMemberId]);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -52,6 +71,65 @@ export default function VerifyEmailModal({ mode, initialEmail, onClose, onSucces
 
     setIsLoading(true);
     setError(null);
+
+    // If verifying a family member, use custom prepare step and temp client signup
+    if (familyMemberId) {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token;
+        if (!token) throw new Error('Not logged in. Please refresh.');
+
+        // Step 1: Hit prepare mode on backend
+        const prepareRes = await fetch(`/api/members/family/${familyMemberId}/verify-email`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ email, mode: 'prepare' }),
+        });
+
+        const prepareData = await prepareRes.json();
+        if (!prepareRes.ok) {
+          throw new Error(prepareData.error || 'Failed to prepare verification.');
+        }
+
+        // Step 2: Trigger OTP via signUp or resend on tempClient
+        // Since we don't know if they already have an auth.users record,
+        // we try signUp first. If it fails with already registered, we call resend.
+        const signUpRes = await supabaseClient.auth.signUp({
+          email,
+          password: 'TempPassword!' + Math.random().toString(36).slice(-8),
+        });
+
+        if (signUpRes.error) {
+          if (
+            signUpRes.error.message.includes('already registered') || 
+            signUpRes.error.message.includes('already exists')
+          ) {
+            const resendRes = await supabaseClient.auth.resend({
+              type: 'signup',
+              email,
+            });
+            if (resendRes.error) {
+              throw new Error(resendRes.error.message);
+            }
+          } else {
+            throw new Error(signUpRes.error.message);
+          }
+        }
+
+        setStep('verify-otp');
+        setResendCooldown(60);
+        toast('Verification code sent to ' + email, 'success');
+      } catch (err: unknown) {
+        setError((err as Error).message || 'Failed to send verification code');
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
     const isActuallyChanging = mode === 'change' || email !== user?.email;
     if (isActuallyChanging && email === user?.email) {
       setError('This is already your current email address.');
@@ -121,7 +199,7 @@ export default function VerifyEmailModal({ mode, initialEmail, onClose, onSucces
     } finally {
       setIsLoading(false);
     }
-  }, [email, toast, mode, onSuccess, user]);
+  }, [email, toast, mode, onSuccess, user, familyMemberId, supabaseClient]);
 
   const handleOtpChange = (index: number, value: string) => {
     const digit = value.replace(/\D/g, '').slice(-1);
@@ -163,6 +241,42 @@ export default function VerifyEmailModal({ mode, initialEmail, onClose, onSucces
 
     setIsLoading(true);
     try {
+      if (familyMemberId) {
+        // Step 1: Verify OTP on the tempClient
+        const response = await supabaseClient.auth.verifyOtp({
+          email,
+          token: otpCode,
+          type: 'signup',
+        });
+
+        if (response?.error) {
+          throw new Error(response.error.message || 'Invalid or expired code');
+        }
+
+        // Step 2: Update database via custom verify-email endpoint
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token;
+        if (token) {
+          const res = await fetch(`/api/members/family/${familyMemberId}/verify-email`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ email, mode: 'finalize' }),
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            throw new Error(data.error || 'Failed to update family member email.');
+          }
+        }
+
+        setStep('success');
+        toast('Family member email verified successfully!', 'success');
+        setIsLoading(false);
+        return;
+      }
+
       const isActuallyChanging = mode === 'change' || email !== user?.email;
       const response = await supabase.auth.verifyOtp({
         email,

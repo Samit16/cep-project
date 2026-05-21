@@ -81,11 +81,20 @@ export async function authenticateSupabase(request: NextRequest): Promise<AuthRe
     return { user: null, profile: null, error: 'Account is deactivated', status: 403 };
   }
 
+  let familyId = null;
+  if (profile.member_id) {
+    const { data: memberData } = await supabase.from('members').select('family_id').eq('id', profile.member_id).single();
+    if (memberData) {
+      familyId = memberData.family_id;
+    }
+  }
+
   const supabaseUser = {
     id: user.id,
     email: user.email,
     role: profile.role,
     member_id: profile.member_id,
+    family_id: familyId,
     is_first_login: profile.is_first_login,
     email_confirmed_at: user.email_confirmed_at,
   };
