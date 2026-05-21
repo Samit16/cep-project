@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       if (authResult.user.member_id) {
         await supabase
           .from('members')
-          .update({ email: newEmail })
+          .update({ email: newEmail, email_verified: true })
           .eq('id', authResult.user.member_id);
       }
       return NextResponse.json({ success: true, email: newEmail }, { status: 200 });

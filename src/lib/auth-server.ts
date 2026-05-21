@@ -81,13 +81,13 @@ export async function authenticateSupabase(request: NextRequest): Promise<AuthRe
     return { user: null, profile: null, error: 'Account is deactivated', status: 403 };
   }
 
-  // Inject full context into a single user object format identical to Fastify's implementation
   const supabaseUser = {
     id: user.id,
     email: user.email,
     role: profile.role,
     member_id: profile.member_id,
     is_first_login: profile.is_first_login,
+    email_confirmed_at: user.email_confirmed_at,
   };
 
   return { user: supabaseUser, profile };
