@@ -39,7 +39,7 @@ export function HeroSection() {
           <span className={styles.heroTitleItalic}>Building<br />Our Future</span>
         </h1>
         <p className={`${styles.heroSubtitle} gsap-hero-anim`}>
-          A place where culture, commerce, and community come together. We're proud 
+          A place where culture, commerce, and community come together. We&apos;re proud 
           to carry forward the KVO Nagpur legacy, empowering our future generations through 
           unity and shared values.
         </p>
@@ -97,7 +97,7 @@ export function HistoryMissionSection() {
           <p className={`${styles.historyLabel} gsap-history-item`}>Our Roots</p>
           <h2 className={`${styles.historyTitle} gsap-history-item`}>History &amp; Mission</h2>
           <p className={`${styles.historyText} gsap-history-item`}>
-            Built on resilience and shared success, KVO Nagpur has been our community's anchor 
+            Built on resilience and shared success, KVO Nagpur has been our community&apos;s anchor 
             for over a century. Our ancestors travelled from the arid plains of Kutch to thrive 
             in global commerce, carrying our values with them.
           </p>

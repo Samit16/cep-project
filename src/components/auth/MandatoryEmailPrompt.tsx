@@ -17,12 +17,13 @@ export default function MandatoryEmailPrompt() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [mounted, setMounted] = useState(false);
 
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Only show if the user's Supabase Auth email is still a dummy address.
-  if (!user || !user.email?.includes('@kvonagpur.com')) return null;
-  if (typeof document === 'undefined') return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Resend cooldown timer
   useEffect(() => {
@@ -30,6 +31,10 @@ export default function MandatoryEmailPrompt() {
     const timer = setTimeout(() => setResendCooldown(prev => prev - 1), 1000);
     return () => clearTimeout(timer);
   }, [resendCooldown]);
+
+  // Only show if the user's Supabase Auth email is still a dummy address.
+  if (!mounted || !user || !user.email?.includes('@kvonagpur.com')) return null;
+  if (typeof document === 'undefined') return null;
 
   // Step 1: Send OTP
   const handleSendOtp = async () => {

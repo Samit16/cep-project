@@ -167,7 +167,7 @@ export async function PUT(request: NextRequest) {
     // Sanitize all string fields to strip HTML tags (XSS prevention)
     const sanitizedData = sanitizeObject(updateData);
 
-    let memberId = user.member_id;
+    const memberId = user.member_id;
 
     if (!memberId) {
       return NextResponse.json({ error: 'No member profile linked to this account.' }, { status: 404 });
