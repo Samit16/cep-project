@@ -1,5 +1,4 @@
 .adminLayout {
-  display: flex;
   min-height: 100vh;
   background-color: var(--color-bg-page);
 }
@@ -184,15 +183,11 @@
   color: var(--color-text-primary);
 }
 
-/* Main Content */
 .mainContent {
-  flex: 1;
-  margin-left: var(--sidebar-width);
-  transition: margin-left var(--transition-slow);
-}
-
-.mainContentCollapsed {
-  margin-left: var(--sidebar-collapsed-width);
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-8);
+  transition: all var(--transition-base);
 }
 
 /* Admin top bar inside main content area */
@@ -919,5 +914,102 @@
   .tableRow > div:nth-child(5) {
     display: none;
   }
+}
+
+/* Segmented Tabs Selector styling */
+.tabContainer {
+  display: flex;
+  gap: var(--space-2);
+  border-bottom: 1px solid var(--color-border-light);
+  margin-bottom: var(--space-8);
+  padding-bottom: 2px;
+}
+
+.tabButton {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 12px 20px;
+  font-size: 0.875rem;
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-secondary);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  margin-bottom: -2px;
+}
+
+.tabButton:hover {
+  color: var(--color-primary);
+}
+
+.tabButtonActive {
+  color: var(--color-primary) !important;
+  border-bottom-color: var(--color-primary) !important;
+}
+
+.tabIcon {
+  flex-shrink: 0;
+}
+
+.tabCount {
+  font-size: 0.75rem;
+  background-color: var(--color-bg-section-alt);
+  color: var(--color-text-secondary);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  margin-left: 6px;
+  font-weight: var(--weight-medium);
+  transition: all var(--transition-fast);
+}
+
+.tabButtonActive .tabCount {
+  background-color: var(--color-primary-lightest);
+  color: var(--color-primary);
+}
+
+/* Search Bar above the table */
+.searchContainer {
+  margin-top: 1.5rem;
+  margin-bottom: 0rem;
+  max-width: 400px;
+  width: 100%;
+}
+
+.searchInputWrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  background-color: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 10px 16px;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
+}
+
+.searchInputWrapper:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(139, 26, 26, 0.1);
+}
+
+.searchInputWrapper input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+  width: 100%;
+}
+
+.searchInputWrapper input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.searchIcon {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
 }
 

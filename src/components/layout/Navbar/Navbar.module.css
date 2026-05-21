@@ -137,6 +137,18 @@
   border-color: var(--color-primary);
 }
 
+.dashboardBtnActive {
+  background-color: var(--color-primary) !important;
+  color: #fff !important;
+  border-color: var(--color-primary) !important;
+}
+
+.dashboardBtnActive:hover {
+  background-color: var(--color-primary-dark) !important;
+  color: #fff !important;
+  border-color: var(--color-primary-dark) !important;
+}
+
 .memberLoginBtn {
   font-size: 0.8125rem;
   padding: 8px 16px;
@@ -189,6 +201,11 @@
   color: var(--color-primary);
 }
 
+.profileLinkActive {
+  background-color: var(--color-bg-section-alt) !important;
+  color: var(--color-primary) !important;
+}
+
 .notificationWrapper {
   position: relative;
   display: flex;
@@ -230,7 +247,7 @@
   top: calc(100% + 8px);
   right: 0;
   width: 280px;
-  background: #fff;
+  background: var(--color-dropdown-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
@@ -416,6 +433,12 @@
   border: 1px solid var(--color-border);
 }
 
+.mobileDashboardBtnActive {
+  background-color: var(--color-primary) !important;
+  color: #fff !important;
+  border-color: var(--color-primary) !important;
+}
+
 .mobileJoinBtn {
   background-color: var(--color-primary);
   color: #fff;
@@ -443,6 +466,10 @@
   color: var(--color-text-primary);
   text-decoration: none;
   padding: var(--space-2) 0;
+}
+
+.mobileProfileLinkActive {
+  color: var(--color-primary) !important;
 }
 
 /* ============================================

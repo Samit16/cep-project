@@ -10,6 +10,7 @@ import {
 import styles from './AdminDashboard.module.css';
 import Footer from '@/components/layout/Footer/Footer';
 import MemberFormModal from './MemberFormModal';
+import Navbar from '@/components/layout/Navbar/Navbar';
 import EmptyState from '@/components/ui/EmptyState/EmptyState';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { ApiClient } from '@/lib/api';
@@ -361,89 +362,27 @@ export default function AdminDashboard() {
 
   return (
     <div className={styles.adminLayout}>
-      {/* Sidebar */}
-      <aside className={styles.sidebar}>
-        <div className={styles.sidebarHeader}>
-          <div className={styles.sidebarLogo}>KVO Nagpur</div>
-          <div className={styles.sidebarLogoSub}>{role === 'admin' ? 'Admin Panel' : 'Committee Panel'}</div>
-        </div>
+      <Navbar variant="admin" activeLink="dashboard" />
 
-        <div className={styles.sidebarProfile}>
-          <div className={styles.sidebarAvatar}>
-            <User size={20} color="var(--color-primary)" />
-          </div>
-          <div>
-            <div className={styles.sidebarProfileName}>{role === 'admin' ? 'Administrator' : 'Committee Member'}</div>
-            <div className={styles.sidebarProfileRole}>Samaj Committee</div>
-          </div>
-        </div>
-
-          <nav className={styles.sidebarNav}>
+      <div className={styles.mainContent}>
+        {/* Tab Selector */}
+        <div className={styles.tabContainer}>
           <button 
-            className={`${styles.sidebarItem} ${activeTab === 'members' ? styles.sidebarItemActive : ''}`}
+            className={`${styles.tabButton} ${activeTab === 'members' ? styles.tabButtonActive : ''}`}
             onClick={() => setActiveTab('members')}
           >
-            <LayoutDashboard size={18} className={styles.sidebarItemIcon} />
-            Dashboard
+            <Users size={16} className={styles.tabIcon} />
+            <span>Members Directory</span>
+            <span className={styles.tabCount}>{totalMemberCount || members.length}</span>
           </button>
           <button 
-            className={`${styles.sidebarItem} ${activeTab === 'events' ? styles.sidebarItemActive : ''}`}
+            className={`${styles.tabButton} ${activeTab === 'events' ? styles.tabButtonActive : ''}`}
             onClick={() => setActiveTab('events')}
           >
-            <Calendar size={18} className={styles.sidebarItemIcon} />
-            Manage Events
+            <Calendar size={16} className={styles.tabIcon} />
+            <span>Events Management</span>
+            <span className={styles.tabCount}>{events.length}</span>
           </button>
-        </nav>
-
-        <div className={styles.sidebarFooter}>
-          <button className={styles.sidebarLink} onClick={handleLogout}>
-            <LogOut size={16} /> Logout
-          </button>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <div className={styles.mainContent}>
-        {/* Top Bar */}
-        <div className={styles.adminTopBar}>
-          <div className={styles.topBarLeft}>
-            <div className={styles.committeeLabel}>
-              Committee<br />Overview
-            </div>
-            <nav className={styles.topBarNav}>
-              <Link href="/dashboard" className={`${styles.topBarLink} ${styles.topBarLinkActive}`}>Overview</Link>
-              <Link href="/directory" className={styles.topBarLink}>Directory</Link>
-              <Link href="/about" className={styles.topBarLink}>About</Link>
-            </nav>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              background: 'var(--color-bg-section-alt)',
-              border: '1px solid var(--color-border)',
-              borderRadius: 'var(--radius-md)',
-              padding: '6px 12px',
-            }}>
-              <Search size={16} color="var(--color-text-muted)" />
-              <input
-                type="text"
-                placeholder="Search..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{
-                  border: 'none',
-                  background: 'transparent',
-                  outline: 'none',
-                  fontSize: '0.875rem',
-                  width: '140px',
-                  color: 'var(--color-text-primary)',
-                }}
-              />
-            </div>
-          </div>
-          <div className={styles.topBarRight}>
-            <div className={styles.adminBadge}>{role === 'admin' ? 'Admin Session' : 'Committee Session'}</div>
-          </div>
         </div>
 
         {/* Summary Cards */}
@@ -560,9 +499,21 @@ export default function AdminDashboard() {
                 </button>
               </div>
             </div>
+          
+          <div className={styles.searchContainer}>
+            <div className={styles.searchInputWrapper}>
+              <Search size={18} className={styles.searchIcon} />
+              <input
+                type="text"
+                placeholder="Search members by name or email..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
           </div>
+        </div>
 
-          <div className={styles.tableWrapper}>
+        <div className={styles.tableWrapper}>
             <div className={styles.dataTable} style={{ marginTop: '2rem' }}>
               <div className={styles.tableHeader}>
                 <div className={styles.tableHeaderCell}>Member Details</div>

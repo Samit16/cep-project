@@ -7,7 +7,7 @@ import { AchievementsSection, EventsSection } from '@/components/landing/Landing
 export default function ArchivesPage() {
   return (
     <>
-      <Navbar variant="public" />
+      <Navbar variant="public" activeLink="archives" />
       <EventsSection />
       <AchievementsSection />
       <Footer />
