@@ -11,7 +11,7 @@ export function middleware(request: NextRequest) {
       || 'unknown';
 
     // Stricter limit for auth endpoints (brute-force protection)
-    const isAuthEndpoint = path.startsWith('/api/auth') || path === '/api/members/me';
+    const isAuthEndpoint = path.startsWith('/api/auth');
     const limit = isAuthEndpoint ? 5 : 60;
     const windowMs = isAuthEndpoint ? 15 * 60_000 : 60_000;
     const result = checkRateLimit(`api:${ip}:${isAuthEndpoint ? 'auth' : 'general'}`, limit, windowMs);

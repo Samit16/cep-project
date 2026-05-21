@@ -1,33 +1,35 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Save, AlertCircle, CheckCircle } from 'lucide-react';
+import { X, Save, UserPlus } from 'lucide-react';
 import styles from './ProfileUpdateModal.module.css';
 import { ApiClient } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { Member } from '@/types';
 
-interface ProfileUpdateModalProps {
-  member: Member;
+interface FamilyMemberModalProps {
+  member?: Member | null; // null = adding new, otherwise editing
+  isPrimary?: boolean;
   onClose: () => void;
-  onUpdated?: (updatedMember: Member) => void;
-  mode?: 'self-update' | 'request-update';
+  onSaved: (savedMember: Member) => void;
 }
 
-export default function ProfileUpdateModal({ member, onClose, onUpdated, mode = 'self-update' }: ProfileUpdateModalProps) {
+export default function FamilyMemberModal({ member, isPrimary = false, onClose, onSaved }: FamilyMemberModalProps) {
+  const isEditing = !!member;
   const [formData, setFormData] = useState({
-    first_name: member.first_name || '',
-    middle_name: member.middle_name || '',
-    last_name: member.last_name || '',
-    occupation: member.occupation || '',
-    marital_status: member.marital_status || '',
-    current_place: member.current_place || '',
-    kutch_town: member.kutch_town || '',
-    nukh: member.nukh || '',
-    birthplace: member.birthplace || '',
-    email: member.email || '',
-    contact_no: member.contact_no || (member.contact_numbers?.length ? member.contact_numbers[0] : ''),
-    whatsapp: member.whatsapp || '',
+    first_name: member?.first_name || '',
+    middle_name: member?.middle_name || '',
+    last_name: member?.last_name || '',
+    occupation: member?.occupation || '',
+    marital_status: member?.marital_status || '',
+    current_place: member?.current_place || '',
+    kutch_town: member?.kutch_town || '',
+    nukh: member?.nukh || '',
+    birthplace: member?.birthplace || '',
+    email: member?.email || '',
+    contact_no: member?.contact_no || (member?.contact_numbers?.length ? member.contact_numbers[0] : ''),
+    whatsapp: member?.whatsapp || '',
+    relation: member?.relation || '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
@@ -43,21 +45,20 @@ export default function ProfileUpdateModal({ member, onClose, onUpdated, mode = 
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      if (mode === 'self-update') {
-        // Direct update to the database
-        const updatedMember = await ApiClient.put<Member>('/members/me', formData);
-        toast('Profile updated successfully!', 'success');
-        if (onUpdated) {
-          onUpdated(updatedMember);
-        }
+      let savedMember: Member;
+      if (isEditing) {
+        // Update existing family member
+        savedMember = await ApiClient.put<Member>(`/members/family/${member!.id}`, formData);
+        toast('Family member updated successfully!', 'success');
       } else {
-        // Old audit-log based request
-        await ApiClient.put('/members/me/update-request', formData);
-        toast('Update request submitted successfully. Awaiting committee approval.', 'success');
+        // Add new family member
+        savedMember = await ApiClient.post<Member>('/members/family', formData);
+        toast('Family member added successfully!', 'success');
       }
+      onSaved(savedMember);
       onClose();
     } catch (err: unknown) {
-      const errorMessage = (err as Error).message || 'Failed to update profile';
+      const errorMessage = (err as Error).message || 'Failed to save family member';
       toast(errorMessage, 'error');
     } finally {
       setIsSubmitting(false);
@@ -70,40 +71,35 @@ export default function ProfileUpdateModal({ member, onClose, onUpdated, mode = 
   };
 
 
-  const isSelfUpdate = mode === 'self-update';
-
   return (
     <div className={styles.modalOverlay}>
       <div className={styles.modalContent}>
         <div className={styles.modalHeader}>
           <h2 className={styles.modalTitle}>
-            {isSelfUpdate ? 'Edit Your Profile' : 'Request Profile Update'}
+            <UserPlus size={20} style={{ marginRight: '8px' }} />
+            {isEditing ? 'Edit Family Member' : 'Add Family Member'}
           </h2>
           <button className={styles.closeBtn} onClick={onClose}>
             <X size={20} />
           </button>
         </div>
 
-        <div className={styles.infoAlert} style={isSelfUpdate ? { background: '#f0fdf4', borderColor: '#bbf7d0' } : undefined}>
-          {isSelfUpdate ? (
-            <CheckCircle size={18} style={{ color: '#16a34a', flexShrink: 0 }} />
-          ) : (
-            <AlertCircle size={18} className={styles.alertIcon} />
-          )}
-          <p className={styles.alertText} style={isSelfUpdate ? { color: '#166534' } : undefined}>
-            {isSelfUpdate
-              ? 'Your changes will be saved directly to your profile.'
-              : 'Changes will be reviewed by the Samaj Committee before appearing on your public profile.'}
+        <div className={styles.infoAlert} style={{ background: '#eff6ff', borderColor: '#bfdbfe' }}>
+          <UserPlus size={18} style={{ color: '#2563eb', flexShrink: 0 }} />
+          <p className={styles.alertText} style={{ color: '#1e40af' }}>
+            {isEditing
+              ? 'Update the details for this family member. Changes are saved directly.'
+              : 'Add a new member to your family. They will appear in your Family Dashboard.'}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.formGroup}>
-            <label className={styles.label}>First Name</label>
-            <input 
-              type="text" 
+            <label className={styles.label}>First Name *</label>
+            <input
+              type="text"
               name="first_name"
-              className={styles.input} 
+              className={styles.input}
               value={formData.first_name}
               onChange={handleChange}
               placeholder="First Name"
@@ -113,10 +109,10 @@ export default function ProfileUpdateModal({ member, onClose, onUpdated, mode = 
 
           <div className={styles.formGroup}>
             <label className={styles.label}>Middle Name</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               name="middle_name"
-              className={styles.input} 
+              className={styles.input}
               value={formData.middle_name}
               onChange={handleChange}
               placeholder="Middle Name (Optional)"
@@ -125,23 +121,22 @@ export default function ProfileUpdateModal({ member, onClose, onUpdated, mode = 
 
           <div className={styles.formGroup}>
             <label className={styles.label}>Last Name</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               name="last_name"
-              className={styles.input} 
+              className={styles.input}
               value={formData.last_name}
               onChange={handleChange}
               placeholder="Last Name"
-              required
             />
           </div>
 
           <div className={styles.formGroup}>
-            <label className={styles.label}>Current Occupation</label>
-            <input 
-              type="text" 
+            <label className={styles.label}>Occupation</label>
+            <input
+              type="text"
               name="occupation"
-              className={styles.input} 
+              className={styles.input}
               value={formData.occupation}
               onChange={handleChange}
               placeholder="e.g. Software Engineer"
@@ -150,7 +145,7 @@ export default function ProfileUpdateModal({ member, onClose, onUpdated, mode = 
 
           <div className={styles.formGroup}>
             <label className={styles.label}>Marital Status</label>
-            <select 
+            <select
               name="marital_status"
               className={styles.select}
               value={formData.marital_status}
@@ -166,10 +161,10 @@ export default function ProfileUpdateModal({ member, onClose, onUpdated, mode = 
 
           <div className={styles.formGroup}>
             <label className={styles.label}>Current Residence (City)</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               name="current_place"
-              className={styles.input} 
+              className={styles.input}
               value={formData.current_place}
               onChange={handleChange}
               placeholder="e.g. Mumbai"
@@ -178,10 +173,10 @@ export default function ProfileUpdateModal({ member, onClose, onUpdated, mode = 
 
           <div className={styles.formGroup}>
             <label className={styles.label}>Kutch Origin Town</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               name="kutch_town"
-              className={styles.input} 
+              className={styles.input}
               value={formData.kutch_town}
               onChange={handleChange}
               placeholder="e.g. Bhuj"
@@ -190,10 +185,10 @@ export default function ProfileUpdateModal({ member, onClose, onUpdated, mode = 
 
           <div className={styles.formGroup}>
             <label className={styles.label}>Nukh</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               name="nukh"
-              className={styles.input} 
+              className={styles.input}
               value={formData.nukh}
               onChange={handleChange}
               placeholder="e.g. Bhimani"
@@ -202,10 +197,10 @@ export default function ProfileUpdateModal({ member, onClose, onUpdated, mode = 
 
           <div className={styles.formGroup}>
             <label className={styles.label}>Birthplace</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               name="birthplace"
-              className={styles.input} 
+              className={styles.input}
               value={formData.birthplace}
               onChange={handleChange}
               placeholder="e.g. Nagpur"
@@ -214,10 +209,10 @@ export default function ProfileUpdateModal({ member, onClose, onUpdated, mode = 
 
           <div className={styles.formGroup}>
             <label className={styles.label}>Email Address</label>
-            <input 
-              type="email" 
+            <input
+              type="email"
               name="email"
-              className={styles.input} 
+              className={styles.input}
               value={formData.email}
               onChange={handleChange}
               placeholder="e.g. name@example.com"
@@ -226,10 +221,10 @@ export default function ProfileUpdateModal({ member, onClose, onUpdated, mode = 
 
           <div className={styles.formGroup}>
             <label className={styles.label}>Phone Number</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               name="contact_no"
-              className={styles.input} 
+              className={styles.input}
               value={formData.contact_no}
               onChange={handleChange}
               placeholder="e.g. +91 9876543210"
@@ -238,17 +233,46 @@ export default function ProfileUpdateModal({ member, onClose, onUpdated, mode = 
 
           <div className={styles.formGroup}>
             <label className={styles.label}>WhatsApp Number</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               name="whatsapp"
-              className={styles.input} 
+              className={styles.input}
               value={formData.whatsapp}
               onChange={handleChange}
               placeholder="e.g. +91 9876543210"
             />
           </div>
 
-
+          {!isPrimary && (
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Relation to Primary Account *</label>
+              <select
+                name="relation"
+                className={styles.select}
+                value={formData.relation}
+                onChange={handleChange}
+                required
+              >
+                <option value="">Select Relation</option>
+                <option value="Spouse">Spouse</option>
+                <option value="Son">Son</option>
+                <option value="Daughter">Daughter</option>
+                <option value="Father">Father</option>
+                <option value="Mother">Mother</option>
+                <option value="Brother">Brother</option>
+                <option value="Sister">Sister</option>
+                <option value="Father-in-law">Father-in-law</option>
+                <option value="Mother-in-law">Mother-in-law</option>
+                <option value="Brother-in-law">Brother-in-law</option>
+                <option value="Sister-in-law">Sister-in-law</option>
+                <option value="Daughter-in-law">Daughter-in-law</option>
+                <option value="Son-in-law">Son-in-law</option>
+                <option value="Grandson">Grandson</option>
+                <option value="Granddaughter">Granddaughter</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          )}
 
           <div className={styles.modalFooter}>
             <button type="button" className={styles.cancelBtn} onClick={onClose}>
@@ -257,9 +281,9 @@ export default function ProfileUpdateModal({ member, onClose, onUpdated, mode = 
             <button type="submit" className={styles.submitBtn} disabled={isSubmitting}>
               {isSubmitting
                 ? 'Saving...'
-                : isSelfUpdate
+                : isEditing
                   ? 'Save Changes'
-                  : 'Submit Request'}
+                  : 'Add Member'}
               {!isSubmitting && <Save size={16} style={{ marginLeft: '8px' }} />}
             </button>
           </div>

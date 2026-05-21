@@ -11,6 +11,7 @@ interface UserProfile {
   email?: string;
   role: Role;
   member_id?: string;
+  family_id?: string;
   is_first_login?: boolean;
 }
 
@@ -57,6 +58,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .eq('id', userId)
         .single();
 
+      // Fetch family_id from the linked member record
+      let familyId: string | undefined;
+      if (data?.member_id) {
+        const { data: memberData } = await supabase
+          .from('members')
+          .select('family_id')
+          .eq('id', data.member_id)
+          .single();
+        familyId = memberData?.family_id ?? undefined;
+      }
+
       if (error || !data) {
         console.error('Failed to fetch profile:', error);
         return null;
@@ -67,6 +79,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         email,
         role: data.role as Role,
         member_id: data.member_id,
+        family_id: familyId,
         is_first_login: data.is_first_login,
       };
 

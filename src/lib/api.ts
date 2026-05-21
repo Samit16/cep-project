@@ -129,6 +129,7 @@ export class ApiClient {
     const response = await fetch(url, {
       method: 'GET',
       headers: this.getHeaders({}, token),
+      cache: 'no-store',
     });
     return this.handleResponse<T>(response);
   }

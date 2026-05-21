@@ -38,9 +38,18 @@ export async function GET(request: NextRequest) {
       const firstName = emailParts[0] || user.email?.split('@')[0] || 'Member';
       const lastName = emailParts.length > 1 ? emailParts.slice(1).join(' ') : '';
 
+      const { data: newFamily } = await supabase
+        .from('families')
+        .insert({ name: `${lastName || firstName} Family` })
+        .select()
+        .single();
+      
+      const familyId = newFamily?.id;
+
       const { data: newMember, error: createError } = await supabase
         .from('members')
         .insert({
+          family_id: familyId,
           first_name: firstName.charAt(0).toUpperCase() + firstName.slice(1),
           last_name: lastName.charAt(0).toUpperCase() + lastName.slice(1),
           email: user.email?.includes('@kvonagpur.com') ? '' : (user.email || ''),
@@ -135,7 +144,7 @@ export async function PUT(request: NextRequest) {
     // Only allow specific fields to be updated
     // Note: the DB uses contact_numbers (TEXT[]), not contact_no.
     // We accept contact_no from the frontend and map it to contact_numbers.
-    const allowedFields = ['first_name', 'middle_name', 'last_name', 'occupation', 'marital_status', 'current_place', 'kutch_town', 'contact_numbers', 'email', 'nukh', 'birthplace', 'relations', 'contact_visibility'];
+    const allowedFields = ['first_name', 'middle_name', 'last_name', 'occupation', 'marital_status', 'current_place', 'kutch_town', 'contact_numbers', 'email', 'nukh', 'birthplace', 'relations', 'contact_visibility', 'relation', 'whatsapp'];
     const updateData: Record<string, any> = {};
     for (const key of allowedFields) {
       if (changes[key] !== undefined) {
@@ -174,6 +183,21 @@ export async function PUT(request: NextRequest) {
     }
 
     const supabase = createServerSupabase();
+
+    // Reset whatsapp_verified if whatsapp number has changed
+    if (changes['whatsapp'] !== undefined) {
+      const { data: currentMember } = await supabase
+        .from('members')
+        .select('whatsapp')
+        .eq('id', memberId)
+        .single();
+      
+      const newWhatsapp = changes['whatsapp'] ? String(changes['whatsapp']).trim() : '';
+      const currentWhatsapp = currentMember?.whatsapp || '';
+      if (newWhatsapp !== currentWhatsapp) {
+        sanitizedData['whatsapp_verified'] = false;
+      }
+    }
 
     // If user is updating their email, also update it in Supabase Auth
     // and trigger a verification email. This is the KEY step that makes the

@@ -26,7 +26,7 @@ export async function GET(
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
 
-    const isOwner = user.member_id === member.id;
+    const isOwner = user.family_id === member.family_id && user.family_id != null;
     const visible = member.contact_visibility === 'public' || isOwner;
 
     const firstName = member.first_name || '';
