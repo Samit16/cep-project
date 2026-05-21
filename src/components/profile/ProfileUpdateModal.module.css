@@ -14,7 +14,7 @@
 }
 
 .modalContent {
-  background: white;
+  background: var(--color-bg-card);
   width: 95%;
   max-width: 500px;
   border-radius: var(--radius-lg);
@@ -54,8 +54,8 @@
 }
 
 .infoAlert {
-  background: #fff8f1;
-  border: 1px solid #ffedd5;
+  background: var(--color-status-pending-bg);
+  border: 1px solid var(--color-status-pending);
   border-radius: var(--radius-md);
   padding: 1rem;
   display: flex;
@@ -64,12 +64,12 @@
 }
 
 .alertIcon {
-  color: #ea580c;
+  color: var(--color-status-pending);
   flex-shrink: 0;
 }
 
 .alertText {
-  color: #9a3412;
+  color: var(--color-text-primary);
   font-size: 0.875rem;
 }
 
@@ -116,7 +116,8 @@
 .cancelBtn {
   padding: 0.75rem 1.5rem;
   border: 1px solid var(--color-border);
-  background: white;
+  background: var(--color-bg-card);
+  color: var(--color-text-primary);
   border-radius: var(--radius-md);
   font-weight: 500;
   cursor: pointer;
@@ -124,7 +125,7 @@
 }
 
 .cancelBtn:hover {
-  background: #fafafa;
+  background: var(--color-bg-section-alt);
 }
 
 .submitBtn {

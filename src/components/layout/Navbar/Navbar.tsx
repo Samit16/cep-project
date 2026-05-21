@@ -22,6 +22,25 @@ export default function Navbar({
   const navRef = useGsapNavbar<HTMLElement>();
   const { user, role, logout } = useAuth();
   const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isLinkActive = (href: string, label: string) => {
+    if (activeLink && activeLink.toLowerCase() === label.toLowerCase()) {
+      return true;
+    }
+    if (!mounted || !pathname) return false;
+    
+    // Exclude My Profile route (/directory/me) from highlighting Directory
+    if (href === '/directory' && (pathname === '/directory/me' || pathname.startsWith('/directory/me/'))) {
+      return false;
+    }
+    
+    return pathname === href || pathname.startsWith(href + '/');
+  };
   const router = useRouter();
   const [loginDropdownOpen, setLoginDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -79,21 +98,27 @@ export default function Navbar({
       {/* Desktop Navigation */}
       <div className={styles.desktopNav}>
         <div className={styles.navLinks}>
-          {links.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={`${styles.navLink} ${activeLink === link.label.toLowerCase() ? styles.navLinkActive : ''}`}
-            >
-              {link.label}
-            </Link>
-          ))}
+          {links.map((link) => {
+            const isActive = isLinkActive(link.href, link.label);
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`${styles.navLink} ${isActive ? styles.navLinkActive : ''}`}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
         </div>
 
         <div className={styles.navActions}>
           <ThemeToggle />
           {(role === 'admin' || role === 'committee') && (
-            <Link href="/dashboard" className={styles.dashboardBtn}>
+            <Link
+              href="/dashboard"
+              className={`${styles.dashboardBtn} ${isLinkActive('/dashboard', 'dashboard') ? styles.dashboardBtnActive : ''}`}
+            >
               Dashboard
             </Link>
           )}
@@ -155,7 +180,10 @@ export default function Navbar({
                 )}
               </div>
 
-              <Link href="/directory/me" className={styles.profileLink}>
+              <Link 
+                href="/directory/me" 
+                className={`${styles.profileLink} ${isLinkActive('/directory/me', 'my profile') ? styles.profileLinkActive : ''}`}
+              >
                 <User size={18} />
                 <span>My Profile</span>
               </Link>
@@ -164,10 +192,16 @@ export default function Navbar({
 
           {pathname !== '/login' && (
             <>
-              <Link href="/about" className={styles.navLink}>
+              <Link 
+                href="/about" 
+                className={`${styles.navLink} ${isLinkActive('/about', 'about') ? styles.navLinkActive : ''}`}
+              >
                 About
               </Link>
-              <Link href="/contact" className={styles.navLink}>
+              <Link 
+                href="/contact" 
+                className={`${styles.navLink} ${isLinkActive('/contact', 'contact') ? styles.navLinkActive : ''}`}
+              >
                 Contact
               </Link>
             </>
@@ -213,19 +247,32 @@ export default function Navbar({
       {/* Mobile Navigation Drawer */}
       <div className={`${styles.mobileNavDrawer} ${mobileMenuOpen ? styles.mobileNavOpen : ''}`}>
         <div className={styles.mobileNavLinks}>
-          {links.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={`${styles.mobileNavLink} ${activeLink === link.label.toLowerCase() ? styles.mobileNavLinkActive : ''}`}
-            >
-              {link.label}
-            </Link>
-          ))}
+          {links.map((link) => {
+            const isActive = isLinkActive(link.href, link.label);
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`${styles.mobileNavLink} ${isActive ? styles.mobileNavLinkActive : ''}`}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
           {pathname !== '/login' && (
             <>
-              <Link href="/about" className={styles.mobileNavLink}>About</Link>
-              <Link href="/contact" className={styles.mobileNavLink}>Contact</Link>
+              <Link 
+                href="/about" 
+                className={`${styles.mobileNavLink} ${isLinkActive('/about', 'about') ? styles.mobileNavLinkActive : ''}`}
+              >
+                About
+              </Link>
+              <Link 
+                href="/contact" 
+                className={`${styles.mobileNavLink} ${isLinkActive('/contact', 'contact') ? styles.mobileNavLinkActive : ''}`}
+              >
+                Contact
+              </Link>
             </>
           )}
         </div>
@@ -236,17 +283,27 @@ export default function Navbar({
             <ThemeToggle />
           </div>
           {(role === 'admin' || role === 'committee') && (
-            <Link href="/dashboard" className={styles.mobileDashboardBtn}>
+            <Link
+              href="/dashboard"
+              className={`${styles.mobileDashboardBtn} ${isLinkActive('/dashboard', 'dashboard') ? styles.mobileDashboardBtnActive : ''}`}
+            >
               Dashboard
             </Link>
           )}
           {user && hasPendingRequest && (
-            <Link href="/directory/me" className={styles.mobileProfileLink} style={{ color: '#ef4444' }}>
+            <Link 
+              href="/directory/me" 
+              className={`${styles.mobileProfileLink} ${isLinkActive('/directory/me', 'my profile') ? styles.mobileProfileLinkActive : ''}`} 
+              style={{ color: '#ef4444' }}
+            >
               <Bell size={18} /> Update Requested
             </Link>
           )}
           {user && (
-            <Link href="/directory/me" className={styles.mobileProfileLink}>
+            <Link 
+              href="/directory/me" 
+              className={`${styles.mobileProfileLink} ${isLinkActive('/directory/me', 'my profile') ? styles.mobileProfileLinkActive : ''}`}
+            >
               <User size={18} /> My Profile
             </Link>
           )}

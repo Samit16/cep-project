@@ -25,7 +25,75 @@ function getAvatarColor(name?: string) {
   for (let i = 0; i < n.length; i++) {
     hash = n.charCodeAt(i) + ((hash << 5) - hash);
   }
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+  return AVATAR_COLORS[hash % AVATAR_COLORS.length];
+}
+
+function getDynamicRelation(targetMember: Member, selectedMember: Member, familyMembers: Member[]): string {
+  if (targetMember.id === selectedMember.id) {
+    return 'Self';
+  }
+
+  // Find the primary member in the family (the one with no relation, or relation-less)
+  const primaryMember = familyMembers.find(m => !m.relation) || familyMembers[0];
+  if (!primaryMember) return targetMember.relation || 'Family Member';
+
+  // Case A: The profile being viewed is the Primary Member
+  if (selectedMember.id === primaryMember.id) {
+    return targetMember.relation || 'Primary Account';
+  }
+
+  // Case B: The profile being viewed is a family member (not the primary member)
+  
+  // 1. If targetMember is the primary member:
+  if (targetMember.id === primaryMember.id) {
+    const rel = (selectedMember.relation || '').trim().toLowerCase();
+    switch (rel) {
+      case 'father':
+      case 'mother':
+        return 'Son'; // User is a son relative to father/mother
+      case 'son':
+      case 'daughter':
+        return 'Father'; // Primary is father relative to son/daughter
+      case 'spouse':
+        return 'Spouse';
+      case 'brother':
+      case 'sister':
+        return 'Brother';
+      case 'father-in-law':
+      case 'mother-in-law':
+        return 'Son-in-law';
+      case 'son-in-law':
+      case 'daughter-in-law':
+        return 'Father-in-law';
+      case 'brother-in-law':
+      case 'sister-in-law':
+        return 'Brother-in-law';
+      case 'grandson':
+      case 'granddaughter':
+        return 'Grandfather';
+      default:
+        return 'Primary Account';
+    }
+  }
+
+  // 2. If targetMember is NOT the primary member:
+  const sRel = (selectedMember.relation || '').trim().toLowerCase();
+  const tRel = (targetMember.relation || '').trim().toLowerCase();
+
+  // Siblings
+  if ((sRel === 'son' || sRel === 'daughter') && (tRel === 'son' || tRel === 'daughter')) {
+    return tRel === 'son' ? 'Brother' : 'Sister';
+  }
+
+  // Parent and Child relationships among family members
+  if ((sRel === 'father' || sRel === 'mother' || sRel === 'spouse') && (tRel === 'son' || tRel === 'daughter')) {
+    return tRel === 'son' ? 'Son' : 'Daughter';
+  }
+  if ((sRel === 'son' || sRel === 'daughter') && (tRel === 'father' || tRel === 'mother' || tRel === 'spouse')) {
+    return tRel === 'father' ? 'Father' : tRel === 'mother' ? 'Mother' : 'Spouse';
+  }
+
+  return targetMember.relation || 'Family Member';
 }
 
 interface ProfilePageProps {
@@ -80,14 +148,15 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
       setMember(data);
       setSelectedMember(data);
 
-      // If it's my profile, fetch the whole family
-      if (!memberId || memberId === 'me' || profile?.member_id === data.id) {
-        try {
-          const familyData = await ApiClient.get<{ members: Member[] }>('/members/family');
-          setFamilyMembers(familyData.members || []);
-        } catch (e) {
-          console.error("Failed to fetch family members", e);
-        }
+      // Fetch the family for this member
+      try {
+        const familyEndpoint = memberId && memberId !== 'me' 
+          ? `/members/family?memberId=${data.id}` 
+          : '/members/family';
+        const familyData = await ApiClient.get<{ members: Member[] }>(familyEndpoint);
+        setFamilyMembers(familyData.members || []);
+      } catch (e) {
+        console.error("Failed to fetch family members", e);
       }
     } catch (err: unknown) {
       toast((err as Error).message || 'Failed to load profile', 'error');
@@ -541,7 +610,7 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
 
   return (
     <div ref={profileRef} className={styles.profileContent}>
-      {isMyProfile && familyMembers.length > 0 ? (
+      {familyMembers.length > 0 ? (
         <div className={styles.dashboardLayout}>
           {/* Left Sidebar: Family Members List */}
           <div className={`${styles.familySidebar} gsap-profile-anim`}>
@@ -563,16 +632,18 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
                   <div className={styles.familyMemberInfo}>
                     <div className={styles.familyMemberName}>{fm.name || `${fm.first_name} ${fm.last_name}`}</div>
                     <div className={styles.familyMemberRelation}>
-                      {fm.id === member?.id ? 'Primary Account' : (fm.relation || 'Family Member')}
+                      {getDynamicRelation(fm, selectedMember, familyMembers)}
                     </div>
                   </div>
                 </button>
               ))}
             </div>
 
-            <button className={styles.addMemberBtn} onClick={handleAddFamilyMember}>
-              <UserPlus size={16} /> Add Family Member
-            </button>
+            {isMyProfile && (
+              <button className={styles.addMemberBtn} onClick={handleAddFamilyMember}>
+                <UserPlus size={16} /> Add Family Member
+              </button>
+            )}
           </div>
 
           {/* Right Panel: Selected Member Details */}

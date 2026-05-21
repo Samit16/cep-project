@@ -22,7 +22,7 @@ export default function ContactPage() {
 
   return (
     <>
-      <Navbar variant="public" />
+      <Navbar variant="public" activeLink="contact" />
       <main className={styles.contactPage}>
         {/* Hero */}
         <section ref={heroRef} className={styles.hero}>

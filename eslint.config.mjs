@@ -11,11 +11,6 @@ const eslintConfig = defineConfig([
     ".next/**",
     "out/**",
     "build/**",
-    "next-env.d.ts",
-    // Backend compiled output & dependencies (linted separately):
-    "backend/dist/**",
-    "backend/node_modules/**",
-    "backend/src/**",
   ]),
 ]);
 

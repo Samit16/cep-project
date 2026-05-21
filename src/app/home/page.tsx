@@ -5,7 +5,7 @@ import { HeroSection, HistoryMissionSection, CTABanner } from '@/components/land
 export default function HomePage() {
   return (
     <>
-      <Navbar variant="public" />
+      <Navbar variant="public" activeLink="home" />
       <HeroSection />
       <HistoryMissionSection />
       <CTABanner />

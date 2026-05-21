@@ -6,7 +6,7 @@ export default async function ProfileRoute({ params }: { params: Promise<{ membe
   const { memberId } = await params;
   return (
     <>
-      <Navbar variant="public" activeLink="directory" />
+      <Navbar variant="public" activeLink={memberId === 'me' ? 'my profile' : 'directory'} />
       <ProfilePage memberId={memberId} />
       <Footer />
     </>

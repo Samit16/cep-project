@@ -4,12 +4,7 @@ import { authenticateSupabase, createServerSupabase } from '@/lib/auth-server';
 
 export const dynamic = 'force-dynamic';
 
-function getPagination(searchParams: URLSearchParams) {
-  const page = parseInt(searchParams.get('page') || '1', 10);
-  const limit = parseInt(searchParams.get('limit') || '10', 10);
-  const skip = (page - 1) * limit;
-  return { skip, take: limit };
-}
+import { getPagination } from '@/lib/pagination';
 
 export async function GET(request: NextRequest) {
   try {
