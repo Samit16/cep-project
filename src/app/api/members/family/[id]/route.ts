@@ -38,7 +38,7 @@ export async function PUT(
       return NextResponse.json({ error: 'No update data provided.' }, { status: 400 });
     }
 
-    const allowedFields = ['first_name', 'middle_name', 'last_name', 'occupation', 'marital_status', 'current_place', 'kutch_town', 'contact_numbers', 'email', 'nukh', 'birthplace', 'relations', 'contact_visibility', 'relation', 'whatsapp'];
+    const allowedFields = ['first_name', 'middle_name', 'last_name', 'occupation', 'marital_status', 'current_place', 'kutch_town', 'contact_numbers', 'email', 'nukh', 'birthplace', 'relations', 'contact_visibility', 'relation', 'whatsapp', 'gender'];
     const updateData: Record<string, any> = {};
     for (const key of allowedFields) {
       if (changes[key] !== undefined) {

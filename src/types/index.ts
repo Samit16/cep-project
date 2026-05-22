@@ -30,6 +30,7 @@ export interface Member {
   family_members?: string[];
   relations?: { name: string; relation: string }[];
   relation?: string;
+  gender?: string;
   joinDate?: string;
   nukh?: string;
   birthplace?: string;
@@ -44,6 +45,7 @@ export interface Member {
   officePhotoUrl?: string;
   officeLocation?: string;
   idNumber?: string;
+  _merged?: boolean;
 }
 
 export interface Event {
