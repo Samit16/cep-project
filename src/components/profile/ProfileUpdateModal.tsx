@@ -28,6 +28,7 @@ export default function ProfileUpdateModal({ member, onClose, onUpdated, mode = 
     email: member.email || '',
     contact_no: member.contact_no || (member.contact_numbers?.length ? member.contact_numbers[0] : ''),
     whatsapp: member.whatsapp || '',
+    gender: member.gender || '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
@@ -161,6 +162,22 @@ export default function ProfileUpdateModal({ member, onClose, onUpdated, mode = 
               <option value="Married">Married</option>
               <option value="Widowed">Widowed</option>
               <option value="Separated">Separated</option>
+            </select>
+          </div>
+
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Gender *</label>
+            <select
+              name="gender"
+              className={styles.select}
+              value={formData.gender}
+              onChange={handleChange}
+              required
+            >
+              <option value="">Select Gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
             </select>
           </div>
 

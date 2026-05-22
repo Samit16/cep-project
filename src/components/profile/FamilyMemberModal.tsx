@@ -30,6 +30,7 @@ export default function FamilyMemberModal({ member, isPrimary = false, onClose, 
     contact_no: member?.contact_no || (member?.contact_numbers?.length ? member.contact_numbers[0] : ''),
     whatsapp: member?.whatsapp || '',
     relation: member?.relation || '',
+    gender: member?.gender || '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
@@ -53,7 +54,11 @@ export default function FamilyMemberModal({ member, isPrimary = false, onClose, 
       } else {
         // Add new family member
         savedMember = await ApiClient.post<Member>('/members/family', formData);
-        toast('Family member added successfully!', 'success');
+        if (savedMember._merged) {
+          toast('Matching member found! Both families have been merged successfully.', 'success');
+        } else {
+          toast('Family member added successfully!', 'success');
+        }
       }
       onSaved(savedMember);
       onClose();
@@ -156,6 +161,22 @@ export default function FamilyMemberModal({ member, isPrimary = false, onClose, 
               <option value="Married">Married</option>
               <option value="Widowed">Widowed</option>
               <option value="Separated">Separated</option>
+            </select>
+          </div>
+
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Gender *</label>
+            <select
+              name="gender"
+              className={styles.select}
+              value={formData.gender}
+              onChange={handleChange}
+              required
+            >
+              <option value="">Select Gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
             </select>
           </div>
 

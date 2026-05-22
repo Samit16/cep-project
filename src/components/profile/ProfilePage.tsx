@@ -25,7 +25,7 @@ function getAvatarColor(name?: string) {
   for (let i = 0; i < n.length; i++) {
     hash = n.charCodeAt(i) + ((hash << 5) - hash);
   }
-  return AVATAR_COLORS[hash % AVATAR_COLORS.length];
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
 function getDynamicRelation(targetMember: Member, selectedMember: Member, familyMembers: Member[]): string {
@@ -36,6 +36,9 @@ function getDynamicRelation(targetMember: Member, selectedMember: Member, family
   // Find the primary member in the family (the one with no relation, or relation-less)
   const primaryMember = familyMembers.find(m => !m.relation) || familyMembers[0];
   if (!primaryMember) return targetMember.relation || 'Family Member';
+
+  const tGender = (targetMember.gender || '').trim().toLowerCase();
+  const sGender = (selectedMember.gender || '').trim().toLowerCase();
 
   // Case A: The profile being viewed is the Primary Member
   if (selectedMember.id === primaryMember.id) {
@@ -50,27 +53,30 @@ function getDynamicRelation(targetMember: Member, selectedMember: Member, family
     switch (rel) {
       case 'father':
       case 'mother':
-        return 'Son'; // User is a son relative to father/mother
+        return sGender === 'female' ? 'Daughter' : 'Son';
       case 'son':
       case 'daughter':
-        return 'Father'; // Primary is father relative to son/daughter
+        return tGender === 'female' ? 'Mother' : 'Father';
       case 'spouse':
         return 'Spouse';
       case 'brother':
       case 'sister':
-        return 'Brother';
+        return tGender === 'female' ? 'Sister' : 'Brother';
       case 'father-in-law':
       case 'mother-in-law':
-        return 'Son-in-law';
+        return sGender === 'female' ? 'Daughter-in-law' : 'Son-in-law';
       case 'son-in-law':
       case 'daughter-in-law':
-        return 'Father-in-law';
+        return tGender === 'female' ? 'Mother-in-law' : 'Father-in-law';
       case 'brother-in-law':
       case 'sister-in-law':
-        return 'Brother-in-law';
+        return tGender === 'female' ? 'Sister-in-law' : 'Brother-in-law';
       case 'grandson':
       case 'granddaughter':
-        return 'Grandfather';
+        return tGender === 'female' ? 'Grandmother' : 'Grandfather';
+      case 'grandfather':
+      case 'grandmother':
+        return tGender === 'female' ? 'Granddaughter' : 'Grandson';
       default:
         return 'Primary Account';
     }
@@ -80,17 +86,46 @@ function getDynamicRelation(targetMember: Member, selectedMember: Member, family
   const sRel = (selectedMember.relation || '').trim().toLowerCase();
   const tRel = (targetMember.relation || '').trim().toLowerCase();
 
+  // Parent-Parent relationships (Wife/Husband)
+  if (sRel === 'father' && tRel === 'mother') return 'Wife';
+  if (sRel === 'mother' && tRel === 'father') return 'Husband';
+
+  // Spouse <-> Parents (Father-in-law, Mother-in-law, Daughter-in-law, Son-in-law)
+  if (sRel === 'spouse' && (tRel === 'father' || tRel === 'mother')) {
+    return tRel === 'father' ? 'Father-in-law' : 'Mother-in-law';
+  }
+  if ((sRel === 'father' || sRel === 'mother') && tRel === 'spouse') {
+    return tGender === 'female' ? 'Daughter-in-law' : 'Son-in-law';
+  }
+
   // Siblings
   if ((sRel === 'son' || sRel === 'daughter') && (tRel === 'son' || tRel === 'daughter')) {
-    return tRel === 'son' ? 'Brother' : 'Sister';
+    return tGender === 'female' ? 'Sister' : 'Brother';
+  }
+
+  // Spouse <-> Siblings (Sister-in-law, Brother-in-law)
+  if (sRel === 'spouse' && (tRel === 'brother' || tRel === 'sister')) {
+    return tGender === 'female' ? 'Sister-in-law' : 'Brother-in-law';
+  }
+  if ((sRel === 'brother' || sRel === 'sister') && tRel === 'spouse') {
+    return tGender === 'female' ? 'Sister-in-law' : 'Brother-in-law';
   }
 
   // Parent and Child relationships among family members
   if ((sRel === 'father' || sRel === 'mother' || sRel === 'spouse') && (tRel === 'son' || tRel === 'daughter')) {
-    return tRel === 'son' ? 'Son' : 'Daughter';
+    return tGender === 'female' ? 'Daughter' : 'Son';
   }
   if ((sRel === 'son' || sRel === 'daughter') && (tRel === 'father' || tRel === 'mother' || tRel === 'spouse')) {
-    return tRel === 'father' ? 'Father' : tRel === 'mother' ? 'Mother' : 'Spouse';
+    if (tRel === 'spouse') return 'Spouse';
+    return tGender === 'female' ? 'Mother' : 'Father';
+  }
+
+  // Sibling and Nephew/Niece relationships
+  if ((sRel === 'brother' || sRel === 'sister') && (tRel === 'son' || tRel === 'daughter')) {
+    return tGender === 'female' ? 'Niece' : 'Nephew';
+  }
+  if ((sRel === 'son' || sRel === 'daughter') && (tRel === 'brother' || tRel === 'sister')) {
+    return tGender === 'female' ? 'Aunt' : 'Uncle';
   }
 
   return targetMember.relation || 'Family Member';
@@ -140,13 +175,12 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
 
   const isMyProfile = !memberId || memberId === 'me' || profile?.member_id === (member?._id || member?.id);
 
-  const loadProfile = useCallback(async () => {
-    setIsLoading(true);
+  const loadProfile = useCallback(async (silent = false) => {
+    if (!silent) setIsLoading(true);
     try {
       const endpoint = memberId && memberId !== 'me' ? `/members/${memberId}` : '/members/me';
       const data = await ApiClient.get<Member>(endpoint);
       setMember(data);
-      setSelectedMember(data);
 
       // Fetch the family for this member
       try {
@@ -154,16 +188,25 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
           ? `/members/family?memberId=${data.id}` 
           : '/members/family';
         const familyData = await ApiClient.get<{ members: Member[] }>(familyEndpoint);
-        setFamilyMembers(familyData.members || []);
+        const membersList = familyData.members || [];
+        setFamilyMembers(membersList);
+
+        // Update selectedMember: update details if selected, otherwise set to primary profile
+        setSelectedMember(prev => {
+          if (!prev) return data;
+          if (prev.id === data.id) return data;
+          const updatedSelected = membersList.find(m => m.id === prev.id);
+          return updatedSelected || prev;
+        });
       } catch (e) {
         console.error("Failed to fetch family members", e);
       }
     } catch (err: unknown) {
       toast((err as Error).message || 'Failed to load profile', 'error');
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
-  }, [memberId, profile?.member_id, toast]);
+  }, [memberId, toast]);
 
   useEffect(() => {
     loadProfile();
@@ -265,6 +308,9 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
       setFamilyMembers(prev => [...prev, savedMember]);
       setSelectedMember(savedMember);
     }
+
+    // Silently re-fetch entire family & profile to handle merges and relationship recalculations automatically!
+    loadProfile(true);
     
     if (pendingNotification && savedMember.id === member?.id) {
       handleDismissNotification();
@@ -342,7 +388,7 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
       
       <div className={`${styles.profileHero} gsap-profile-anim`}>
         <div className={styles.profilePhoto}>
-          <div className={styles.profilePhotoInitials} style={{ backgroundColor: getAvatarColor(displayMember.name) }}>
+          <div className={styles.profilePhotoInitials} style={{ backgroundColor: getAvatarColor(displayMember.name || `${displayMember.first_name} ${displayMember.last_name}`) }}>
             {initials}
           </div>
         </div>
@@ -626,7 +672,7 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
                   className={`${styles.familyMemberItem} ${selectedMember?.id === fm.id ? styles.active : ''}`}
                   onClick={() => setSelectedMember(fm)}
                 >
-                  <div className={styles.familyMemberAvatar} style={{ backgroundColor: getAvatarColor(fm.name) }}>
+                  <div className={styles.familyMemberAvatar} style={{ backgroundColor: getAvatarColor(fm.name || `${fm.first_name} ${fm.last_name}`) }}>
                     {`${fm.first_name?.[0] || ''}${fm.last_name?.[0] || ''}`}
                   </div>
                   <div className={styles.familyMemberInfo}>
