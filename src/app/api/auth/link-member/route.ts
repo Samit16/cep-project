@@ -43,7 +43,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ message: 'Member linked successfully' });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in /api/auth/link-member:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

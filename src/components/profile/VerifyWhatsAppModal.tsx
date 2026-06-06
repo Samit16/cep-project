@@ -292,7 +292,7 @@ export default function VerifyWhatsAppModal({ memberId, initialWhatsApp, onClose
               </div>
               <h3 className={styles.stepTitle}>WhatsApp Verified!</h3>
               <p className={styles.stepDescription}>
-                The WhatsApp number has been successfully verified and added to the member's profile.
+                The WhatsApp number has been successfully verified and added to the member&apos;s profile.
               </p>
               <button className={styles.primaryBtn} onClick={() => onSuccess(whatsapp)}>
                 Done

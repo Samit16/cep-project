@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       unreadCount,
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in /api/members/me/notifications:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
@@ -70,7 +70,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ message: 'Notification marked as read' });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in PUT /api/members/me/notifications:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
@@ -107,7 +107,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ message: 'Notification deleted' });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in DELETE /api/members/me/notifications:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

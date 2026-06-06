@@ -64,7 +64,7 @@ export async function POST(
 
     return NextResponse.json({ message: 'Update request sent successfully' });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(`Error in /api/members/[id]/request-update:`, error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

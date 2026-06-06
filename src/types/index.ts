@@ -79,3 +79,9 @@ export interface StatsData {
   newApplications: number;
   globalChapters: number;
 }
+
+export interface FamilyGroup {
+  family_id: string;
+  family_name: string;
+  members: Member[];
+}

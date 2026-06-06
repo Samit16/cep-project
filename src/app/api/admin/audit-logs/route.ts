@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(logs);
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(`Error in /api/admin/audit-logs:`, error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

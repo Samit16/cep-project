@@ -29,7 +29,17 @@ export default function FamilyMemberModal({ member, isPrimary = false, onClose, 
     email: member?.email || '',
     contact_no: member?.contact_no || (member?.contact_numbers?.length ? member.contact_numbers[0] : ''),
     whatsapp: member?.whatsapp || '',
-    relation: member?.relation || '',
+    relation: (() => {
+      const standard = ['Spouse', 'Son', 'Daughter', 'Father', 'Mother', 'Brother', 'Sister', 'Father-in-law', 'Mother-in-law', 'Brother-in-law', 'Sister-in-law', 'Daughter-in-law', 'Son-in-law', 'Grandson', 'Granddaughter', 'Uncle', 'Aunt', 'Nephew', 'Niece', 'Cousin', ''];
+      if (!member?.relation) return '';
+      if (standard.includes(member.relation)) return member.relation;
+      return 'Other';
+    })(),
+    custom_relation: (() => {
+      const standard = ['Spouse', 'Son', 'Daughter', 'Father', 'Mother', 'Brother', 'Sister', 'Father-in-law', 'Mother-in-law', 'Brother-in-law', 'Sister-in-law', 'Daughter-in-law', 'Son-in-law', 'Grandson', 'Granddaughter', 'Uncle', 'Aunt', 'Nephew', 'Niece', 'Cousin', ''];
+      if (member?.relation && !standard.includes(member.relation)) return member.relation;
+      return '';
+    })(),
     gender: member?.gender || '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -47,13 +57,22 @@ export default function FamilyMemberModal({ member, isPrimary = false, onClose, 
     setIsSubmitting(true);
     try {
       let savedMember: Member;
+      
+      const payload = { ...formData };
+      if (!isPrimary && payload.relation === 'Other') {
+        payload.relation = payload.custom_relation;
+      }
+      // delete custom_relation so it's not sent to the API
+      // @ts-expect-error custom_relation is removed before sending to API
+      delete payload.custom_relation;
+
       if (isEditing) {
         // Update existing family member
-        savedMember = await ApiClient.put<Member>(`/members/family/${member!.id}`, formData);
+        savedMember = await ApiClient.put<Member>(`/members/family/${member!.id}`, payload);
         toast('Family member updated successfully!', 'success');
       } else {
         // Add new family member
-        savedMember = await ApiClient.post<Member>('/members/family', formData);
+        savedMember = await ApiClient.post<Member>('/members/family', payload);
         if (savedMember._merged) {
           toast('Matching member found! Both families have been merged successfully.', 'success');
         } else {
@@ -290,8 +309,28 @@ export default function FamilyMemberModal({ member, isPrimary = false, onClose, 
                 <option value="Son-in-law">Son-in-law</option>
                 <option value="Grandson">Grandson</option>
                 <option value="Granddaughter">Granddaughter</option>
+                <option value="Uncle">Uncle</option>
+                <option value="Aunt">Aunt</option>
+                <option value="Nephew">Nephew</option>
+                <option value="Niece">Niece</option>
+                <option value="Cousin">Cousin</option>
                 <option value="Other">Other</option>
               </select>
+            </div>
+          )}
+
+          {!isPrimary && formData.relation === 'Other' && (
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Specify Relation *</label>
+              <input
+                type="text"
+                name="custom_relation"
+                className={styles.input}
+                value={formData.custom_relation}
+                onChange={handleChange}
+                placeholder="e.g. Cousin"
+                required
+              />
             </div>
           )}
 

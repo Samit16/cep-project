@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
 
     const isOwnFamily = familyId === user.family_id;
 
-    const result = (members || []).map((m: any) => {
+    const result = (members || []).map((m: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
       const isPublic = m.contact_visibility === 'public' || isOwnFamily;
       return {
         ...m,
@@ -62,14 +62,14 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json({ members: result });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in GET /api/members/family:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
 // Helper to determine the inverse of a relation relative to self
-function determineInverseRelation(relation: string, genderSelf?: string, genderOther?: string): string {
+function determineInverseRelation(relation: string, genderSelf?: string): string {
   const rel = (relation || '').trim().toLowerCase();
   const selfG = (genderSelf || '').trim().toLowerCase();
 
@@ -106,15 +106,11 @@ function determineInverseRelation(relation: string, genderSelf?: string, genderO
 function determineChainedRelation(
   relBtoX: string,
   relXtoA: string,
-  genderB?: string,
-  genderX?: string,
-  genderA?: string
+  genderB?: string
 ): string {
   const bx = (relBtoX || '').trim().toLowerCase();
   const xa = (relXtoA || '').trim().toLowerCase();
   const gB = (genderB || '').trim().toLowerCase();
-  const gX = (genderX || '').trim().toLowerCase();
-  const gA = (genderA || '').trim().toLowerCase();
 
   if (!xa || xa === 'self') {
     return bx.charAt(0).toUpperCase() + bx.slice(1);
@@ -214,7 +210,7 @@ export async function POST(request: NextRequest) {
     }
 
     const allowedFields = ['first_name', 'middle_name', 'last_name', 'occupation', 'marital_status', 'current_place', 'kutch_town', 'nukh', 'birthplace', 'email', 'contact_numbers', 'contact_visibility', 'relation', 'gender'];
-    const insertData: Record<string, any> = {
+    const insertData: Record<string, unknown> = {
       family_id: user.family_id,
       active: true,
       contact_visibility: 'private',
@@ -261,6 +257,16 @@ export async function POST(request: NextRequest) {
       if (data) existingMember = data;
     }
 
+    if (!existingMember && body.first_name && body.last_name) {
+      const { data } = await supabase
+        .from('members')
+        .select('*')
+        .ilike('first_name', body.first_name)
+        .ilike('last_name', body.last_name)
+        .limit(1);
+      if (data && data.length > 0) existingMember = data[0];
+    }
+
     if (existingMember) {
       const existingFamilyId = existingMember.family_id;
       const userFamilyId = user.family_id;
@@ -296,9 +302,6 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: 'Failed to fetch target family for merge.' }, { status: 500 });
         }
 
-        // Find primary A of target family
-        const primaryA = familyMembersEx.find((m: any) => !m.relation) || familyMembersEx[0];
-
         // Fetch all members of user's family
         const { data: familyMembersUser, error: fetchUserErr } = await supabase
           .from('members')
@@ -311,12 +314,12 @@ export async function POST(request: NextRequest) {
         }
 
         // Find B (current logged in user's member record)
-        const memberB = familyMembersUser.find((m: any) => m.id === user.member_id) || familyMembersUser.find((m: any) => !m.relation) || familyMembersUser[0];
+        const memberB = familyMembersUser.find((m: { id: string, relation?: string, gender?: string }) => m.id === user.member_id) || familyMembersUser.find((m: { id: string, relation?: string, gender?: string }) => !m.relation) || familyMembersUser[0];
 
         // Calculate B's new relation relative to A
         const inputRelation = (body.relation || '').trim().toLowerCase();
-        const relBtoX = determineInverseRelation(inputRelation, memberB.gender, existingMember.gender);
-        const relBtoA = determineChainedRelation(relBtoX, existingMember.relation || '', memberB.gender, existingMember.gender, primaryA.gender);
+        const relBtoX = determineInverseRelation(inputRelation, memberB.gender);
+        const relBtoA = determineChainedRelation(relBtoX, existingMember.relation || '', memberB.gender);
 
         const updates = [
           {
@@ -330,7 +333,7 @@ export async function POST(request: NextRequest) {
         for (const m of familyMembersUser) {
           if (m.id === memberB.id) continue;
           const relMtoB = (m.relation || '').trim().toLowerCase();
-          const relMtoA = determineChainedRelation(relMtoB, relBtoA, m.gender, memberB.gender, primaryA.gender);
+          const relMtoA = determineChainedRelation(relMtoB, relBtoA, m.gender);
           updates.push({
             id: m.id,
             family_id: existingFamilyId,
@@ -347,7 +350,9 @@ export async function POST(request: NextRequest) {
         }
 
         // Update existing member Y (existingMember) with any new details from body, keeping family_id and relation intact
-        const { family_id: _fid, relation: _rel, ...updateFields } = sanitizedData;
+        const updateFields = { ...sanitizedData };
+        delete updateFields.family_id;
+        delete updateFields.relation;
         const { data: updatedX } = await supabase
           .from('members')
           .update(updateFields)
@@ -386,7 +391,7 @@ export async function POST(request: NextRequest) {
       ...newMember,
       name: `${newMember.first_name || ''} ${newMember.middle_name || ''} ${newMember.last_name || ''}`.replace(/\s+/g, ' ').trim(),
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in POST /api/members/family:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

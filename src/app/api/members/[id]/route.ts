@@ -36,12 +36,14 @@ export async function GET(
     const response = {
       ...member,
       name: `${firstName} ${middleName} ${lastName}`.replace(/\s+/g, ' ').trim() || 'Unknown Member',
-      contact_numbers: member.contact_numbers || [],
+      contact_numbers: visible ? (member.contact_numbers || []) : [],
+      email: visible ? member.email : '',
+      contact_no: visible ? member.contact_no : '',
     };
 
     return NextResponse.json(response);
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(`Error in /api/members/[id]:`, error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

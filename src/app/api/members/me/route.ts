@@ -121,7 +121,7 @@ export async function GET(request: NextRequest) {
       name: `${firstName} ${middleName} ${lastName}`.replace(/\s+/g, ' ').trim(),
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in /api/members/me:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
@@ -145,7 +145,7 @@ export async function PUT(request: NextRequest) {
     // Note: the DB uses contact_numbers (TEXT[]), not contact_no.
     // We accept contact_no from the frontend and map it to contact_numbers.
     const allowedFields = ['first_name', 'middle_name', 'last_name', 'occupation', 'marital_status', 'current_place', 'kutch_town', 'contact_numbers', 'email', 'nukh', 'birthplace', 'relations', 'contact_visibility', 'relation', 'whatsapp', 'gender'];
-    const updateData: Record<string, any> = {};
+    const updateData: Record<string, unknown> = {};
     for (const key of allowedFields) {
       if (changes[key] !== undefined) {
         updateData[key] = changes[key];
@@ -205,9 +205,9 @@ export async function PUT(request: NextRequest) {
     // table AND the auth.users table.
     const newEmail = sanitizedData['email'];
     const currentAuthEmail = user.email || '';
-    if (newEmail && newEmail !== currentAuthEmail && !newEmail.includes('@kvonagpur.com')) {
+    if (newEmail && newEmail !== currentAuthEmail && !String(newEmail).includes('@kvonagpur.com')) {
       const { error: authUpdateError } = await supabase.auth.admin.updateUserById(user.id, {
-        email: newEmail,
+        email: String(newEmail),
         email_confirm: false, // Keep unconfirmed so they must verify via OTP
       });
       if (authUpdateError) {

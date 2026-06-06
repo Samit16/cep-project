@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { requireRole, createServerSupabase } from '@/lib/auth-server';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const authResult = await requireRole(request, ['admin', 'committee']);
@@ -21,7 +23,7 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({ total: count || 0 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in /api/admin/members/count:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

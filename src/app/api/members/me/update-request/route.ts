@@ -32,7 +32,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ message: 'Update request recorded' });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in /api/members/me/update-request:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

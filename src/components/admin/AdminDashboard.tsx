@@ -1,11 +1,10 @@
 'use client';
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { 
-  LayoutDashboard, Users, Calendar, LogOut, 
+  Users, Calendar, 
   Search, Download, UserPlus, TrendingUp, ClipboardList, 
-  ShieldCheck, Pencil, MoreVertical, User, Plus, Trash2, X, MapPin, Activity, CheckCircle2
+  ShieldCheck, Pencil, MoreVertical, Plus, Trash2, X, MapPin, Activity, CheckCircle2, Home
 } from 'lucide-react';
 import styles from './AdminDashboard.module.css';
 import Footer from '@/components/layout/Footer/Footer';
@@ -38,6 +37,7 @@ interface MemberAdmin {
   updated_at?: string;
   contact_numbers?: string[];
   role?: string;
+  family_id?: string;
 }
 
 interface EventItem {
@@ -49,7 +49,7 @@ interface EventItem {
   description: string;
 }
 
-const FloatingLabelInput = ({ label, type = 'text', value, onChange, placeholder, isValid }: any) => {
+const FloatingLabelInput = ({ label, type = 'text', value, onChange, placeholder, isValid }: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
   const [focused, setFocused] = useState(false);
   const hasInteracted = value.length > 0;
   
@@ -145,28 +145,26 @@ export default function AdminDashboard() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Fetch real total count (not capped by pagination)
-  useEffect(() => {
-    (async () => {
-      try {
-        const data = await ApiClient.get<{ total: number }>('/admin/members/count');
-        setTotalMemberCount(data.total);
-      } catch { /* count is non-critical, fall back to members.length */ }
-    })();
-  }, []);
+  // Fetch real total count and members
+  const loadDashboardData = useCallback(async () => {
+    try {
+      const data = await ApiClient.get<{ total: number }>('/admin/members/count');
+      setTotalMemberCount(data.total);
+    } catch { /* ignore */ }
+
+    try {
+      const response = await ApiClient.get<MemberAdmin[]>('/admin/members', {
+        page: 1, limit: 5000, name: debouncedSearch,
+      });
+      setMembers(response);
+    } catch (err: unknown) {
+      toast((err as Error).message || 'Failed to load members', 'error');
+    }
+  }, [debouncedSearch, toast]);
 
   useEffect(() => {
-    (async () => {
-      try {
-        const response = await ApiClient.get<MemberAdmin[]>('/admin/members', {
-          page: 1, limit: 200, name: debouncedSearch,
-        });
-        setMembers(response);
-      } catch (err: unknown) {
-        toast((err as Error).message || 'Failed to load members', 'error');
-      }
-    })();
-  }, [debouncedSearch, toast]);
+    loadDashboardData();
+  }, [loadDashboardData]);
 
   // Load events from API
   const loadEvents = useCallback(async () => {
@@ -180,6 +178,7 @@ export default function AdminDashboard() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadEvents();
   }, [loadEvents]);
 
@@ -190,7 +189,7 @@ export default function AdminDashboard() {
     const authMethod = localStorage.getItem('kjo_auth_method');
     if (authMethod !== 'google') return;
 
-    try { window.history.pushState(null, '', window.location.href); } catch (e) {}
+    try { window.history.pushState(null, '', window.location.href); } catch {}
 
     const handlePop = async () => {
       const confirmed = window.confirm('Do you want to log out and leave this page?');
@@ -199,7 +198,7 @@ export default function AdminDashboard() {
         window.location.replace('/home');
       } else {
         // push state back so user stays on the page
-        try { window.history.pushState(null, '', window.location.href); } catch (e) {}
+        try { window.history.pushState(null, '', window.location.href); } catch {}
       }
     };
 
@@ -211,13 +210,6 @@ export default function AdminDashboard() {
   }, [logout]);
 
 
-  const handleLogout = async () => {
-    if (!window.confirm('Are you sure you want to log out?')) return;
-    isLoggingOut.current = true;
-    // Navigate immediately, don't wait for async signOut
-    router.replace('/home');
-    logout();
-  };
 
   const handleExportCSV = () => {
     // Basic mock export
@@ -239,11 +231,8 @@ export default function AdminDashboard() {
       });
       toast('Member created successfully', 'success');
       setIsModalOpen(false);
-      // Re-fetch members
-      const response = await ApiClient.get<MemberAdmin[]>('/admin/members', {
-        page: 1, limit: 200, name: debouncedSearch,
-      });
-      setMembers(response);
+      // Re-fetch members and count
+      await loadDashboardData();
     } catch (err: unknown) {
       toast((err as Error).message || 'Failed to create member', 'error');
     }
@@ -258,6 +247,7 @@ export default function AdminDashboard() {
       
       // Update local state for immediate feedback
       setMembers(members.map(m => m.id === memberId ? { ...m, role: newRole } : m));
+      await loadDashboardData();
     } catch (err: unknown) {
       toast((err as Error).message || 'Failed to update role', 'error');
     }
@@ -325,6 +315,16 @@ export default function AdminDashboard() {
     const q = debouncedSearch.toLowerCase();
     return members.filter(m => m.name?.toLowerCase().includes(q) || m.email?.toLowerCase().includes(q));
   }, [members, debouncedSearch]);
+
+  const formedFamiliesCount = useMemo(() => {
+    const counts = members.reduce((acc, m) => {
+      if (m.family_id) {
+        acc[m.family_id] = (acc[m.family_id] || 0) + 1;
+      }
+      return acc;
+    }, {} as Record<string, number>);
+    return Object.values(counts).filter(count => count > 1).length;
+  }, [members]);
 
   useGSAP(() => {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -419,13 +419,13 @@ export default function AdminDashboard() {
           <div className={styles.statCard}>
             <div className={styles.statCardHeader}>
               <div className={styles.statIconWrapper} style={{ backgroundColor: '#eff6ff' }}>
-                <MapPin size={20} color="#2563eb" />
+                <Home size={20} color="#2563eb" />
               </div>
             </div>
             <div className={styles.statValue}>
-              {new Set(members.map(m => m.current_place).filter(Boolean)).size}
+              {formedFamiliesCount}
             </div>
-            <div className={styles.statLabel}>Global Cities Represented</div>
+            <div className={styles.statLabel}>No. of Families</div>
           </div>
 
           <div className={styles.statCard}>
@@ -741,7 +741,7 @@ export default function AdminDashboard() {
                 <FloatingLabelInput
                   label="Event Title *"
                   value={eventForm.title}
-                  onChange={(e: any) => setEventForm(f => ({ ...f, title: e.target.value }))}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEventForm(f => ({ ...f, title: e.target.value }))}
                   placeholder="Heritage Gala Night"
                   isValid={eventForm.title.length > 3}
                 />
@@ -751,7 +751,7 @@ export default function AdminDashboard() {
                     label="Date *"
                     type="date"
                     value={eventForm.date}
-                    onChange={(e: any) => setEventForm(f => ({ ...f, date: e.target.value }))}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEventForm(f => ({ ...f, date: e.target.value }))}
                     isValid={!!eventForm.date}
                   />
                   <div>
@@ -790,7 +790,7 @@ export default function AdminDashboard() {
                 <FloatingLabelInput
                   label="Location"
                   value={eventForm.location}
-                  onChange={(e: any) => setEventForm(f => ({ ...f, location: e.target.value }))}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEventForm(f => ({ ...f, location: e.target.value }))}
                   placeholder="Grand Ballroom, Samaj Center"
                   isValid={eventForm.location.length > 2}
                 />

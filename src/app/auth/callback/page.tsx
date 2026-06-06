@@ -33,14 +33,14 @@ export default function AuthCallbackPage() {
           const role = profile?.role;
 
           // If they connected google, clear the first login flag and sync email
-          const hasGoogle = session.user.identities?.some((i: any) => i.provider === 'google');
+          const hasGoogle = session.user.identities?.some((i: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => i.provider === 'google');
           if (hasGoogle) {
             if (profile?.is_first_login) {
               await supabase.from('profiles').update({ is_first_login: false }).eq('id', session.user.id);
             }
 
             // Sync Google email to member record
-            const googleIdentity = session.user.identities?.find((i: any) => i.provider === 'google');
+            const googleIdentity = session.user.identities?.find((i: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => i.provider === 'google');
             const googleEmail = googleIdentity?.identity_data?.email || session.user.email;
 
             if (googleEmail) {

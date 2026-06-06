@@ -40,7 +40,7 @@ export async function PUT(
 
     return NextResponse.json({ message: 'Role updated successfully' });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in /api/auth/users/[userId]/role:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

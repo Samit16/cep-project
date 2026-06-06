@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
 
     const csvHeader = ['First Name', 'Middle Name', 'Last Name', 'Address', 'Contact Numbers', 'Email', 'Occupation', 'Town', 'Status'].join(',');
     const csvRows = (members || [])
-      .map((m: any) => [
+      .map((m: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => [
         `"${m.first_name || ''}"`,
         `"${m.middle_name || ''}"`,
         `"${m.last_name || ''}"`,
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
       headers,
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(`Error in /api/admin/members/export:`, error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

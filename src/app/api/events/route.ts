@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(mappedEvents);
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(`Error in GET /api/events:`, error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ ...event, location: parts[0], time: parts[1] || '' }, { status: 201 });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(`Error in POST /api/events:`, error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
