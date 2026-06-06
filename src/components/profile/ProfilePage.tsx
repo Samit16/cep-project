@@ -38,7 +38,6 @@ function getDynamicRelation(targetMember: Member, selectedMember: Member, family
   if (!primaryMember) return targetMember.relation || 'Family Member';
 
   const tGender = (targetMember.gender || '').trim().toLowerCase();
-  const sGender = (selectedMember.gender || '').trim().toLowerCase();
 
   // Case A: The profile being viewed is the Primary Member
   if (selectedMember.id === primaryMember.id) {
@@ -53,7 +52,7 @@ function getDynamicRelation(targetMember: Member, selectedMember: Member, family
     switch (rel) {
       case 'father':
       case 'mother':
-        return sGender === 'female' ? 'Daughter' : 'Son';
+        return tGender === 'female' ? 'Daughter' : 'Son';
       case 'son':
       case 'daughter':
         return tGender === 'female' ? 'Mother' : 'Father';
@@ -64,7 +63,7 @@ function getDynamicRelation(targetMember: Member, selectedMember: Member, family
         return tGender === 'female' ? 'Sister' : 'Brother';
       case 'father-in-law':
       case 'mother-in-law':
-        return sGender === 'female' ? 'Daughter-in-law' : 'Son-in-law';
+        return tGender === 'female' ? 'Daughter-in-law' : 'Son-in-law';
       case 'son-in-law':
       case 'daughter-in-law':
         return tGender === 'female' ? 'Mother-in-law' : 'Father-in-law';
@@ -77,6 +76,14 @@ function getDynamicRelation(targetMember: Member, selectedMember: Member, family
       case 'grandfather':
       case 'grandmother':
         return tGender === 'female' ? 'Granddaughter' : 'Grandson';
+      case 'uncle':
+      case 'aunt':
+        return tGender === 'female' ? 'Niece' : 'Nephew';
+      case 'nephew':
+      case 'niece':
+        return tGender === 'female' ? 'Aunt' : 'Uncle';
+      case 'cousin':
+        return 'Cousin';
       default:
         return 'Primary Account';
     }
@@ -112,11 +119,26 @@ function getDynamicRelation(targetMember: Member, selectedMember: Member, family
   }
 
   // Parent and Child relationships among family members
-  if ((sRel === 'father' || sRel === 'mother' || sRel === 'spouse') && (tRel === 'son' || tRel === 'daughter')) {
+  if (sRel === 'spouse' && (tRel === 'son' || tRel === 'daughter')) {
     return tGender === 'female' ? 'Daughter' : 'Son';
   }
-  if ((sRel === 'son' || sRel === 'daughter') && (tRel === 'father' || tRel === 'mother' || tRel === 'spouse')) {
-    if (tRel === 'spouse') return 'Spouse';
+  if ((sRel === 'son' || sRel === 'daughter') && tRel === 'spouse') {
+    return tGender === 'female' ? 'Mother' : 'Father';
+  }
+
+  // Grandparents <-> Grandchildren
+  if ((sRel === 'father' || sRel === 'mother') && (tRel === 'son' || tRel === 'daughter')) {
+    return tGender === 'female' ? 'Granddaughter' : 'Grandson';
+  }
+  if ((sRel === 'son' || sRel === 'daughter') && (tRel === 'father' || tRel === 'mother')) {
+    return tGender === 'female' ? 'Grandmother' : 'Grandfather';
+  }
+
+  // Parents <-> Siblings
+  if ((sRel === 'father' || sRel === 'mother') && (tRel === 'brother' || tRel === 'sister')) {
+    return tGender === 'female' ? 'Daughter' : 'Son';
+  }
+  if ((sRel === 'brother' || sRel === 'sister') && (tRel === 'father' || tRel === 'mother')) {
     return tGender === 'female' ? 'Mother' : 'Father';
   }
 
@@ -149,7 +171,7 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
   
   // Legacy modal state for non-family updates or requests
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
-  const [updateModalMode, setUpdateModalMode] = useState<'self-update' | 'request-update'>('self-update');
+  const [updateModalMode] = useState<'self-update' | 'request-update'>('self-update');
   
   const [isRequestingUpdate, setIsRequestingUpdate] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
@@ -275,11 +297,6 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
     } finally {
       setIsRequestingUpdate(false);
     }
-  };
-
-  const handleEditProfile = () => {
-    setUpdateModalMode('self-update');
-    setIsUpdateModalOpen(true);
   };
 
   const handleEditFamilyMember = (m: Member) => {

@@ -1,21 +1,14 @@
 import React, { useMemo } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
-import styles from './AdminDashboard.module.css';
 
-interface AdminChartsProps {
-  members: any[];
-  events: any[];
-}
-
-const COLORS = ['#8B1A1A', '#C8956C', '#2D5F8B', '#4A7C59', '#7B5EA7'];
-
-export function MemberGrowthChart({ members }: { members: any[] }) {
+export function MemberGrowthChart({ members }: { members: unknown[] }) {
   const data = useMemo(() => {
     // Generate mock last 6 months data combined with actual members 
     const months = ['Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'];
+    const growth = [5, 3, 7, 2, 6, 4];
     let baseCount = Math.max(members.length - 30, 0);
     return months.map((month, i) => {
-      baseCount += Math.floor(Math.random() * 8) + 2;
+      baseCount += growth[i];
       return {
         name: month,
         members: i === months.length - 1 ? members.length : baseCount,
@@ -81,7 +74,7 @@ export function OverviewRingChart({ active, pending }: { active: number, pending
   );
 }
 
-export function EventParticipationChart({ events }: { events: any[] }) {
+export function EventParticipationChart({ events }: { events: unknown[] }) {
   const data = useMemo(() => {
     return [
       { name: 'Gala', attendees: 120 },

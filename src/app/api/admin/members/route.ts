@@ -5,6 +5,8 @@ import { sanitizeObject } from '@/lib/sanitize';
 
 import { getPagination } from '@/lib/pagination';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const authResult = await requireRole(request, ['admin', 'committee']);
@@ -51,14 +53,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const result = (members || []).map((m: any) => {
+    const result = (members || []).map((m: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
       const firstName = m.first_name || '';
       const middleName = m.middle_name || '';
       const lastName = m.last_name || '';
       const fullName = `${firstName} ${middleName} ${lastName}`.replace(/\s+/g, ' ').trim();
       const role = m.profiles && m.profiles.length > 0 ? m.profiles[0].role : 'member';
       
-      const { profiles, ...memberData } = m;
+      const memberData = { ...m };
+      delete memberData.profiles;
       return {
         ...memberData,
         name: fullName || 'Unknown Member',
@@ -68,10 +71,10 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(result);
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in GET /api/admin/members:', error);
     return NextResponse.json(
-      { error: 'Internal Server Error', detail: error.message },
+      { error: 'Internal Server Error', detail: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }
@@ -96,6 +99,23 @@ export async function POST(request: NextRequest) {
       'first_name', 'middle_name', 'last_name', 'address', 'email',
       'occupation', 'marital_status', 'current_place', 'kutch_town'
     ]);
+
+    // Prevent duplicates by checking first_name and last_name (case-insensitive)
+    if (sanitized.first_name && sanitized.last_name) {
+      const { data: duplicate } = await supabase
+        .from('members')
+        .select('id')
+        .ilike('first_name', sanitized.first_name)
+        .ilike('last_name', sanitized.last_name)
+        .limit(1);
+
+      if (duplicate && duplicate.length > 0) {
+        return NextResponse.json(
+          { error: `A member with the name ${sanitized.first_name} ${sanitized.last_name} already exists in the directory.` }, 
+          { status: 409 }
+        );
+      }
+    }
 
     const { data: member, error } = await supabase
       .from('members')
@@ -125,7 +145,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(member, { status: 201 });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in POST /api/admin/members:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

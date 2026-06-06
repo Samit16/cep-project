@@ -13,9 +13,6 @@ export async function GET(request: NextRequest) {
     const { user } = authResult;
     const supabase = createServerSupabase();
 
-    let profile;
-    let autoLinked = false;
-
     // Fetch profile
     const { data: initialProfile } = await supabase
       .from('profiles')
@@ -23,7 +20,7 @@ export async function GET(request: NextRequest) {
       .eq('id', user.id)
       .single();
 
-    profile = initialProfile;
+    const profile = initialProfile;
 
     // Auto-link logic if member_id is missing
     if (profile && !profile.member_id && user.email) {
@@ -36,7 +33,6 @@ export async function GET(request: NextRequest) {
       if (matchedMember) {
         profile.member_id = matchedMember.id;
         profile.is_first_login = false;
-        autoLinked = true;
 
         await supabase
           .from('profiles')
@@ -64,7 +60,7 @@ export async function GET(request: NextRequest) {
       member: memberData || null,
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in /api/auth/me:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

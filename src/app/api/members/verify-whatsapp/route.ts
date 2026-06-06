@@ -122,8 +122,8 @@ export async function POST(request: NextRequest) {
             throw new Error(errData.message || 'Twilio send failed');
           }
           console.log(`WhatsApp OTP sent via Twilio to ${whatsapp}`);
-        } catch (err: any) {
-          console.error('Failed to send real WhatsApp OTP via Twilio:', err.message);
+        } catch (err: unknown) {
+          console.error('Failed to send real WhatsApp OTP via Twilio:', err instanceof Error ? err.message : String(err));
           return NextResponse.json({ 
             success: true, 
             message: 'Verification code generated, but Twilio service failed to send. Code (test mode fallback): ' + otpCode,
@@ -195,7 +195,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ error: 'Invalid mode.' }, { status: 400 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in /api/members/verify-whatsapp:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

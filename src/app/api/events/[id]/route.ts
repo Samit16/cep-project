@@ -25,9 +25,9 @@ export async function PUT(
 
     const supabase = createServerSupabase();
 
-    const updatePayload: any = { ...sanitized };
+    const updatePayload: Record<string, unknown> = { ...sanitized };
     if (sanitized.location !== undefined || sanitized.time !== undefined) {
-      const parts = (updatePayload.location || '').split('|');
+      const parts = (String(updatePayload.location || '')).split('|');
       const baseLoc = sanitized.location !== undefined ? sanitized.location : parts[0];
       const newTime = sanitized.time !== undefined ? sanitized.time : (parts[1] || '');
       updatePayload.location = newTime ? `${baseLoc}|${newTime}` : baseLoc;
@@ -49,7 +49,7 @@ export async function PUT(
     const resParts = (event.location || '').split('|');
     return NextResponse.json({ ...event, location: resParts[0], time: resParts[1] || '' });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(`Error in PUT /api/events/[id]:`, error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
@@ -80,7 +80,7 @@ export async function DELETE(
 
     return NextResponse.json({ message: 'Deleted' });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(`Error in DELETE /api/events/[id]:`, error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

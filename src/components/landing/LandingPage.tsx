@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import {
   useGsapHeroEntrance,
-  useGsapReveal,
   useGsapStagger,
   useGsapParallax,
   useGsapSectionFlow,

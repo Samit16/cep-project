@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const result = (members || []).map((m: any) => {
+    const result = (members || []).map((m: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
       const isPublic = m.contact_visibility === 'public';
       const firstName = m.first_name || '';
       const middleName = m.middle_name || '';
@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(result);
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in /api/members:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

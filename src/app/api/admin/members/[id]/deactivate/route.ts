@@ -41,7 +41,7 @@ export async function PATCH(
 
     return NextResponse.json(member);
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(`Error in /api/admin/members/[id]/deactivate:`, error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

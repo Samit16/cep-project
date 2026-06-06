@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useCallback, useEffect, useState } from 'react';
+import React, { useRef } from 'react';
 import { useTheme } from '@/lib/theme-context';
 import styles from './ThemeToggle.module.css';
 

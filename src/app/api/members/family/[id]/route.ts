@@ -39,7 +39,7 @@ export async function PUT(
     }
 
     const allowedFields = ['first_name', 'middle_name', 'last_name', 'occupation', 'marital_status', 'current_place', 'kutch_town', 'contact_numbers', 'email', 'nukh', 'birthplace', 'relations', 'contact_visibility', 'relation', 'whatsapp', 'gender'];
-    const updateData: Record<string, any> = {};
+    const updateData: Record<string, unknown> = {};
     for (const key of allowedFields) {
       if (changes[key] !== undefined) {
         updateData[key] = changes[key];
@@ -152,7 +152,7 @@ export async function GET(
       ...member,
       name: `${member.first_name || ''} ${member.middle_name || ''} ${member.last_name || ''}`.replace(/\s+/g, ' ').trim(),
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in GET /api/members/family/[id]:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

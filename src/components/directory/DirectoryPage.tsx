@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, LayoutGrid, List, ShieldCheck, MapPin, Users } from 'lucide-react';
+import { Search, LayoutGrid, List, ShieldCheck, MapPin, Users, ChevronDown, ChevronUp } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import styles from './DirectoryPage.module.css';
@@ -13,7 +13,7 @@ import { DirectorySkeleton } from '@/components/ui/Skeleton/Skeleton';
 import { useGsapHeroEntrance } from '@/hooks/useGsapAnimations';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
-import { Member } from '@/types';
+import { Member, FamilyGroup } from '@/types';
 
 const AVATAR_COLORS = ['#8B1A1A', '#C8956C', '#2D5F8B', '#4A7C59', '#7B5EA7', '#D4763C', '#3B8686', '#9B5DE5', '#E07A5F'];
 
@@ -50,7 +50,7 @@ const highlightMatch = (name: string, query: string) => {
       }
       return part;
     });
-  } catch (e) {
+  } catch {
     return name;
   }
 };
@@ -61,11 +61,21 @@ export default function DirectoryPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   
+  const [directoryMode, setDirectoryMode] = useState<'individuals' | 'families'>('individuals');
   const [members, setMembers] = useState<Member[]>([]);
+  const [families, setFamilies] = useState<FamilyGroup[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [expandedFamilies, setExpandedFamilies] = useState<Record<string, boolean>>({});
+
+  const toggleFamily = (familyId: string) => {
+    setExpandedFamilies(prev => ({
+      ...prev,
+      [familyId]: !prev[familyId]
+    }));
+  };
 
   const { toast } = useToast();
   const itemsPerPage = 12;
@@ -80,31 +90,40 @@ export default function DirectoryPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const loadMembers = useCallback(async () => {
+  const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
       const q = debouncedSearch.trim();
-      const response = await ApiClient.get<Member[]>('/members', {
-        page: currentPage,
-        limit: itemsPerPage,
-        name: q,
-      });
-      setMembers(response);
-      setHasMore(response.length === itemsPerPage);
+      if (directoryMode === 'individuals') {
+        const response = await ApiClient.get<Member[]>('/members', {
+          page: currentPage,
+          limit: itemsPerPage,
+          name: q,
+        });
+        setMembers(response);
+        setHasMore(response.length === itemsPerPage);
+      } else {
+        const response = await ApiClient.get<FamilyGroup[]>('/directory/families', {
+          page: currentPage,
+          limit: itemsPerPage,
+          name: q,
+        });
+        setFamilies(response);
+        setHasMore(response.length === itemsPerPage);
+      }
     } catch (err: unknown) {
       const msg = (err as Error).message || '';
-      // Only show error toast if it's NOT an unauthorized error during background load
       if (msg !== 'Unauthorized') {
         toast(msg || 'Failed to load directory', 'error');
       }
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, debouncedSearch, toast]);
+  }, [currentPage, debouncedSearch, toast, directoryMode]);
 
   useEffect(() => {
-    loadMembers();
-  }, [loadMembers]);
+    loadData();
+  }, [loadData]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
@@ -164,19 +183,37 @@ export default function DirectoryPage() {
             exclusive to verified Samaj members.
           </p>
         </div>
-        <div className={styles.viewToggle}>
-          <button 
-            className={`${styles.viewBtn} ${viewMode === 'grid' ? styles.viewBtnActive : ''}`}
-            onClick={() => setViewMode('grid')}
-          >
-            <LayoutGrid size={16} /> Grid
-          </button>
-          <button 
-            className={`${styles.viewBtn} ${viewMode === 'list' ? styles.viewBtnActive : ''}`}
-            onClick={() => setViewMode('list')}
-          >
-            <List size={16} /> List
-          </button>
+        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <div className={styles.viewToggle}>
+            <button 
+              className={`${styles.viewBtn} ${directoryMode === 'individuals' ? styles.viewBtnActive : ''}`}
+              onClick={() => { setDirectoryMode('individuals'); setCurrentPage(1); }}
+            >
+              <Users size={16} /> Individuals
+            </button>
+            <button 
+              className={`${styles.viewBtn} ${directoryMode === 'families' ? styles.viewBtnActive : ''}`}
+              onClick={() => { setDirectoryMode('families'); setCurrentPage(1); }}
+            >
+              <Users size={16} /> Families
+            </button>
+          </div>
+          {directoryMode === 'individuals' && (
+            <div className={styles.viewToggle}>
+              <button 
+                className={`${styles.viewBtn} ${viewMode === 'grid' ? styles.viewBtnActive : ''}`}
+                onClick={() => setViewMode('grid')}
+              >
+                <LayoutGrid size={16} /> Grid
+              </button>
+              <button 
+                className={`${styles.viewBtn} ${viewMode === 'list' ? styles.viewBtnActive : ''}`}
+                onClick={() => setViewMode('list')}
+              >
+                <List size={16} /> List
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -203,13 +240,13 @@ export default function DirectoryPage() {
       {/* Loading State Output */}
       {isLoading ? (
         <DirectorySkeleton />
-      ) : members.length > 0 ? (
+      ) : (directoryMode === 'individuals' ? members.length > 0 : families.length > 0) ? (
         <>
           <div 
             ref={gridRef}
             className={viewMode === 'grid' ? styles.memberGrid : styles.memberList}
           >
-            {members.map((member, index) => (
+            {directoryMode === 'individuals' ? members.map((member, index) => (
               <div 
                 key={`${member.id}-${index}`} 
                 className={`${styles.memberCard} ${index === activeIndex ? styles.memberCardActive : ''} gsap-member-card`}
@@ -239,7 +276,47 @@ export default function DirectoryPage() {
                   </Link>
                 </div>
               </div>
-            ))}
+            )) : families.map((family, index) => {
+              const isExpanded = expandedFamilies[family.family_id];
+              return (
+              <div key={`${family.family_id}-${index}`} className={`${styles.memberCard} gsap-member-card`} style={{ padding: '1.5rem' }}>
+                <div className={styles.memberCardBody} style={{ textAlign: 'left' }}>
+                  <div 
+                    onClick={() => toggleFamily(family.family_id)}
+                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: isExpanded ? '1rem' : '0', borderBottom: isExpanded ? '1px solid var(--color-border)' : 'none', paddingBottom: isExpanded ? '0.5rem' : '0' }}
+                  >
+                    <h3 className={styles.memberCardName} style={{ margin: 0 }}>
+                      {highlightMatch(family.family_name || 'Unknown Family', debouncedSearch)}
+                      <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginLeft: '0.5rem', fontWeight: 'normal' }}>
+                        ({family.members.length} members)
+                      </span>
+                    </h3>
+                    {isExpanded ? <ChevronUp size={20} color="var(--color-text-muted)" /> : <ChevronDown size={20} color="var(--color-text-muted)" />}
+                  </div>
+                  {isExpanded && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1rem' }}>
+                      {family.members.map((m) => (
+                        <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                           <div 
+                             className={styles.memberCardInitials} 
+                             style={{ backgroundColor: getAvatarColor(m.name), width: '32px', height: '32px', fontSize: '0.8rem' }}
+                           >
+                             {(m.name || '?').split(' ').map(n => n?.[0]).join('')}
+                           </div>
+                           <div style={{ flex: 1 }}>
+                             <p style={{ fontWeight: '500', fontSize: '0.9rem', margin: 0 }}>{m.name}</p>
+                             <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', margin: 0 }}>{m.relation || 'Member'}</p>
+                           </div>
+                           <Link href={`/directory/${m.id}`} style={{ fontSize: '0.8rem', color: 'var(--color-primary)', textDecoration: 'none' }}>
+                             View
+                           </Link>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );})}
           </div>
 
           {/* Simple Pagination */}

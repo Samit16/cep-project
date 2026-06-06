@@ -7,7 +7,7 @@ import { useAuth } from '@/lib/auth-context';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import MandatoryEmailPrompt from '@/components/auth/MandatoryEmailPrompt';
-import { useGsapNavbar, useGsapHover } from '@/hooks/useGsapAnimations';
+import { useGsapNavbar } from '@/hooks/useGsapAnimations';
 import ThemeToggle from '@/components/ui/ThemeToggle/ThemeToggle';
 import { useNotifications } from '@/hooks/useNotifications';
 
@@ -25,6 +25,7 @@ export default function Navbar({
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 

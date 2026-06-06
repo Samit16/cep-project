@@ -89,7 +89,7 @@ export async function PUT(
 
     return NextResponse.json(member || { success: true, id, role });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(`Error in /api/admin/members/[id]:`, error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

@@ -47,6 +47,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const stored = localStorage.getItem('kvo-theme') as Theme | null;
 
     const resolved: Theme = domTheme || stored || 'light';
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setThemeState(resolved);
     document.documentElement.setAttribute('data-theme', resolved);
     setIsHydrated(true);
