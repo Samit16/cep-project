@@ -150,6 +150,43 @@ function getDynamicRelation(targetMember: Member, selectedMember: Member, family
     return tGender === 'female' ? 'Aunt' : 'Uncle';
   }
 
+  // Parents <-> Uncles/Aunts (uncle/aunt of primary = sibling of primary's parents)
+  if ((sRel === 'father' || sRel === 'mother') && (tRel === 'uncle' || tRel === 'aunt')) {
+    return tGender === 'female' ? 'Sister' : 'Brother';
+  }
+  if ((sRel === 'uncle' || sRel === 'aunt') && (tRel === 'father' || tRel === 'mother')) {
+    return tGender === 'female' ? 'Sister' : 'Brother';
+  }
+
+  // Children <-> Uncles/Aunts (uncle/aunt of primary = uncle/aunt of primary's siblings/children too)
+  if ((sRel === 'son' || sRel === 'daughter') && (tRel === 'uncle' || tRel === 'aunt')) {
+    return tGender === 'female' ? 'Aunt' : 'Uncle';
+  }
+  if ((sRel === 'uncle' || sRel === 'aunt') && (tRel === 'son' || tRel === 'daughter')) {
+    return tGender === 'female' ? 'Niece' : 'Nephew';
+  }
+
+  // Siblings <-> Uncles/Aunts (uncle/aunt of primary = uncle/aunt of primary's siblings)
+  if ((sRel === 'brother' || sRel === 'sister') && (tRel === 'uncle' || tRel === 'aunt')) {
+    return tGender === 'female' ? 'Aunt' : 'Uncle';
+  }
+  if ((sRel === 'uncle' || sRel === 'aunt') && (tRel === 'brother' || tRel === 'sister')) {
+    return tGender === 'female' ? 'Niece' : 'Nephew';
+  }
+
+  // Spouse <-> Uncles/Aunts
+  if (sRel === 'spouse' && (tRel === 'uncle' || tRel === 'aunt')) {
+    return tGender === 'female' ? 'Aunt' : 'Uncle';
+  }
+  if ((sRel === 'uncle' || sRel === 'aunt') && tRel === 'spouse') {
+    return tGender === 'female' ? 'Niece' : 'Nephew';
+  }
+
+  // Uncle/Aunt <-> Uncle/Aunt (siblings of same parent generation)
+  if ((sRel === 'uncle' || sRel === 'aunt') && (tRel === 'uncle' || tRel === 'aunt')) {
+    return tGender === 'female' ? 'Sister' : 'Brother';
+  }
+
   return targetMember.relation || 'Family Member';
 }
 

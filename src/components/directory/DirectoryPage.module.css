@@ -80,14 +80,14 @@
   display: flex;
   align-items: center;
   gap: var(--space-4);
-  background-color: var(--color-navbar-bg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
+  background-color: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 9999px; /* Fully rounded pill */
   padding: var(--space-3) var(--space-4);
   margin-bottom: var(--space-8);
-  box-shadow: var(--shadow-md);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 .searchInput {
@@ -204,7 +204,7 @@
 .memberCard {
   background-color: var(--color-bg-card);
   border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   overflow: hidden;
   transition: box-shadow var(--transition-medium), transform var(--transition-medium), border-color var(--transition-medium);
   display: flex;
@@ -212,7 +212,7 @@
 }
 
 .memberCard:hover {
-  box-shadow: var(--shadow-xl);
+  box-shadow: var(--shadow-xl), 0 0 24px rgba(155, 30, 30, 0.08);
   transform: translateY(-6px);
   border-color: var(--color-primary-light);
 }

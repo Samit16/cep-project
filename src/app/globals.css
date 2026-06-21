@@ -5,15 +5,15 @@
 :root,
 [data-theme="light"] {
   /* --- Colors --- */
-  --color-primary: #8B1A1A; /* Heritage Red */
-  --color-primary-dark: #6B1414;
-  --color-primary-light: #B44A4A;
-  --color-primary-lightest: rgba(139, 26, 26, 0.06);
-  --color-accent-gold: #C8956C;
-  --color-accent-gold-light: #E2BA9A;
+  --color-primary: #9B1E1E; /* More vibrant Heritage Red */
+  --color-primary-dark: #7A1717;
+  --color-primary-light: #D35F5F;
+  --color-primary-lightest: rgba(155, 30, 30, 0.06);
+  --color-accent-gold: #DAA57A;
+  --color-accent-gold-light: #EFBFA0;
   
   /* Focus Rings */
-  --color-focus-ring: rgba(139, 26, 26, 0.35);
+  --color-focus-ring: rgba(155, 30, 30, 0.35);
 
   /* Backgrounds */
   --color-bg-page: #FAFAF8; /* Softer, highly neutral warm grey */
@@ -21,10 +21,16 @@
   --color-bg-card: #FFFFFF;
   --color-bg-section-alt: #F3F1EC;
   --color-bg-sidebar: #FFFFFF;
-  --color-bg-sidebar-active: #8B1A1A;
+  --color-bg-sidebar-active: #9B1E1E;
   --color-bg-input: #FFFFFF;
-  --color-bg-cta: #8B1A1A;
+  --color-bg-cta: #9B1E1E;
   --color-navbar-bg: rgba(253, 251, 248, 0.85); /* Glassmorphism light */
+
+  /* Glassmorphism */
+  --glass-bg: rgba(255, 255, 255, 0.65);
+  --glass-bg-hover: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.4);
+  --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
 
   /* Text - Moving away from absolute blacks to deep slate/charcoal */
   --color-text-primary: #1E293B; /* Slate 800 */
@@ -130,10 +136,10 @@
 
   /* --- Shadows --- */
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 
   /* --- Transitions --- */
   --transition-fast: 150ms ease;
@@ -160,26 +166,32 @@
 
 [data-theme="dark"] {
   /* --- Colors --- */
-  --color-primary: #D4534A;      /* Warmer, brighter heritage red for contrast */
-  --color-primary-dark: #B83B33;
-  --color-primary-light: #E87A73;
-  --color-primary-lightest: rgba(212, 83, 74, 0.1);
-  --color-accent-gold: #D4A574;
-  --color-accent-gold-light: #E5C9A8;
+  --color-primary: #E85D52;      /* Warmer, brighter heritage red for contrast */
+  --color-primary-dark: #C64B41;
+  --color-primary-light: #FF8F87;
+  --color-primary-lightest: rgba(232, 93, 82, 0.1);
+  --color-accent-gold: #E5B382;
+  --color-accent-gold-light: #F8D8B6;
 
   /* Focus Rings */
-  --color-focus-ring: rgba(212, 83, 74, 0.4);
+  --color-focus-ring: rgba(232, 93, 82, 0.4);
 
-  /* Backgrounds — warm, deep tones with slight warmth */
-  --color-bg-page: #121018;          /* Very deep, slightly warm black */
-  --color-bg-warm: #16131E;          /* Warm dark for sections */
-  --color-bg-card: #1C1826;          /* Card surfaces — subtle purple warmth */
-  --color-bg-section-alt: #221E2C;   /* Alternate section bg */
-  --color-bg-sidebar: #16131E;
-  --color-bg-sidebar-active: #D4534A;
-  --color-bg-input: #1C1826;
-  --color-bg-cta: #D4534A;
-  --color-navbar-bg: rgba(22, 19, 30, 0.9); /* Glassmorphism dark */
+  /* Backgrounds — deeper darks for OLED feel with slight warmth */
+  --color-bg-page: #0D0B12;          
+  --color-bg-warm: #121018;          
+  --color-bg-card: #16131E;          
+  --color-bg-section-alt: #1C1826;   
+  --color-bg-sidebar: #121018;
+  --color-bg-sidebar-active: #E85D52;
+  --color-bg-input: #16131E;
+  --color-bg-cta: #E85D52;
+  --color-navbar-bg: rgba(13, 11, 18, 0.85); /* Glassmorphism dark */
+
+  /* Glassmorphism */
+  --glass-bg: rgba(28, 24, 38, 0.55);
+  --glass-bg-hover: rgba(28, 24, 38, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.06);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
 
   /* Text */
   --color-text-primary: #EDE8F0;     /* Warm off-white */

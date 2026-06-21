@@ -7,6 +7,25 @@
   position: relative;
 }
 
+.hero::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at 50% 50%, rgba(155, 30, 30, 0.05), transparent 60%),
+              radial-gradient(circle at 80% 20%, rgba(218, 165, 122, 0.05), transparent 50%);
+  animation: rotateMesh 30s linear infinite;
+  z-index: 1;
+  pointer-events: none;
+}
+
+@keyframes rotateMesh {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 .heroContent {
   flex: 0 0 auto;
   display: flex;
@@ -281,7 +300,7 @@
 
 .bentoCard:hover {
   transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-lg), 0 0 20px rgba(155, 30, 30, 0.1);
   border-color: var(--color-primary-light);
 }
 
@@ -435,8 +454,9 @@
 }
 
 .eventCard:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-md);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md), 0 0 16px rgba(155, 30, 30, 0.08);
+  border-color: var(--color-primary-lightest);
 }
 
 .eventCardImage {
