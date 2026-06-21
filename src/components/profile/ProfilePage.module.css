@@ -267,11 +267,12 @@
   border-radius: var(--radius-xl);
   padding: var(--space-8);
   box-shadow: var(--shadow-sm);
-  transition: box-shadow var(--transition-base);
+  transition: box-shadow var(--transition-base), border-color var(--transition-base);
 }
 
 .infoCard:hover {
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-md), 0 0 16px rgba(155, 30, 30, 0.06);
+  border-color: var(--color-primary-lightest);
 }
 
 .sectionHeader {
@@ -378,11 +379,12 @@
   padding: var(--space-8);
   margin-bottom: var(--space-8);
   box-shadow: var(--shadow-sm);
-  transition: box-shadow var(--transition-base);
+  transition: box-shadow var(--transition-base), border-color var(--transition-base);
 }
 
 .contactCard:hover {
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-md), 0 0 16px rgba(155, 30, 30, 0.06);
+  border-color: var(--color-primary-lightest);
 }
 
 .contactRow {
@@ -508,13 +510,15 @@
 }
 
 .familySidebar {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border-light);
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-xl);
   padding: var(--space-6);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--glass-shadow);
   position: sticky;
-  top: var(--space-8);
+  top: calc(var(--navbar-height) + var(--space-8));
 }
 
 .familySidebarHeader {
