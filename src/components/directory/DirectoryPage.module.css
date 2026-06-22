@@ -316,3 +316,34 @@
   justify-content: center;
   padding: var(--space-6) 0;
 }
+
+/* Responsive Grid & List */
+@media (max-width: 1024px) {
+  .memberGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .memberGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .memberList .memberCard {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .memberList .memberCardBody {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+  .viewProfileBtn {
+    display: none !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .memberGrid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -250,6 +250,8 @@ export default function DirectoryPage() {
               <div 
                 key={`${member.id}-${index}`} 
                 className={`${styles.memberCard} ${index === activeIndex ? styles.memberCardActive : ''} gsap-member-card`}
+                onClick={() => router.push(`/directory/${member.id}`)}
+                style={{ cursor: 'pointer' }}
               >
                 <div className={styles.memberCardImage}>
                   <div 
@@ -271,7 +273,7 @@ export default function DirectoryPage() {
                     <MapPin size={14} className={styles.locationIcon} />
                     {member.current_place || 'Unknown'}
                   </p>
-                  <Link href={`/directory/${member.id}`} className={styles.viewProfileBtn}>
+                  <Link href={`/directory/${member.id}`} className={styles.viewProfileBtn} onClick={(e) => e.stopPropagation()}>
                     View Basic Profile
                   </Link>
                 </div>
