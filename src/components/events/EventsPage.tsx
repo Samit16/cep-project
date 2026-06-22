@@ -76,18 +76,15 @@ export default function EventsPage() {
                     </div>
                   )}
 
-                  <div className={styles.eventFooter}>
-                    <div className={styles.contacts}>
-                      {event.committeeContacts.slice(0, 1).map((contact, i) => (
-                        <div key={i} className={styles.contact}>
-                          <Phone size={12} /> {contact.name}: {contact.phone}
-                        </div>
-                      ))}
+                    <div className={styles.eventFooter}>
+                      <div className={styles.contacts}>
+                        {event.committeeContacts.slice(0, 1).map((contact, i) => (
+                          <div key={i} className={styles.contact}>
+                            <Phone size={12} /> {contact.name}: {contact.phone}
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <button className={styles.registerBtn} onClick={() => alert('Registration successful! You will receive a confirmation SMS.')}>
-                      Register Now
-                    </button>
-                  </div>
                 </div>
               </div>
             ))}

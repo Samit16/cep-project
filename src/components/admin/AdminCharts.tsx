@@ -1,17 +1,52 @@
 import React, { useMemo } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 
-export function MemberGrowthChart({ members }: { members: unknown[] }) {
+export function MemberGrowthChart({ members }: { members: any[] }) {
   const data = useMemo(() => {
-    // Generate mock last 6 months data combined with actual members 
-    const months = ['Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'];
-    const growth = [5, 3, 7, 2, 6, 4];
-    let baseCount = Math.max(members.length - 30, 0);
-    return months.map((month, i) => {
-      baseCount += growth[i];
+    if (!members || members.length === 0) return [];
+    
+    const countsByMonth: Record<string, number> = {};
+    const months: string[] = [];
+    
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - i);
+      const monthStr = d.toLocaleString('default', { month: 'short' });
+      countsByMonth[monthStr] = 0;
+      months.push(monthStr);
+    }
+
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+    sixMonthsAgo.setDate(1);
+    sixMonthsAgo.setHours(0, 0, 0, 0);
+
+    let baseCount = 0;
+
+    members.forEach(m => {
+      const dateStr = m.createdAt || m.created_at;
+      if (dateStr) {
+        const d = new Date(dateStr);
+        if (d < sixMonthsAgo) {
+          baseCount++;
+        } else {
+          const monthStr = d.toLocaleString('default', { month: 'short' });
+          if (countsByMonth[monthStr] !== undefined) {
+            countsByMonth[monthStr]++;
+          }
+        }
+      } else {
+        baseCount++; // Assume older if no date
+      }
+    });
+
+    let runningTotal = baseCount;
+
+    return months.map(month => {
+      runningTotal += countsByMonth[month];
       return {
         name: month,
-        members: i === months.length - 1 ? members.length : baseCount,
+        members: runningTotal,
       };
     });
   }, [members]);
@@ -74,14 +109,13 @@ export function OverviewRingChart({ active, pending }: { active: number, pending
   );
 }
 
-export function EventParticipationChart({ events }: { events: unknown[] }) {
+export function EventParticipationChart({ events }: { events: any[] }) {
   const data = useMemo(() => {
-    return [
-      { name: 'Gala', attendees: 120 },
-      { name: 'Meetup', attendees: 80 },
-      { name: 'Workshop', attendees: 45 },
-      { name: 'Festival', attendees: 250 },
-    ].slice(0, Math.max(events.length, 3));
+    if (!events || events.length === 0) return [];
+    return events.map(e => ({
+      name: e.title.length > 10 ? e.title.substring(0, 10) + '...' : e.title,
+      attendees: e.attendees || 0
+    }));
   }, [events]);
 
   return (
