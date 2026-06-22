@@ -463,12 +463,6 @@ export default function AdminDashboard() {
             />
           </div>
 
-          <div className={`${styles.insightCard} ${styles.cardHalf}`}>
-            <h3 className={styles.insightTitle}>Recent Event Feedback</h3>
-            <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>Estimated turnout for recent events</p>
-            <EventParticipationChart events={events} />
-          </div>
-          
         </div>
         )}
 

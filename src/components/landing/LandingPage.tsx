@@ -152,49 +152,8 @@ export function AchievementsSection() {
           Celebrating the individuals whose contributions and lasting impact continue to inspire our community.
         </p>
         <div ref={gridRef} className={styles.bentoGrid}>
-          {/* Card 1 - Top Left */}
-          <div className={`${styles.bentoCard} gsap-bento-card`}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className={styles.bentoCardImage} src="/images/samaj_plaque.jpeg" alt="Excellence in Education Grant" />
-            <span className={styles.bentoCardLabel}>Education</span>
-            <h3 className={styles.bentoCardTitle}>Excellence in Education Grant</h3>
-            <p className={styles.bentoCardText}>
-              Recognising 41 scholars and outstanding Samaj members who have made extraordinary
-              contributions to education.
-            </p>
-            <a href="#history" className={styles.bentoCardLink}>
-              Learn More <ArrowRight size={14} />
-            </a>
-          </div>
-          {/* Card 2 - Bottom Left */}
-          <div className={`${styles.bentoCard} gsap-bento-card`}>
-            <span className={styles.bentoCardLabel}>Entrepreneurial Spirit</span>
-            <h3 className={styles.bentoCardTitle}>Entrepreneurial Spirit</h3>
-            <p className={styles.bentoCardText}>
-              Celebrating the builders in our community who are starting businesses, creating jobs, 
-              and strengthening our shared legacy.
-            </p>
-            <a href="#" className={styles.bentoCardLink}>
-              View Stories <ArrowRight size={14} />
-            </a>
-          </div>
-          {/* Banner - Right column spanning both rows */}
-          <div ref={bannerRef} className={`${styles.bentoBanner} ${styles.parallaxBanner} gsap-bento-card`}>
-            <div className={styles.bentoBannerBg}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/images/history.png" alt="" />
-            </div>
-            <div className={styles.bentoBannerContent}>
-              <span className={styles.bentoCardLabel} style={{ color: 'rgba(255,255,255,0.7)' }}>Global Heritage</span>
-              <h3 className={styles.bentoBannerTitle}>The Global Heritage Meet</h3>
-              <p className={styles.bentoBannerText}>
-                Connecting business leaders and cultural experts from
-                across 6 continents to discuss our future.
-              </p>
-              <Link href="/events" className={styles.registerBtn} style={{ display: 'inline-block', textDecoration: 'none' }}>
-                View Event Figures
-              </Link>
-            </div>
+          <div style={{ padding: '2rem', textAlign: 'center', gridColumn: '1 / -1', color: 'var(--color-text-muted)' }}>
+            No archives available at the moment.
           </div>
         </div>
       </div>
@@ -275,9 +234,6 @@ export function EventsSection() {
                         <div className={styles.eventDateDay}>{day}</div>
                         <div className={styles.eventDateMonth}>{month}</div>
                       </div>
-                      <button className={styles.registerBtn} onClick={() => toast('Registration successful! You will receive a confirmation SMS.', 'success')}>
-                        Register
-                      </button>
                     </div>
                   </div>
                 </div>
