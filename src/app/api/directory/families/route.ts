@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from('members')
-      .select('*')
+      .select('*, families(name)')
       .order('first_name', { ascending: true })
       .order('last_name', { ascending: true });
 
@@ -82,9 +82,15 @@ export async function GET(request: NextRequest) {
     familyMap.forEach((familyMembers, family_id) => {
       // Only include "formed families" (size > 1)
       if (familyMembers.length > 1) {
-        // Determine a family name. Use the primary member's name.
-        const primaryMember = familyMembers.find(m => !m.relation) || familyMembers[0];
-        const familyName = (primaryMember.name as string) || 'Unknown Family';
+        // Determine a family name. Use the families.name if it exists, otherwise fallback to primary member's name.
+        let familyName = 'Unknown Family';
+        const firstMember = familyMembers[0] as any;
+        if (firstMember?.families?.name) {
+          familyName = firstMember.families.name;
+        } else {
+          const primaryMember = familyMembers.find(m => !m.relation) || familyMembers[0];
+          familyName = (primaryMember.name as string) || 'Unknown Family';
+        }
         
         families.push({
           family_id,

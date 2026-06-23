@@ -203,6 +203,7 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [isFamilyModalOpen, setIsFamilyModalOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
+  const [isSettingPrimary, setIsSettingPrimary] = useState(false);
 
   const [isLoading, setIsLoading] = useState(true);
   
@@ -393,6 +394,23 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
     }
   };
 
+  const handleSetPrimary = async () => {
+    if (!selectedMember || !selectedMember.family_id) return;
+    setIsSettingPrimary(true);
+    try {
+      const nameStr = selectedMember.name || `${selectedMember.first_name} ${selectedMember.last_name}`;
+      const familyName = `${nameStr} Family`;
+      await ApiClient.post(`/members/family/${selectedMember.family_id}/set-primary`, {
+        memberName: familyName
+      });
+      toast(`Directory will now show ${familyName}`, 'success');
+    } catch {
+      toast('Failed to update directory family name', 'error');
+    } finally {
+      setIsSettingPrimary(false);
+    }
+  };
+
   if (isLoading) {
     return <ProfileSkeleton />;
   }
@@ -460,9 +478,20 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
           <div className={styles.profileActions}>
             {/* Edit Profile — only if managing own family */}
             {isMyProfile && (
-              <button className={styles.editProfileBtn} onClick={() => handleEditFamilyMember(displayMember)}>
-                <Pencil size={16} /> Edit Member
-              </button>
+              <>
+                <button className={styles.editProfileBtn} onClick={() => handleEditFamilyMember(displayMember)}>
+                  <Pencil size={16} /> Edit Member
+                </button>
+                <button 
+                  className={styles.editProfileBtn} 
+                  style={{ backgroundColor: 'var(--color-bg-section-alt)', border: '1px solid var(--color-border)' }}
+                  onClick={handleSetPrimary}
+                  disabled={isSettingPrimary}
+                  title="Show this member's name as the family name in the directory"
+                >
+                  <Users size={16} /> {isSettingPrimary ? 'Setting...' : 'Show in Directory'}
+                </button>
+              </>
             )}
             
             {/* Request Update — only for committee viewing someone else */}
