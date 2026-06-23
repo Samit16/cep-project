@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
       if (familyMembers.length > 1) {
         // Determine a family name. Use the primary member's name.
         const primaryMember = familyMembers.find(m => !m.relation) || familyMembers[0];
-        const familyName = primaryMember.name || 'Unknown Family';
+        const familyName = (primaryMember.name as string) || 'Unknown Family';
         
         families.push({
           family_id,
