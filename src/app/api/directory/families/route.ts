@@ -30,7 +30,21 @@ export async function GET(request: NextRequest) {
     if (name) {
       const q = name.trim().replace(/[%_(),.]/g, '');
       if (q.length > 0 && q.length <= 100) {
-        query = query.or(`first_name.ilike.%${q}%,middle_name.ilike.%${q}%,last_name.ilike.%${q}%`);
+        // Find matching family IDs first so we fetch the entire family
+        const { data: matchingMembers } = await supabase
+          .from('members')
+          .select('family_id')
+          .or(`first_name.ilike.%${q}%,middle_name.ilike.%${q}%,last_name.ilike.%${q}%`)
+          .or('active.is.null,active.eq.true');
+          
+        const matchingFamilyIds = [...new Set((matchingMembers || []).map(m => m.family_id).filter(Boolean))];
+        
+        if (matchingFamilyIds.length > 0) {
+          query = query.in('family_id', matchingFamilyIds);
+        } else {
+          // Force no results
+          query = query.eq('id', '00000000-0000-0000-0000-000000000000');
+        }
       }
     }
 
@@ -68,9 +82,9 @@ export async function GET(request: NextRequest) {
     familyMap.forEach((familyMembers, family_id) => {
       // Only include "formed families" (size > 1)
       if (familyMembers.length > 1) {
-        // Determine a family name. Try to find the primary member, or just use the first member's last name.
+        // Determine a family name. Use the primary member's name.
         const primaryMember = familyMembers.find(m => !m.relation) || familyMembers[0];
-        const familyName = primaryMember.last_name ? `The ${primaryMember.last_name} Family` : 'Unknown Family';
+        const familyName = (primaryMember.name as string) || 'Unknown Family';
         
         families.push({
           family_id,

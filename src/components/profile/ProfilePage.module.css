@@ -503,12 +503,6 @@
   align-items: start;
 }
 
-@media (max-width: 992px) {
-  .dashboardLayout {
-    grid-template-columns: 1fr;
-  }
-}
-
 .familySidebar {
   background: var(--glass-bg);
   backdrop-filter: blur(16px);
@@ -623,4 +617,59 @@
 
 .detailPanel {
   min-width: 0;
+}
+
+/* ============================================
+   Responsive Breakpoints
+   ============================================ */
+@media (max-width: 992px) {
+  .dashboardLayout {
+    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .familySidebar {
+    position: static;
+    background: var(--color-bg-card);
+  }
+}
+
+@media (max-width: 768px) {
+  .profileHero {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: var(--space-6);
+  }
+  
+  .profilePhoto {
+    width: 200px;
+    height: 200px;
+  }
+  
+  .profileActions {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  
+  .infoGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .notificationBanner {
+    flex-direction: column;
+  }
+  
+  .notificationActions {
+    margin-top: var(--space-3);
+    width: 100%;
+    justify-content: flex-start;
+  }
+  
+  .visibilityBanner {
+    flex-direction: column;
+    text-align: center;
+    gap: var(--space-4);
+  }
 }

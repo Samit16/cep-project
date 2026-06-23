@@ -372,9 +372,7 @@
   top: 100%;
   left: 0;
   width: 100%;
-  background-color: var(--glass-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background-color: var(--color-bg-page);
   border-bottom: 1px solid var(--glass-border);
   display: flex;
   flex-direction: column;
