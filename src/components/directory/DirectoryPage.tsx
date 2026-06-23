@@ -326,14 +326,14 @@ export default function DirectoryPage() {
              <button 
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
                 disabled={currentPage === 1}
-                className={styles.viewProfileBtn}
+                className={styles.paginationBtn}
               >
                Previous
              </button>
              <button 
                 onClick={() => setCurrentPage(p => p + 1)} 
                 disabled={!hasMore}
-                className={styles.viewProfileBtn}
+                className={styles.paginationBtn}
               >
                Next Page
              </button>

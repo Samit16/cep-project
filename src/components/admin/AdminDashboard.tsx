@@ -164,6 +164,11 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     loadDashboardData();
+
+    // Refresh data when window regains focus to ensure stats are always up to date
+    const handleFocus = () => loadDashboardData();
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
   }, [loadDashboardData]);
 
   // Load events from API

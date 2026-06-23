@@ -467,3 +467,76 @@
     transform: translateY(0);
   }
 }
+
+/* ============================================
+   Responsive Breakpoints
+   ============================================ */
+
+@media (max-width: 1024px) {
+  .valuesGrid, .impactGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .title {
+    font-size: 2.5rem;
+  }
+  
+  .hero {
+    padding: var(--space-16) var(--space-6) var(--space-12);
+  }
+  
+  .hero::before {
+    width: 400px;
+    height: 400px;
+  }
+
+  .timelineItem {
+    justify-content: flex-start;
+  }
+
+  .timelineLeft, .timelineRight {
+    padding: 0 0 0 var(--space-12);
+  }
+  
+  .timelineLine {
+    left: 24px;
+    transform: none;
+  }
+  
+  .timelineDot {
+    left: 24px;
+    transform: translateX(-50%);
+  }
+  
+  .missionGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .ctaActions {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .valuesGrid, .impactGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .title {
+    font-size: 2rem;
+  }
+  
+  .sectionTitle {
+    font-size: 2rem;
+  }
+
+  .timelineLeft, .timelineRight {
+    padding: 0 0 0 var(--space-10);
+  }
+
+  .timelineLine, .timelineDot {
+    left: 16px;
+  }
+}
