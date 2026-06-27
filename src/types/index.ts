@@ -85,3 +85,17 @@ export interface FamilyGroup {
   family_name: string;
   members: Member[];
 }
+
+export interface ArchivePost {
+  id: string;
+  author_id: string;
+  content: string;
+  image_urls: string[];
+  created_at: string;
+  updated_at: string;
+  // joined author fields from the API
+  author_name?: string;
+  author_photo?: string;
+  // view tracking
+  view_count?: number;
+}

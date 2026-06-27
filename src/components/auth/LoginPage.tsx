@@ -244,7 +244,7 @@ export default function LoginPage() {
 
             <div onKeyDown={(e) => { if (e.key === 'Enter') { if (activeTab === 'member') handleMemberLogin(e); else handleAdminLogin(e); } }}>
               <FormInput 
-                label={activeTab === 'committee' ? 'Staff Username / Email' : 'Member Username / Email'}
+                label={activeTab === 'committee' ? 'Username / Email' : 'Member Username / Email'}
                 icon={activeTab === 'committee' ? Shield : User}
                 type="text"
                 placeholder={activeTab === 'committee' ? 'admin' : 'first_last or email'}

@@ -45,12 +45,12 @@ export function HeroSection() {
         <div className={`${styles.heroCta} gsap-hero-anim`}>
           {user ? (
             <Link href={(role === 'admin' || role === 'committee') ? '/dashboard' : '/directory'} className={styles.ctaBtnPrimary}>
-              {role === 'admin' || role === 'committee' ? 'Go to Dashboard' : 'Go to Directory'}
+              {role === 'admin' || role === 'committee' ? 'Go to Dashboard' : 'Go to Directory'} <ArrowRight size={18} style={{ marginLeft: '8px' }} />
             </Link>
           ) : (
             <>
               <Link href="/login?tab=member" className={styles.ctaBtnPrimary}>
-                Member Login
+                Member Login <ArrowRight size={18} style={{ marginLeft: '8px' }} />
               </Link>
               <Link href="/login?tab=committee" className={styles.ctaBtnOutlinedHero}>
                 Committee Login

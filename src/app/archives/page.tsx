@@ -2,15 +2,15 @@
 
 import Navbar from '@/components/layout/Navbar/Navbar';
 import Footer from '@/components/layout/Footer/Footer';
-import { AchievementsSection, EventsSection } from '@/components/landing/LandingPage';
+import ArchivesPage from '@/components/archives/ArchivesPage';
 
-export default function ArchivesPage() {
+export default function ArchivesRoute() {
   return (
     <>
       <Navbar variant="public" activeLink="archives" />
-      <EventsSection />
-      <AchievementsSection />
+      <ArchivesPage />
       <Footer />
     </>
   );
 }
+
