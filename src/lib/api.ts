@@ -19,11 +19,11 @@ export class ApiClient {
 
     let token: string | null = null;
 
+    // 1. Check localStorage for the Supabase session (primary storage)
     try {
-      const sessionData = sessionStorage.getItem(SUPABASE_STORAGE_KEY);
+      const sessionData = localStorage.getItem(SUPABASE_STORAGE_KEY);
       if (sessionData) {
         const parsed = JSON.parse(sessionData);
-        // Handle both v2 flat format and legacy nested format
         token = parsed?.access_token
           || parsed?.currentSession?.access_token
           || parsed?.session?.access_token
@@ -31,13 +31,13 @@ export class ApiClient {
       }
     } catch { /* ignore parse errors */ }
 
- 
+    // 2. Scan all localStorage keys starting with sb- (fallback)
     if (!token) {
       try {
-        for (let i = 0; i < sessionStorage.length; i++) {
-          const key = sessionStorage.key(i);
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
           if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
-            const raw = sessionStorage.getItem(key);
+            const raw = localStorage.getItem(key);
             if (raw) {
               const parsed = JSON.parse(raw);
               token = parsed?.access_token || parsed?.session?.access_token || null;
