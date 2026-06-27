@@ -29,8 +29,7 @@ export async function GET(request: NextRequest) {
           member_id,
           members:member_id (
             first_name,
-            last_name,
-            photoUrl
+            last_name
           )
         )
       `)
@@ -41,19 +40,23 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch archive posts' }, { status: 500 });
     }
 
-    // Fetch view counts for all posts in one query
+    // Fetch view counts for all posts in one query (non-fatal if table doesn't exist)
     const postIds = (posts || []).map((p) => p.id);
     let viewCounts: Record<string, number> = {};
     if (postIds.length > 0) {
-      const { data: views } = await supabase
-        .from('archive_post_views')
-        .select('post_id')
-        .in('post_id', postIds);
+      try {
+        const { data: views } = await supabase
+          .from('archive_post_views')
+          .select('post_id')
+          .in('post_id', postIds);
 
-      // Count per post
-      (views || []).forEach((row: { post_id: string }) => {
-        viewCounts[row.post_id] = (viewCounts[row.post_id] ?? 0) + 1;
-      });
+        // Count per post
+        (views || []).forEach((row: { post_id: string }) => {
+          viewCounts[row.post_id] = (viewCounts[row.post_id] ?? 0) + 1;
+        });
+      } catch {
+        // archive_post_views table may not exist yet — ignore, view_count defaults to 0
+      }
     }
 
     // Flatten author info into the top-level post object
@@ -74,7 +77,7 @@ export async function GET(request: NextRequest) {
         author_name: member
           ? `${member.first_name ?? ''} ${member.last_name ?? ''}`.trim()
           : 'Committee Member',
-        author_photo: member?.photoUrl ?? null,
+        author_photo: null,
         view_count: viewCounts[post.id] ?? 0,
       };
     });
@@ -129,39 +132,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message || 'Failed to create post' }, { status: 400 });
     }
 
-    // ── Notify all other authenticated users ──────────────────────
-    // Fetch all profile user_ids (excluding the author)
-    try {
-      const { data: allProfiles } = await supabase
-        .from('profiles')
-        .select('id')
-        .neq('id', authResult.user.id);
+    // ── Notify all other authenticated users (fire-and-forget, never blocks the response) ──
+    void (async () => {
+      try {
+        const { data: allProfiles } = await supabase
+          .from('profiles')
+          .select('id')
+          .neq('id', authResult.user.id);
 
-      if (allProfiles && allProfiles.length > 0) {
-        // Build a short preview of the post content for the notification message
-        const preview = (sanitized.content ?? '').slice(0, 80).trim();
-        const messageText = preview
-          ? `"${preview}${preview.length === 80 ? '…' : ''}"`
-          : 'A committee member shared a new archive post.';
+        if (allProfiles && allProfiles.length > 0) {
+          const preview = (sanitized.content ?? '').slice(0, 80).trim();
+          const messageText = preview
+            ? `"${preview}${preview.length === 80 ? '\u2026' : ''}"`
+            : 'A committee member shared a new archive post.';
 
-        const notificationRows = allProfiles.map((p: { id: string }) => ({
-          user_id: p.id,
-          type: 'archive_post',
-          title: 'New Archive Post',
-          message: messageText,
-          link: '/archives',
-          is_read: false,
-        }));
+          const notificationRows = allProfiles.map((p: { id: string }) => ({
+            user_id: p.id,
+            type: 'archive_post',
+            title: 'New Archive Post',
+            message: messageText,
+            link: '/archives',
+            is_read: false,
+          }));
 
-        // Insert in batches of 100 to stay within Supabase limits
-        for (let i = 0; i < notificationRows.length; i += 100) {
-          await supabase.from('notifications').insert(notificationRows.slice(i, i + 100));
+          for (let i = 0; i < notificationRows.length; i += 100) {
+            await supabase.from('notifications').insert(notificationRows.slice(i, i + 100));
+          }
         }
+      } catch (notifErr) {
+        console.error('Failed to send archive post notifications:', notifErr);
       }
-    } catch (notifErr) {
-      // Non-fatal: log and continue — post was already created
-      console.error('Failed to send archive post notifications:', notifErr);
-    }
+    })();
     // ─────────────────────────────────────────────────────────────
 
     return NextResponse.json({ ...post, view_count: 0 }, { status: 201 });
