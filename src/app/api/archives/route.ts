@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 
     const supabase = createServerSupabase();
 
-    // Fetch posts and join author info via profiles → members
+    // Fetch posts without joining profiles (since the FK points to auth.users, not profiles)
     const { data: posts, error } = await supabase
       .from('archive_posts')
       .select(`
@@ -24,14 +24,7 @@ export async function GET(request: NextRequest) {
         content,
         image_urls,
         created_at,
-        updated_at,
-        profiles:author_id (
-          member_id,
-          members:member_id (
-            first_name,
-            last_name
-          )
-        )
+        updated_at
       `)
       .order('created_at', { ascending: false });
 
@@ -59,10 +52,31 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Fetch authors info separately to bypass the foreign key mapping issue
+    let profilesMap: Record<string, any> = {};
+    if (postIds.length > 0) {
+      const authorIds = [...new Set((posts || []).map(p => p.author_id))];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select(`
+          id,
+          member_id,
+          members:member_id (
+            first_name,
+            last_name
+          )
+        `)
+        .in('id', authorIds);
+
+      (profiles || []).forEach(p => {
+        profilesMap[p.id] = p;
+      });
+    }
+
     // Flatten author info into the top-level post object
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const normalized = (posts || []).map((post: any) => {
-      const profile = Array.isArray(post.profiles) ? post.profiles[0] : post.profiles;
+      const profile = profilesMap[post.author_id];
       const member = profile?.members
         ? (Array.isArray(profile.members) ? profile.members[0] : profile.members)
         : null;
