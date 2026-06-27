@@ -29,8 +29,7 @@ export async function GET(request: NextRequest) {
           member_id,
           members:member_id (
             first_name,
-            last_name,
-            photoUrl
+            last_name
           )
         )
       `)
@@ -78,7 +77,7 @@ export async function GET(request: NextRequest) {
         author_name: member
           ? `${member.first_name ?? ''} ${member.last_name ?? ''}`.trim()
           : 'Committee Member',
-        author_photo: member?.photoUrl ?? null,
+        author_photo: null,
         view_count: viewCounts[post.id] ?? 0,
       };
     });
