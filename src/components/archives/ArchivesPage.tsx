@@ -395,11 +395,16 @@ export default function ArchivesPage() {
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user?.id) return;
+    setLoading(true);
     ApiClient.get<ArchivePost[]>('/archives')
       .then(data => { setPosts(data ?? []); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, [user]);
+      .catch((err) => {
+        // Only log — don't wipe existing posts on a transient error
+        console.error('Failed to fetch archive posts:', err);
+        setLoading(false);
+      });
+  }, [user?.id]);
 
   const handleSaved = (saved: ArchivePost) => {
     setPosts(prev => {
