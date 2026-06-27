@@ -83,24 +83,24 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 14px 32px;
-  background-color: var(--color-primary);
+  padding: 16px 36px;
+  background-color: var(--color-primary-dark);
   color: #fff !important;
-  border-radius: var(--radius-md);
-  font-weight: 600;
-  font-size: 0.9375rem;
-  letter-spacing: 0.01em;
+  border-radius: var(--radius-lg);
+  font-weight: var(--weight-bold);
+  font-size: 1.125rem;
+  letter-spacing: 0.02em;
   text-decoration: none;
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  border: 1.5px solid var(--color-primary);
-  box-shadow: 0 4px 14px 0 rgba(139, 26, 26, 0.25);
+  border: 1.5px solid var(--color-primary-dark);
+  box-shadow: 0 8px 20px 0 rgba(139, 26, 26, 0.4);
 }
 
 .ctaBtnPrimary:hover {
-  background-color: var(--color-primary-dark);
-  border-color: var(--color-primary-dark);
-  transform: translateY(-3px);
-  box-shadow: 0 8px 24px 0 rgba(139, 26, 26, 0.35);
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px 0 rgba(139, 26, 26, 0.5);
 }
 
 .ctaBtnPrimary:active {
@@ -112,29 +112,30 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 12px 28px;
-  border: 1.5px solid var(--color-text-primary);
-  color: var(--color-text-primary) !important;
+  padding: 16px 36px;
+  border: 1.5px solid var(--color-primary);
+  color: var(--color-primary) !important;
   background: transparent;
-  border-radius: var(--radius-md);
-  font-weight: 600;
-  font-size: 0.875rem;
+  border-radius: var(--radius-lg);
+  font-weight: var(--weight-bold);
+  font-size: 1.125rem;
+  letter-spacing: 0.02em;
   text-decoration: none;
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.02);
+  transition: all 0.3s ease;
+  box-shadow: none;
 }
 
 .ctaBtnOutlinedHero:hover {
   background-color: var(--color-primary-lightest);
-  border-color: var(--color-primary);
-  color: var(--color-primary) !important;
-  transform: translateY(-3px);
-  box-shadow: 0 8px 24px 0 rgba(0, 0, 0, 0.08);
+  border-color: var(--color-primary-dark);
+  color: var(--color-primary-dark) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px 0 rgba(155, 30, 30, 0.12);
 }
 
 .ctaBtnOutlinedHero:active {
   transform: translateY(-1px);
-  box-shadow: 0 4px 14px 0 rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2px 6px 0 rgba(155, 30, 30, 0.08);
 }
 
 .heroImage {
@@ -172,7 +173,7 @@
 
 /* History & Mission */
 .historySection {
-  padding: var(--space-16) var(--space-10);
+  padding: var(--space-20) var(--space-10);
   background-color: var(--color-bg-card);
   border-radius: var(--radius-xl);
   margin: var(--space-10) var(--space-10);
@@ -260,7 +261,8 @@
 
 /* Achievements */
 .achievementsSection {
-  padding: var(--space-16) var(--space-10);
+  padding: var(--space-20) var(--space-10);
+  margin: var(--space-10) var(--space-10);
 }
 
 .achievementsSectionInner {
@@ -398,7 +400,8 @@
 
 /* Events */
 .eventsSection {
-  padding: var(--space-16) var(--space-10);
+  padding: var(--space-20) var(--space-10);
+  margin: var(--space-10) var(--space-10);
 }
 
 .eventsSectionInner {
@@ -531,9 +534,9 @@
 /* CTA Banner */
 .ctaBanner {
   background-color: var(--color-primary);
-  padding: var(--space-16) var(--space-10);
+  padding: var(--space-20) var(--space-10);
   text-align: center;
-  margin: 0 var(--space-10) var(--space-10);
+  margin: var(--space-10) var(--space-10);
   border-radius: var(--radius-xl);
 }
 
@@ -741,7 +744,7 @@
   }
 
   .historySection, .achievementsSection, .eventsSection, .ctaBanner {
-    padding: var(--space-10) var(--space-4);
+    padding: var(--space-12) var(--space-4);
     margin: var(--space-4);
   }
 
