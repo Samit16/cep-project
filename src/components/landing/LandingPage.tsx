@@ -24,6 +24,20 @@ export function HeroSection() {
   const heroRef = useGsapHeroEntrance<HTMLElement>('.gsap-hero-anim');
   const heroImageRef = useGsapParallax<HTMLDivElement>(0.15, 'y');
   const { user, role } = useAuth();
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  const images = [
+    "/images/samaj.jpeg",
+    "/images/slideshow1.jpg",
+    "/images/slideshow2.jpg"
+  ];
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % images.length);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [images.length]);
 
   return (
     <section ref={heroRef} className={styles.hero}>
@@ -60,8 +74,19 @@ export function HeroSection() {
         </div>
       </div>
       <div ref={heroImageRef} className={`${styles.heroImage} ${styles.parallaxImage}`}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/images/samaj.jpeg" alt="Heritage architecture of the KVO Nagpur community" />
+        {images.map((src, index) => (
+          <img 
+            key={src}
+            src={src} 
+            alt="Heritage architecture of the KVO Nagpur community" 
+            style={{ 
+              position: 'absolute',
+              opacity: currentSlide === index ? 1 : 0,
+              transition: 'opacity 1s ease-in-out',
+              zIndex: currentSlide === index ? 1 : 0
+            }}
+          />
+        ))}
       </div>
     </section>
   );
