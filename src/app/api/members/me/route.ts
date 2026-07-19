@@ -184,20 +184,7 @@ export async function PUT(request: NextRequest) {
 
     const supabase = createServerSupabase();
 
-    // Reset whatsapp_verified if whatsapp number has changed
-    if (changes['whatsapp'] !== undefined) {
-      const { data: currentMember } = await supabase
-        .from('members')
-        .select('whatsapp')
-        .eq('id', memberId)
-        .single();
-      
-      const newWhatsapp = changes['whatsapp'] ? String(changes['whatsapp']).trim() : '';
-      const currentWhatsapp = currentMember?.whatsapp || '';
-      if (newWhatsapp !== currentWhatsapp) {
-        sanitizedData['whatsapp_verified'] = false;
-      }
-    }
+
 
     // If user is updating their email, also update it in Supabase Auth
     // and trigger a verification email. This is the KEY step that makes the
