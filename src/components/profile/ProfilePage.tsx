@@ -27,167 +27,213 @@ function getAvatarColor(name?: string) {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
-function getDynamicRelation(targetMember: Member, selectedMember: Member, familyMembers: Member[]): string {
-  if (targetMember.id === selectedMember.id) {
-    return 'Self';
+// Canonical relation groups for perspective calculation
+const PARENT_RELS = ['father', 'mother', 'stepfather', 'stepmother', 'adoptive father', 'adoptive mother'];
+const CHILD_RELS = ['son', 'daughter', 'stepson', 'stepdaughter', 'adopted son', 'adopted daughter'];
+const SIBLING_RELS = ['brother', 'sister', 'half brother', 'half sister', 'stepbrother', 'stepsister', 'adopted sibling'];
+const SPOUSE_RELS = ['spouse', 'husband', 'wife'];
+const GRANDPARENT_RELS = ['paternal grandfather', 'paternal grandmother', 'maternal grandfather', 'maternal grandmother', 'great grandfather', 'great grandmother', 'step grandfather', 'step grandmother'];
+const GRANDCHILD_RELS = ['grandson', 'granddaughter', 'great grandson', 'great granddaughter'];
+const UNCLE_AUNT_RELS = ['uncle', 'aunt', 'paternal uncle', 'paternal aunt', 'maternal uncle', 'maternal aunt', 'great uncle', 'great aunt'];
+const NEPHEW_NIECE_RELS = ['nephew', 'niece', 'great nephew', 'great niece'];
+const IN_LAW_PARENT_RELS = ['father-in-law', 'mother-in-law'];
+const IN_LAW_CHILD_RELS = ['son-in-law', 'daughter-in-law', 'grandson-in-law', 'granddaughter-in-law'];
+const IN_LAW_SIBLING_RELS = ['brother-in-law', 'sister-in-law'];
+const COUSIN_RELS = ['cousin', 'first cousin', 'second cousin', 'cousin once removed', 'step cousin'];
+const PRIMARY_RELS = ['', 'primary', 'primary account', 'self', 'head'];
+
+function gSibling(g: string) { return g === 'female' ? 'Sister' : 'Brother'; }
+function gParent(g: string) { return g === 'female' ? 'Mother' : 'Father'; }
+function gChild(g: string) { return g === 'female' ? 'Daughter' : 'Son'; }
+function gGrandparent(g: string) { return g === 'female' ? 'Grandmother' : 'Grandfather'; }
+function gGrandchild(g: string) { return g === 'female' ? 'Granddaughter' : 'Grandson'; }
+function gUnclAunt(g: string) { return g === 'female' ? 'Aunt' : 'Uncle'; }
+function gNephNiece(g: string) { return g === 'female' ? 'Niece' : 'Nephew'; }
+function gInlawParent(g: string) { return g === 'female' ? 'Mother-in-law' : 'Father-in-law'; }
+function gInlawChild(g: string) { return g === 'female' ? 'Daughter-in-law' : 'Son-in-law'; }
+function gInlawSibling(g: string) { return g === 'female' ? 'Sister-in-law' : 'Brother-in-law'; }
+function gSpouse(g: string) { return g === 'female' ? 'Wife' : 'Husband'; }
+
+/**
+ * Compute what `target` is to `viewer`, given that all relations are stored 
+ * from the primary account's perspective.
+ * - viewerRel: target's stored relation (relative to primary)  
+ * - targetRel: viewer's stored relation (relative to primary)
+ * - targetGender: target's gender
+ */
+function computeRelFromPerspective(viewerRel: string, targetRel: string, targetGender: string): string {
+  const vr = viewerRel.trim().toLowerCase();   // viewer's relation to primary
+  const tr = targetRel.trim().toLowerCase();   // target's relation to primary
+  const g = targetGender.trim().toLowerCase(); // target's gender
+
+  // Target IS the viewer
+  if (vr === tr) return 'Self';
+
+  // Viewer is Primary
+  if (PRIMARY_RELS.includes(vr)) {
+    if (PRIMARY_RELS.includes(tr)) return 'Primary Account';
+    return targetRel || 'Family Member';
   }
 
-  // Find the primary member in the family (the one with no relation, or relation-less)
-  const primaryMember = familyMembers.find(m => !m.relation) || familyMembers[0];
+  // Target is Primary Account
+  if (PRIMARY_RELS.includes(tr)) {
+    // Invert viewer's relation
+    if (PARENT_RELS.includes(vr)) return gChild(g);
+    if (CHILD_RELS.includes(vr)) return gParent(g);
+    if (SIBLING_RELS.includes(vr)) return gSibling(g);
+    if (SPOUSE_RELS.includes(vr)) return gSpouse(g);
+    if (GRANDPARENT_RELS.includes(vr)) return gGrandchild(g);
+    if (GRANDCHILD_RELS.includes(vr)) return gGrandparent(g);
+    if (UNCLE_AUNT_RELS.includes(vr)) return gNephNiece(g);
+    if (NEPHEW_NIECE_RELS.includes(vr)) return gUnclAunt(g);
+    if (IN_LAW_PARENT_RELS.includes(vr)) return gInlawChild(g);
+    if (IN_LAW_CHILD_RELS.includes(vr)) return gInlawParent(g);
+    if (IN_LAW_SIBLING_RELS.includes(vr)) return gInlawSibling(g);
+    if (COUSIN_RELS.includes(vr)) return 'Cousin';
+    return targetRel || 'Family Member';
+  }
+
+  // Both are non-primary — chain through primary
+  // viewer → primary (inverse of vr), then primary → target (tr)
+
+  // VIEWER is Parent of Primary
+  if (PARENT_RELS.includes(vr)) {
+    if (PARENT_RELS.includes(tr)) return g === 'female' ? 'Wife' : 'Husband';
+    if (CHILD_RELS.includes(tr)) return g === 'female' ? 'Granddaughter' : 'Grandson';
+    if (SIBLING_RELS.includes(tr)) return gChild(g);
+    if (SPOUSE_RELS.includes(tr)) return gInlawChild(g);
+    if (GRANDPARENT_RELS.includes(tr)) return gParent(g);
+    if (UNCLE_AUNT_RELS.includes(tr)) return gSibling(g);
+    if (IN_LAW_PARENT_RELS.includes(tr)) return gInlawParent(g);
+    if (NEPHEW_NIECE_RELS.includes(tr)) return 'Cousin';
+    if (COUSIN_RELS.includes(tr)) return 'Cousin';
+  }
+
+  // VIEWER is Child of Primary
+  if (CHILD_RELS.includes(vr)) {
+    if (PARENT_RELS.includes(tr)) return gGrandparent(g);
+    if (CHILD_RELS.includes(tr)) return gSibling(g);
+    if (SIBLING_RELS.includes(tr)) return gUnclAunt(g);
+    if (SPOUSE_RELS.includes(tr)) return gParent(g);
+    if (GRANDPARENT_RELS.includes(tr)) return g === 'female' ? 'Great-Grandmother' : 'Great-Grandfather';
+    if (GRANDCHILD_RELS.includes(tr)) return gChild(g);
+    if (IN_LAW_CHILD_RELS.includes(tr)) return gInlawSibling(g);
+    if (NEPHEW_NIECE_RELS.includes(tr)) return 'First Cousin';
+  }
+
+  // VIEWER is Sibling of Primary
+  if (SIBLING_RELS.includes(vr)) {
+    if (PARENT_RELS.includes(tr)) return gParent(g);
+    if (CHILD_RELS.includes(tr)) return gNephNiece(g);
+    if (SIBLING_RELS.includes(tr)) return gSibling(g);
+    if (SPOUSE_RELS.includes(tr)) return gInlawSibling(g);
+    if (UNCLE_AUNT_RELS.includes(tr)) return gUnclAunt(g);
+    if (NEPHEW_NIECE_RELS.includes(tr)) return 'First Cousin';
+    if (COUSIN_RELS.includes(tr)) return 'Cousin';
+  }
+
+  // VIEWER is Spouse of Primary
+  if (SPOUSE_RELS.includes(vr)) {
+    if (PARENT_RELS.includes(tr)) return gInlawParent(g);
+    if (CHILD_RELS.includes(tr)) return gChild(g);
+    if (SIBLING_RELS.includes(tr)) return gInlawSibling(g);
+    if (UNCLE_AUNT_RELS.includes(tr)) return gUnclAunt(g);
+    if (IN_LAW_PARENT_RELS.includes(tr)) return gParent(g);
+    if (NEPHEW_NIECE_RELS.includes(tr)) return gNephNiece(g);
+  }
+
+  // VIEWER is Grandparent of Primary
+  if (GRANDPARENT_RELS.includes(vr)) {
+    if (PARENT_RELS.includes(tr)) return gChild(g);
+    if (GRANDPARENT_RELS.includes(tr)) return gSpouse(g);
+    if (CHILD_RELS.includes(tr)) return g === 'female' ? 'Great-Granddaughter' : 'Great-Grandson';
+    if (SIBLING_RELS.includes(tr)) return gNephNiece(g);
+    if (UNCLE_AUNT_RELS.includes(tr)) return gSibling(g);
+  }
+
+  // VIEWER is Grandchild of Primary
+  if (GRANDCHILD_RELS.includes(vr)) {
+    if (PARENT_RELS.includes(tr)) return gParent(g);
+    if (CHILD_RELS.includes(tr)) return gSibling(g);
+    if (GRANDPARENT_RELS.includes(tr)) return gGrandparent(g);
+    if (SIBLING_RELS.includes(tr)) return gUnclAunt(g);
+    if (GRANDCHILD_RELS.includes(tr)) return gSibling(g);
+  }
+
+  // VIEWER is Uncle/Aunt of Primary
+  if (UNCLE_AUNT_RELS.includes(vr)) {
+    if (PARENT_RELS.includes(tr)) return gSibling(g);
+    if (GRANDPARENT_RELS.includes(tr)) return gParent(g);
+    if (SIBLING_RELS.includes(tr)) return gSibling(g);
+    if (UNCLE_AUNT_RELS.includes(tr)) return gSpouse(g);
+    if (CHILD_RELS.includes(tr)) return 'First Cousin';
+    if (NEPHEW_NIECE_RELS.includes(tr)) return 'Nephew/Niece';
+  }
+
+  // VIEWER is Nephew/Niece of Primary
+  if (NEPHEW_NIECE_RELS.includes(vr)) {
+    if (PARENT_RELS.includes(tr)) return gUnclAunt(g);
+    if (SIBLING_RELS.includes(tr)) return gParent(g);
+    if (NEPHEW_NIECE_RELS.includes(tr)) return gSibling(g);
+    if (CHILD_RELS.includes(tr)) return 'First Cousin';
+  }
+
+  // VIEWER is Cousin of Primary
+  if (COUSIN_RELS.includes(vr)) {
+    if (SIBLING_RELS.includes(tr)) return 'Cousin';
+    if (PARENT_RELS.includes(tr)) return gUnclAunt(g);
+    if (CHILD_RELS.includes(tr)) return 'Cousin Once Removed';
+    if (COUSIN_RELS.includes(tr)) return gSpouse(g);
+  }
+
+  // VIEWER is Father-in-law / Mother-in-law of Primary
+  if (IN_LAW_PARENT_RELS.includes(vr)) {
+    if (SPOUSE_RELS.includes(tr)) return gChild(g);
+    if (CHILD_RELS.includes(tr)) return g === 'female' ? 'Granddaughter' : 'Grandson';
+    if (IN_LAW_PARENT_RELS.includes(tr)) return gSpouse(g);
+    if (SIBLING_RELS.includes(tr)) return gInlawChild(g);
+  }
+
+  // VIEWER is Son-in-law / Daughter-in-law of Primary
+  if (IN_LAW_CHILD_RELS.includes(vr)) {
+    if (PARENT_RELS.includes(tr)) return gInlawParent(g);
+    if (CHILD_RELS.includes(tr)) return gInlawSibling(g);
+    if (IN_LAW_CHILD_RELS.includes(tr)) return gSpouse(g);
+    if (SIBLING_RELS.includes(tr)) return gInlawSibling(g);
+  }
+
+  // VIEWER is Brother-in-law / Sister-in-law of Primary
+  if (IN_LAW_SIBLING_RELS.includes(vr)) {
+    if (SPOUSE_RELS.includes(tr)) return gSibling(g);
+    if (SIBLING_RELS.includes(tr)) return gInlawSibling(g);
+    if (PARENT_RELS.includes(tr)) return gInlawParent(g);
+    if (CHILD_RELS.includes(tr)) return gNephNiece(g);
+  }
+
+  return targetRel || 'Family Member';
+}
+
+function getDynamicRelation(targetMember: Member, selectedMember: Member, familyMembers: Member[]): string {
+  // Find primary member
+  const primaryMember = familyMembers.find(m =>
+    PRIMARY_RELS.includes((m.relation || '').trim().toLowerCase())
+  ) || familyMembers[0];
+
   if (!primaryMember) return targetMember.relation || 'Family Member';
 
-  const tGender = (targetMember.gender || '').trim().toLowerCase();
+  const viewerRel = selectedMember.id === primaryMember.id
+    ? '' // viewer is primary
+    : (selectedMember.relation || '');
 
-  // Case A: The profile being viewed is the Primary Member
-  if (selectedMember.id === primaryMember.id) {
-    return targetMember.relation || 'Primary Account';
-  }
+  const targetRel = targetMember.id === primaryMember.id
+    ? '' // target is primary
+    : (targetMember.relation || '');
 
-  // Case B: The profile being viewed is a family member (not the primary member)
-  
-  // 1. If targetMember is the primary member:
-  if (targetMember.id === primaryMember.id) {
-    const rel = (selectedMember.relation || '').trim().toLowerCase();
-    switch (rel) {
-      case 'father':
-      case 'mother':
-        return tGender === 'female' ? 'Daughter' : 'Son';
-      case 'son':
-      case 'daughter':
-        return tGender === 'female' ? 'Mother' : 'Father';
-      case 'spouse':
-        return 'Spouse';
-      case 'brother':
-      case 'sister':
-        return tGender === 'female' ? 'Sister' : 'Brother';
-      case 'father-in-law':
-      case 'mother-in-law':
-        return tGender === 'female' ? 'Daughter-in-law' : 'Son-in-law';
-      case 'son-in-law':
-      case 'daughter-in-law':
-        return tGender === 'female' ? 'Mother-in-law' : 'Father-in-law';
-      case 'brother-in-law':
-      case 'sister-in-law':
-        return tGender === 'female' ? 'Sister-in-law' : 'Brother-in-law';
-      case 'grandson':
-      case 'granddaughter':
-        return tGender === 'female' ? 'Grandmother' : 'Grandfather';
-      case 'grandfather':
-      case 'grandmother':
-        return tGender === 'female' ? 'Granddaughter' : 'Grandson';
-      case 'uncle':
-      case 'aunt':
-        return tGender === 'female' ? 'Niece' : 'Nephew';
-      case 'nephew':
-      case 'niece':
-        return tGender === 'female' ? 'Aunt' : 'Uncle';
-      case 'cousin':
-        return 'Cousin';
-      default:
-        return 'Primary Account';
-    }
-  }
+  const targetGender = (targetMember.gender || '').trim().toLowerCase();
 
-  // 2. If targetMember is NOT the primary member:
-  const sRel = (selectedMember.relation || '').trim().toLowerCase();
-  const tRel = (targetMember.relation || '').trim().toLowerCase();
-
-  // Parent-Parent relationships (Wife/Husband)
-  if (sRel === 'father' && tRel === 'mother') return 'Wife';
-  if (sRel === 'mother' && tRel === 'father') return 'Husband';
-
-  // Spouse <-> Parents (Father-in-law, Mother-in-law, Daughter-in-law, Son-in-law)
-  if (sRel === 'spouse' && (tRel === 'father' || tRel === 'mother')) {
-    return tRel === 'father' ? 'Father-in-law' : 'Mother-in-law';
-  }
-  if ((sRel === 'father' || sRel === 'mother') && tRel === 'spouse') {
-    return tGender === 'female' ? 'Daughter-in-law' : 'Son-in-law';
-  }
-
-  // Siblings
-  if ((sRel === 'son' || sRel === 'daughter') && (tRel === 'son' || tRel === 'daughter')) {
-    return tGender === 'female' ? 'Sister' : 'Brother';
-  }
-
-  // Spouse <-> Siblings (Sister-in-law, Brother-in-law)
-  if (sRel === 'spouse' && (tRel === 'brother' || tRel === 'sister')) {
-    return tGender === 'female' ? 'Sister-in-law' : 'Brother-in-law';
-  }
-  if ((sRel === 'brother' || sRel === 'sister') && tRel === 'spouse') {
-    return tGender === 'female' ? 'Sister-in-law' : 'Brother-in-law';
-  }
-
-  // Parent and Child relationships among family members
-  if (sRel === 'spouse' && (tRel === 'son' || tRel === 'daughter')) {
-    return tGender === 'female' ? 'Daughter' : 'Son';
-  }
-  if ((sRel === 'son' || sRel === 'daughter') && tRel === 'spouse') {
-    return tGender === 'female' ? 'Mother' : 'Father';
-  }
-
-  // Grandparents <-> Grandchildren
-  if ((sRel === 'father' || sRel === 'mother') && (tRel === 'son' || tRel === 'daughter')) {
-    return tGender === 'female' ? 'Granddaughter' : 'Grandson';
-  }
-  if ((sRel === 'son' || sRel === 'daughter') && (tRel === 'father' || tRel === 'mother')) {
-    return tGender === 'female' ? 'Grandmother' : 'Grandfather';
-  }
-
-  // Parents <-> Siblings
-  if ((sRel === 'father' || sRel === 'mother') && (tRel === 'brother' || tRel === 'sister')) {
-    return tGender === 'female' ? 'Daughter' : 'Son';
-  }
-  if ((sRel === 'brother' || sRel === 'sister') && (tRel === 'father' || tRel === 'mother')) {
-    return tGender === 'female' ? 'Mother' : 'Father';
-  }
-
-  // Sibling and Nephew/Niece relationships
-  if ((sRel === 'brother' || sRel === 'sister') && (tRel === 'son' || tRel === 'daughter')) {
-    return tGender === 'female' ? 'Niece' : 'Nephew';
-  }
-  if ((sRel === 'son' || sRel === 'daughter') && (tRel === 'brother' || tRel === 'sister')) {
-    return tGender === 'female' ? 'Aunt' : 'Uncle';
-  }
-
-  // Parents <-> Uncles/Aunts (uncle/aunt of primary = sibling of primary's parents)
-  if ((sRel === 'father' || sRel === 'mother') && (tRel === 'uncle' || tRel === 'aunt')) {
-    return tGender === 'female' ? 'Sister' : 'Brother';
-  }
-  if ((sRel === 'uncle' || sRel === 'aunt') && (tRel === 'father' || tRel === 'mother')) {
-    return tGender === 'female' ? 'Sister' : 'Brother';
-  }
-
-  // Children <-> Uncles/Aunts (uncle/aunt of primary = uncle/aunt of primary's siblings/children too)
-  if ((sRel === 'son' || sRel === 'daughter') && (tRel === 'uncle' || tRel === 'aunt')) {
-    return tGender === 'female' ? 'Aunt' : 'Uncle';
-  }
-  if ((sRel === 'uncle' || sRel === 'aunt') && (tRel === 'son' || tRel === 'daughter')) {
-    return tGender === 'female' ? 'Niece' : 'Nephew';
-  }
-
-  // Siblings <-> Uncles/Aunts (uncle/aunt of primary = uncle/aunt of primary's siblings)
-  if ((sRel === 'brother' || sRel === 'sister') && (tRel === 'uncle' || tRel === 'aunt')) {
-    return tGender === 'female' ? 'Aunt' : 'Uncle';
-  }
-  if ((sRel === 'uncle' || sRel === 'aunt') && (tRel === 'brother' || tRel === 'sister')) {
-    return tGender === 'female' ? 'Niece' : 'Nephew';
-  }
-
-  // Spouse <-> Uncles/Aunts
-  if (sRel === 'spouse' && (tRel === 'uncle' || tRel === 'aunt')) {
-    return tGender === 'female' ? 'Aunt' : 'Uncle';
-  }
-  if ((sRel === 'uncle' || sRel === 'aunt') && tRel === 'spouse') {
-    return tGender === 'female' ? 'Niece' : 'Nephew';
-  }
-
-  // Uncle/Aunt <-> Uncle/Aunt (siblings of same parent generation)
-  if ((sRel === 'uncle' || sRel === 'aunt') && (tRel === 'uncle' || tRel === 'aunt')) {
-    return tGender === 'female' ? 'Sister' : 'Brother';
-  }
-
-  return targetMember.relation || 'Family Member';
+  return computeRelFromPerspective(viewerRel, targetRel, targetGender);
 }
+
 
 interface ProfilePageProps {
   memberId?: string;
@@ -717,9 +763,11 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
                   </div>
                   <div className={styles.familyMemberInfo}>
                     <div className={styles.familyMemberName}>{fm.name || `${fm.first_name} ${fm.last_name}`}</div>
-                    <div className={styles.familyMemberRelation}>
-                      {getDynamicRelation(fm, selectedMember, familyMembers)}
-                    </div>
+                    {getDynamicRelation(fm, selectedMember, familyMembers) ? (
+                      <div className={styles.familyMemberRelation}>
+                        {getDynamicRelation(fm, selectedMember, familyMembers)}
+                      </div>
+                    ) : null}
                   </div>
                 </button>
               ))}

@@ -68,41 +68,62 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// Canonical relation groups for easier matching
+const PARENT_RELS = ['father', 'mother', 'stepfather', 'stepmother', 'adoptive father', 'adoptive mother'];
+const CHILD_RELS = ['son', 'daughter', 'stepson', 'stepdaughter', 'adopted son', 'adopted daughter'];
+const SIBLING_RELS = ['brother', 'sister', 'half brother', 'half sister', 'stepbrother', 'stepsister', 'adopted sibling'];
+const SPOUSE_RELS = ['spouse', 'husband', 'wife'];
+const GRANDPARENT_RELS = ['paternal grandfather', 'paternal grandmother', 'maternal grandfather', 'maternal grandmother', 'great grandfather', 'great grandmother', 'step grandfather', 'step grandmother'];
+const GRANDCHILD_RELS = ['grandson', 'granddaughter', 'great grandson', 'great granddaughter'];
+const UNCLE_AUNT_RELS = ['uncle', 'aunt', 'paternal uncle', 'paternal aunt', 'maternal uncle', 'maternal aunt', 'great uncle', 'great aunt'];
+const NEPHEW_NIECE_RELS = ['nephew', 'niece', 'great nephew', 'great niece'];
+const IN_LAW_PARENT_RELS = ['father-in-law', 'mother-in-law'];
+const IN_LAW_CHILD_RELS = ['son-in-law', 'daughter-in-law', 'grandson-in-law', 'granddaughter-in-law'];
+const IN_LAW_SIBLING_RELS = ['brother-in-law', 'sister-in-law'];
+const COUSIN_RELS = ['cousin', 'first cousin', 'second cousin', 'cousin once removed', 'step cousin'];
+
+function isMale(rel: string) {
+  return ['father', 'stepfather', 'adoptive father', 'son', 'stepson', 'adopted son', 'brother', 'half brother', 'stepbrother', 'husband', 'paternal grandfather', 'maternal grandfather', 'great grandfather', 'step grandfather', 'grandson', 'great grandson', 'uncle', 'paternal uncle', 'maternal uncle', 'great uncle', 'nephew', 'great nephew', 'father-in-law', 'son-in-law', 'grandson-in-law', 'brother-in-law', 'cousin', 'first cousin'].includes(rel.toLowerCase());
+}
+
+// Gender-aware sibling result
+function sibling(gB: string) { return gB === 'female' ? 'Sister' : 'Brother'; }
+function parent(gB: string) { return gB === 'female' ? 'Mother' : 'Father'; }
+function child(gB: string) { return gB === 'female' ? 'Daughter' : 'Son'; }
+function grandparent(gB: string, paternal = false) { 
+  const side = paternal ? 'Paternal ' : '';
+  return gB === 'female' ? `${side}Grandmother` : `${side}Grandfather`; 
+}
+function grandchild(gB: string) { return gB === 'female' ? 'Granddaughter' : 'Grandson'; }
+function unclAunt(gB: string) { return gB === 'female' ? 'Aunt' : 'Uncle'; }
+function nephNiece(gB: string) { return gB === 'female' ? 'Niece' : 'Nephew'; }
+function inlawParent(gB: string) { return gB === 'female' ? 'Mother-in-law' : 'Father-in-law'; }
+function inlawChild(gB: string) { return gB === 'female' ? 'Daughter-in-law' : 'Son-in-law'; }
+function inlawSibling(gB: string) { return gB === 'female' ? 'Sister-in-law' : 'Brother-in-law'; }
+function spouseStr(gB: string) { return gB === 'female' ? 'Wife' : 'Husband'; }
+
 // Helper to determine the inverse of a relation relative to self
 function determineInverseRelation(relation: string, genderSelf?: string): string {
   const rel = (relation || '').trim().toLowerCase();
   const selfG = (genderSelf || '').trim().toLowerCase();
 
-  switch (rel) {
-    case 'spouse':
-      return 'spouse';
-    case 'son':
-    case 'daughter':
-      return selfG === 'female' ? 'mother' : 'father';
-    case 'father':
-    case 'mother':
-      return selfG === 'female' ? 'daughter' : 'son';
-    case 'brother':
-    case 'sister':
-      return selfG === 'female' ? 'sister' : 'brother';
-    case 'son-in-law':
-    case 'daughter-in-law':
-      return selfG === 'female' ? 'mother-in-law' : 'father-in-law';
-    case 'father-in-law':
-    case 'mother-in-law':
-      return selfG === 'female' ? 'daughter-in-law' : 'son-in-law';
-    case 'grandson':
-    case 'granddaughter':
-      return selfG === 'female' ? 'grandmother' : 'grandfather';
-    case 'grandfather':
-    case 'grandmother':
-      return selfG === 'female' ? 'granddaughter' : 'grandson';
-    default:
-      return 'other';
-  }
+  if (SPOUSE_RELS.includes(rel)) return spouseStr(selfG);
+  if (CHILD_RELS.includes(rel)) return parent(selfG);
+  if (PARENT_RELS.includes(rel)) return child(selfG);
+  if (SIBLING_RELS.includes(rel)) return sibling(selfG);
+  if (IN_LAW_CHILD_RELS.includes(rel)) return inlawParent(selfG);
+  if (IN_LAW_PARENT_RELS.includes(rel)) return inlawChild(selfG);
+  if (IN_LAW_SIBLING_RELS.includes(rel)) return inlawSibling(selfG);
+  if (GRANDPARENT_RELS.includes(rel)) return grandchild(selfG);
+  if (GRANDCHILD_RELS.includes(rel)) return grandparent(selfG);
+  if (UNCLE_AUNT_RELS.includes(rel)) return nephNiece(selfG);
+  if (NEPHEW_NIECE_RELS.includes(rel)) return unclAunt(selfG);
+  if (COUSIN_RELS.includes(rel)) return 'Cousin';
+
+  return 'other';
 }
 
-// Helper to determine the chained relationship (B to X, then X to A, what is B to A?)
+// Helper to determine the chained relationship (B to X, then X is A's what, what is B to A?)
 function determineChainedRelation(
   relBtoX: string,
   relXtoA: string,
@@ -116,80 +137,106 @@ function determineChainedRelation(
     return bx.charAt(0).toUpperCase() + bx.slice(1);
   }
 
-  // 1. If X is A's Child (Son or Daughter)
-  if (xa === 'son' || xa === 'daughter') {
-    if (bx === 'spouse') {
-      return gB === 'female' ? 'Daughter-in-law' : 'Son-in-law';
-    }
-    if (bx === 'son' || bx === 'daughter') {
-      return gB === 'female' ? 'Granddaughter' : 'Grandson';
-    }
-    if (bx === 'brother' || bx === 'sister') {
-      return gB === 'female' ? 'Daughter' : 'Son';
-    }
-    if (bx === 'father' || bx === 'mother') {
-      return 'Spouse'; // B is also X's parent, so B is A's spouse
-    }
+  // --- X is A's PARENT ---
+  if (PARENT_RELS.includes(xa)) {
+    if (SPOUSE_RELS.includes(bx)) return parent(gB);
+    if (CHILD_RELS.includes(bx)) return sibling(gB);
+    if (SIBLING_RELS.includes(bx)) return inlawSibling(gB);
+    if (UNCLE_AUNT_RELS.includes(bx)) return inlawSibling(gB);
+    if (GRANDPARENT_RELS.includes(bx)) return grandparent(gB);
+    if (COUSIN_RELS.includes(bx)) return 'Cousin';
+    if (NEPHEW_NIECE_RELS.includes(bx)) return 'Cousin';
   }
 
-  // 2. If X is A's Spouse
-  if (xa === 'spouse') {
-    if (bx === 'son' || bx === 'daughter') {
-      return gB === 'female' ? 'Daughter' : 'Son';
-    }
-    if (bx === 'father' || bx === 'mother') {
-      return gB === 'female' ? 'Mother-in-law' : 'Father-in-law';
-    }
-    if (bx === 'brother' || bx === 'sister') {
-      return gB === 'female' ? 'Sister-in-law' : 'Brother-in-law';
-    }
+  // --- X is A's CHILD ---
+  if (CHILD_RELS.includes(xa)) {
+    if (SPOUSE_RELS.includes(bx)) return inlawChild(gB);
+    if (CHILD_RELS.includes(bx)) return grandchild(gB);
+    if (SIBLING_RELS.includes(bx)) return child(gB);
+    if (PARENT_RELS.includes(bx)) return spouseStr(gB);
   }
 
-  // 3. If X is A's Parent (Father or Mother)
-  if (xa === 'father' || xa === 'mother') {
-    if (bx === 'spouse') {
-      return gB === 'female' ? 'Mother' : 'Father';
-    }
-    if (bx === 'son' || bx === 'daughter') {
-      return gB === 'female' ? 'Sister' : 'Brother';
-    }
+  // --- X is A's SPOUSE ---
+  if (SPOUSE_RELS.includes(xa)) {
+    if (CHILD_RELS.includes(bx)) return child(gB);
+    if (PARENT_RELS.includes(bx)) return inlawParent(gB);
+    if (SIBLING_RELS.includes(bx)) return inlawSibling(gB);
+    if (UNCLE_AUNT_RELS.includes(bx)) return inlawSibling(gB);
+    if (NEPHEW_NIECE_RELS.includes(bx)) return inlawSibling(gB);
   }
 
-  // 4. If X is A's Sibling (Brother or Sister)
-  if (xa === 'brother' || xa === 'sister') {
-    if (bx === 'brother' || bx === 'sister') {
-      return gB === 'female' ? 'Sister' : 'Brother';
-    }
-    if (bx === 'father' || bx === 'mother') {
-      return gB === 'female' ? 'Mother' : 'Father';
-    }
-    if (bx === 'son' || bx === 'daughter') {
-      return gB === 'female' ? 'Niece' : 'Nephew';
-    }
+  // --- X is A's SIBLING ---
+  if (SIBLING_RELS.includes(xa)) {
+    if (SIBLING_RELS.includes(bx)) return sibling(gB);
+    if (PARENT_RELS.includes(bx)) return parent(gB);
+    if (CHILD_RELS.includes(bx)) return nephNiece(gB);
+    if (SPOUSE_RELS.includes(bx)) return inlawSibling(gB);
+    if (COUSIN_RELS.includes(bx)) return 'Cousin';
   }
 
-  // 5. If X is A's Parent-in-law
-  if (xa === 'father-in-law' || xa === 'mother-in-law') {
-    if (bx === 'son' || bx === 'daughter') {
-      return gB === 'female' ? 'Sister-in-law' : 'Brother-in-law';
-    }
+  // --- X is A's GRANDPARENT ---
+  if (GRANDPARENT_RELS.includes(xa)) {
+    if (CHILD_RELS.includes(bx) || PARENT_RELS.includes(bx)) return parent(gB);
+    if (GRANDCHILD_RELS.includes(bx)) return grandparent(gB);
+    if (SIBLING_RELS.includes(bx)) return 'Great Uncle / Great Aunt';
+    if (SPOUSE_RELS.includes(bx)) return grandparent(gB);
   }
 
-  // 6. If X is A's Child-in-law
-  if (xa === 'son-in-law' || xa === 'daughter-in-law') {
-    if (bx === 'brother' || bx === 'sister') {
-      return gB === 'female' ? 'Sister-in-law' : 'Brother-in-law';
-    }
-    if (bx === 'son' || bx === 'daughter') {
-      return gB === 'female' ? 'Granddaughter' : 'Grandson';
-    }
+  // --- X is A's GRANDCHILD ---
+  if (GRANDCHILD_RELS.includes(xa)) {
+    if (PARENT_RELS.includes(bx)) return grandparent(gB);
+    if (CHILD_RELS.includes(bx)) return 'Great Grandparent';
+    if (SIBLING_RELS.includes(bx)) return grandchild(gB);
   }
 
-  if (bx) {
-    return bx.charAt(0).toUpperCase() + bx.slice(1);
+  // --- X is A's PARENT-IN-LAW ---
+  if (IN_LAW_PARENT_RELS.includes(xa)) {
+    if (CHILD_RELS.includes(bx)) return inlawSibling(gB);
+    if (SPOUSE_RELS.includes(bx)) return inlawChild(gB);
+    if (SIBLING_RELS.includes(bx)) return inlawSibling(gB);
   }
+
+  // --- X is A's CHILD-IN-LAW ---
+  if (IN_LAW_CHILD_RELS.includes(xa)) {
+    if (SIBLING_RELS.includes(bx)) return inlawSibling(gB);
+    if (CHILD_RELS.includes(bx)) return grandchild(gB);
+    if (PARENT_RELS.includes(bx)) return inlawParent(gB);
+  }
+
+  // --- X is A's SIBLING-IN-LAW ---
+  if (IN_LAW_SIBLING_RELS.includes(xa)) {
+    if (SPOUSE_RELS.includes(bx)) return inlawSibling(gB);
+    if (SIBLING_RELS.includes(bx)) return inlawSibling(gB);
+    if (PARENT_RELS.includes(bx)) return inlawParent(gB);
+    if (CHILD_RELS.includes(bx)) return nephNiece(gB);
+  }
+
+  // --- X is A's UNCLE/AUNT ---
+  if (UNCLE_AUNT_RELS.includes(xa)) {
+    if (PARENT_RELS.includes(bx)) return 'Great Grandparent';
+    if (CHILD_RELS.includes(bx)) return 'First Cousin';
+    if (SIBLING_RELS.includes(bx)) return unclAunt(gB);
+    if (SPOUSE_RELS.includes(bx)) return unclAunt(gB);
+  }
+
+  // --- X is A's NEPHEW/NIECE ---
+  if (NEPHEW_NIECE_RELS.includes(xa)) {
+    if (PARENT_RELS.includes(bx)) return sibling(gB);
+    if (SIBLING_RELS.includes(bx)) return parent(gB);
+    if (CHILD_RELS.includes(bx)) return nephNiece(gB);
+  }
+
+  // --- X is A's COUSIN ---
+  if (COUSIN_RELS.includes(xa)) {
+    if (PARENT_RELS.includes(bx)) return unclAunt(gB);
+    if (SIBLING_RELS.includes(bx)) return 'Cousin';
+    if (CHILD_RELS.includes(bx)) return 'Cousin Once Removed';
+  }
+
+  if (bx) return bx.charAt(0).toUpperCase() + bx.slice(1);
   return 'Family Member';
 }
+
 
 // POST /api/members/family — add a new member to the logged-in user's family
 export async function POST(request: NextRequest) {
