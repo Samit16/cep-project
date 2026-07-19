@@ -44,6 +44,7 @@ function getDynamicRelation(targetMember: Member, selectedMember: Member, family
 
   // Case A: The profile being viewed is the Primary Member
   if (selectedMember.id === primaryMember.id) {
+    if (targetMember.id === primaryMember.id) return 'Primary Account';
     return targetMember.relation || 'Family Member';
   }
 
@@ -709,9 +710,11 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
                   </div>
                   <div className={styles.familyMemberInfo}>
                     <div className={styles.familyMemberName}>{fm.name || `${fm.first_name} ${fm.last_name}`}</div>
-                    <div className={styles.familyMemberRelation}>
-                      {getDynamicRelation(fm, selectedMember, familyMembers)}
-                    </div>
+                    {getDynamicRelation(fm, selectedMember, familyMembers) ? (
+                      <div className={styles.familyMemberRelation}>
+                        {getDynamicRelation(fm, selectedMember, familyMembers)}
+                      </div>
+                    ) : null}
                   </div>
                 </button>
               ))}
