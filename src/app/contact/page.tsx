@@ -3,7 +3,7 @@
 import React from 'react';
 import Navbar from '@/components/layout/Navbar/Navbar';
 import Footer from '@/components/layout/Footer/Footer';
-import { Phone, Mail, MapPin, Clock } from 'lucide-react';
+import { Phone, Mail, MapPin, Clock, Code2 } from 'lucide-react';
 import styles from './ContactPage.module.css';
 import {
   useGsapHeroEntrance,
@@ -94,6 +94,23 @@ export default function ContactPage() {
                 <strong>10:00 AM &ndash; 6:00 PM</strong>
               </p>
               <span className={styles.cardMuted}>Sunday: Closed</span>
+            </div>
+
+            {/* Developer Contact */}
+            <div className={`${styles.card} gsap-contact-card`}>
+              <div className={styles.cardIconWrap}>
+                <Code2 size={22} />
+              </div>
+              <h3 className={styles.cardTitle}>Developer Contact</h3>
+              <p className={styles.cardText}>
+                For technical support or website-related queries.
+              </p>
+              <a href="mailto:shahsoftwareservices26@gmail.com" className={styles.cardValue}>
+                shahsoftwareservices26@gmail.com
+              </a>
+              <a href="tel:9975049889" className={styles.cardValue} style={{ marginTop: '6px' }}>
+                +91 9975049889
+              </a>
             </div>
           </div>
         </section>
