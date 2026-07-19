@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from('members')
-      .select('*, profiles(role)')
+      .select('id, first_name, middle_name, last_name, email, occupation, current_place, active, profile_complete, created_at, updated_at, contact_numbers, family_id, profiles(role)')
       .order('first_name', { ascending: true })
       .order('last_name', { ascending: true })
       .range(skip, skip + take - 1);

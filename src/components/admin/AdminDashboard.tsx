@@ -32,6 +32,7 @@ interface MemberAdmin {
   occupation?: string;
   current_place?: string;
   active: boolean;
+  profile_complete?: boolean;
   createdAt?: string;
   created_at?: string;
   updated_at?: string;
@@ -145,47 +146,39 @@ export default function AdminDashboard() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Fetch real total count and members
-  const loadDashboardData = useCallback(async () => {
-    try {
-      const data = await ApiClient.get<{ total: number }>('/admin/members/count');
-      setTotalMemberCount(data.total);
-    } catch { /* ignore */ }
+  const lastFetchRef = useRef<number>(0);
+
+  // Unified fast data loader using /admin/dashboard
+  const loadDashboardData = useCallback(async (force = false) => {
+    // Throttle window focus re-fetches to max once per 30s unless forced
+    const now = Date.now();
+    if (!force && lastFetchRef.current > 0 && now - lastFetchRef.current < 30000) {
+      return;
+    }
+    lastFetchRef.current = now;
 
     try {
-      const response = await ApiClient.get<MemberAdmin[]>('/admin/members', {
-        page: 1, limit: 5000, name: debouncedSearch,
-      });
-      setMembers(response);
+      const data = await ApiClient.get<{
+        totalMemberCount: number;
+        members: MemberAdmin[];
+        events: EventItem[];
+      }>('/admin/dashboard', { search: debouncedSearch });
+
+      setTotalMemberCount(data.totalMemberCount);
+      setMembers(data.members || []);
+      setEvents(data.events || []);
     } catch (err: unknown) {
-      toast((err as Error).message || 'Failed to load members', 'error');
+      toast((err as Error).message || 'Failed to load dashboard data', 'error');
     }
   }, [debouncedSearch, toast]);
 
   useEffect(() => {
-    loadDashboardData();
+    loadDashboardData(true);
 
-    // Refresh data when window regains focus to ensure stats are always up to date
-    const handleFocus = () => loadDashboardData();
+    const handleFocus = () => loadDashboardData(false);
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
   }, [loadDashboardData]);
-
-  // Load events from API
-  const loadEvents = useCallback(async () => {
-    try {
-      const response = await ApiClient.get<EventItem[]>('/events');
-      setEvents(response);
-    } catch {
-      // Fallback to empty if events API not available
-      setEvents([]);
-    }
-  }, []);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadEvents();
-  }, [loadEvents]);
 
   // If the user arrived via the Google OAuth flow, intercept back navigation
   // so the account picker isn't exposed in history and user can confirm logout.
@@ -237,7 +230,7 @@ export default function AdminDashboard() {
       toast('Member created successfully', 'success');
       setIsModalOpen(false);
       // Re-fetch members and count
-      await loadDashboardData();
+      await loadDashboardData(true);
     } catch (err: unknown) {
       toast((err as Error).message || 'Failed to create member', 'error');
     }
@@ -252,7 +245,7 @@ export default function AdminDashboard() {
       
       // Update local state for immediate feedback
       setMembers(members.map(m => m.id === memberId ? { ...m, role: newRole } : m));
-      await loadDashboardData();
+      await loadDashboardData(true);
     } catch (err: unknown) {
       toast((err as Error).message || 'Failed to update role', 'error');
     }
@@ -298,7 +291,7 @@ export default function AdminDashboard() {
       }
       setIsEventModalOpen(false);
       setEditingEvent(null);
-      await loadEvents();
+      await loadDashboardData(true);
     } catch (err: unknown) {
       toast((err as Error).message || 'Failed to save event.', 'error');
     }
@@ -308,7 +301,7 @@ export default function AdminDashboard() {
     try {
       await ApiClient.delete(`/events/${id}`);
       toast('Event deleted.', 'success');
-      await loadEvents(); 
+      await loadDashboardData(true); 
     } catch (err: unknown) {
       toast((err as Error).message || 'Failed to delete event.', 'error');
     }
@@ -330,6 +323,31 @@ export default function AdminDashboard() {
     }, {} as Record<string, number>);
     return Object.values(counts).filter(count => count > 1).length;
   }, [members]);
+
+  const checkIsProfileUpdated = useCallback((m: MemberAdmin) => {
+    if (m.profile_complete) return true;
+    if (m.email_verified) return true;
+    if (m.updated_at && m.created_at) {
+      const updatedTime = new Date(m.updated_at).getTime();
+      const createdTime = new Date(m.created_at).getTime();
+      if (updatedTime - createdTime > 1000) {
+        return true;
+      }
+    }
+    return false;
+  }, []);
+
+  const completedCount = useMemo(() => {
+    return members.filter(checkIsProfileUpdated).length;
+  }, [members, checkIsProfileUpdated]);
+
+  const pendingCount = useMemo(() => {
+    return members.length - completedCount;
+  }, [members, completedCount]);
+
+  const profileCompletionRate = useMemo(() => {
+    return members.length > 0 ? Math.round((completedCount / members.length) * 100) : 0;
+  }, [members, completedCount]);
 
   useGSAP(() => {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -440,9 +458,7 @@ export default function AdminDashboard() {
               </div>
             </div>
             <div className={styles.statValue}>
-              {members.length > 0
-                ? Math.round((members.filter(m => (m.updated_at && m.created_at && m.updated_at !== m.created_at) || (m.contact_numbers && m.contact_numbers.length > 0)).length / members.length) * 100)
-                : 0}%
+              {profileCompletionRate}%
             </div>
             <div className={styles.statLabel}>Profile Completion Rate</div>
           </div>
@@ -463,8 +479,8 @@ export default function AdminDashboard() {
             <h3 className={styles.insightTitle}>Profile Verification</h3>
             <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>Percentage of updated profiles in system</p>
             <OverviewRingChart 
-              active={members.filter(m => (m.updated_at && m.created_at && m.updated_at !== m.created_at) || (m.contact_numbers && m.contact_numbers.length > 0)).length} 
-              pending={members.filter(m => !((m.updated_at && m.created_at && m.updated_at !== m.created_at) || (m.contact_numbers && m.contact_numbers.length > 0))).length} 
+              active={completedCount} 
+              pending={pendingCount} 
             />
           </div>
 
@@ -556,9 +572,7 @@ export default function AdminDashboard() {
                   <div className={styles.tableCell}>{member.createdAt ? member.createdAt.slice(0, 10) : 'Recent'}</div>
                   <div className={styles.tableCell}>
                     {(() => {
-                      const isUpdated = member.updated_at && member.created_at && member.updated_at !== member.created_at;
-                      const hasContacts = member.contact_numbers && member.contact_numbers.length > 0;
-                      const isProfileUpdated = isUpdated || hasContacts;
+                      const isProfileUpdated = checkIsProfileUpdated(member);
                       return (
                         <span className={`${styles.statusBadge} ${isProfileUpdated ? styles.statusVerified : styles.statusPending}`}>
                           <span className={styles.statusDot} />

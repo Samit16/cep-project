@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Phone, Mail, MapPin } from 'lucide-react';
+import { Phone, Mail, MapPin, Code2 } from 'lucide-react';
 import styles from './Footer.module.css';
 import { useGsapStagger, useGsapReveal } from '@/hooks/useGsapAnimations';
 
@@ -108,6 +108,18 @@ export default function Footer() {
                 <br />
                 Nagpur &ndash; 440008
               </address>
+            </li>
+            <li className={styles.contactItem} style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid var(--color-border-light)' }}>
+              <Code2 size={16} className={styles.contactIcon} />
+              <span>
+                <strong style={{ display: 'block', fontSize: '0.75rem', marginBottom: '2px', color: 'var(--color-text-primary)' }}>Developer Contact</strong>
+                <a href="mailto:shahsoftwareservices26@gmail.com" className={styles.contactLink} style={{ fontSize: '0.75rem' }}>
+                  shahsoftwareservices26@gmail.com
+                </a>
+                <a href="tel:9975049889" className={styles.contactLink} style={{ display: 'block', fontSize: '0.75rem', marginTop: '2px' }}>
+                  +91 9975049889
+                </a>
+              </span>
             </li>
           </ul>
         </div>
