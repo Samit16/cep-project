@@ -30,13 +30,61 @@ export default function FamilyMemberModal({ member, isPrimary = false, onClose, 
     contact_no: member?.contact_no || (member?.contact_numbers?.length ? member.contact_numbers[0] : ''),
     whatsapp: member?.whatsapp || '',
     relation: (() => {
-      const standard = ['Spouse', 'Son', 'Daughter', 'Father', 'Mother', 'Brother', 'Sister', 'Father-in-law', 'Mother-in-law', 'Brother-in-law', 'Sister-in-law', 'Daughter-in-law', 'Son-in-law', 'Grandson', 'Granddaughter', 'Uncle', 'Aunt', 'Nephew', 'Niece', 'Cousin', ''];
+      const standard = [
+        'Spouse', 'Husband', 'Wife',
+        'Son', 'Daughter',
+        'Father', 'Mother',
+        'Brother', 'Sister', 'Half Brother', 'Half Sister',
+        'Paternal Grandfather', 'Paternal Grandmother',
+        'Maternal Grandfather', 'Maternal Grandmother',
+        'Great Grandfather', 'Great Grandmother',
+        'Grandson', 'Granddaughter',
+        'Great Grandson', 'Great Granddaughter',
+        'Paternal Uncle', 'Paternal Aunt', 'Maternal Uncle', 'Maternal Aunt',
+        'Uncle', 'Aunt',
+        'Nephew', 'Niece', 'Great Nephew', 'Great Niece',
+        'First Cousin', 'Second Cousin', 'Cousin Once Removed', 'Step Cousin', 'Cousin',
+        'Father-in-law', 'Mother-in-law',
+        'Brother-in-law', 'Sister-in-law',
+        'Son-in-law', 'Daughter-in-law',
+        'Grandson-in-law', 'Granddaughter-in-law',
+        'Great Uncle', 'Great Aunt',
+        'Stepfather', 'Stepmother', 'Stepbrother', 'Stepsister', 'Stepson', 'Stepdaughter',
+        'Step Grandfather', 'Step Grandmother',
+        'Adoptive Father', 'Adoptive Mother', 'Adopted Son', 'Adopted Daughter', 'Adopted Sibling',
+        'Godparent', 'Guardian', 'Ward', 'Family Friend',
+        'Other', '',
+      ];
       if (!member?.relation) return '';
       if (standard.includes(member.relation)) return member.relation;
       return 'Other';
     })(),
     custom_relation: (() => {
-      const standard = ['Spouse', 'Son', 'Daughter', 'Father', 'Mother', 'Brother', 'Sister', 'Father-in-law', 'Mother-in-law', 'Brother-in-law', 'Sister-in-law', 'Daughter-in-law', 'Son-in-law', 'Grandson', 'Granddaughter', 'Uncle', 'Aunt', 'Nephew', 'Niece', 'Cousin', ''];
+      const standard = [
+        'Spouse', 'Husband', 'Wife',
+        'Son', 'Daughter',
+        'Father', 'Mother',
+        'Brother', 'Sister', 'Half Brother', 'Half Sister',
+        'Paternal Grandfather', 'Paternal Grandmother',
+        'Maternal Grandfather', 'Maternal Grandmother',
+        'Great Grandfather', 'Great Grandmother',
+        'Grandson', 'Granddaughter',
+        'Great Grandson', 'Great Granddaughter',
+        'Paternal Uncle', 'Paternal Aunt', 'Maternal Uncle', 'Maternal Aunt',
+        'Uncle', 'Aunt',
+        'Nephew', 'Niece', 'Great Nephew', 'Great Niece',
+        'First Cousin', 'Second Cousin', 'Cousin Once Removed', 'Step Cousin', 'Cousin',
+        'Father-in-law', 'Mother-in-law',
+        'Brother-in-law', 'Sister-in-law',
+        'Son-in-law', 'Daughter-in-law',
+        'Grandson-in-law', 'Granddaughter-in-law',
+        'Great Uncle', 'Great Aunt',
+        'Stepfather', 'Stepmother', 'Stepbrother', 'Stepsister', 'Stepson', 'Stepdaughter',
+        'Step Grandfather', 'Step Grandmother',
+        'Adoptive Father', 'Adoptive Mother', 'Adopted Son', 'Adopted Daughter', 'Adopted Sibling',
+        'Godparent', 'Guardian', 'Ward', 'Family Friend',
+        'Other', '',
+      ];
       if (member?.relation && !standard.includes(member.relation)) return member.relation;
       return '';
     })(),
@@ -294,27 +342,127 @@ export default function FamilyMemberModal({ member, isPrimary = false, onClose, 
                 required
               >
                 <option value="">Select Relation</option>
-                <option value="Spouse">Spouse</option>
-                <option value="Son">Son</option>
-                <option value="Daughter">Daughter</option>
-                <option value="Father">Father</option>
-                <option value="Mother">Mother</option>
-                <option value="Brother">Brother</option>
-                <option value="Sister">Sister</option>
-                <option value="Father-in-law">Father-in-law</option>
-                <option value="Mother-in-law">Mother-in-law</option>
-                <option value="Brother-in-law">Brother-in-law</option>
-                <option value="Sister-in-law">Sister-in-law</option>
-                <option value="Daughter-in-law">Daughter-in-law</option>
-                <option value="Son-in-law">Son-in-law</option>
-                <option value="Grandson">Grandson</option>
-                <option value="Granddaughter">Granddaughter</option>
-                <option value="Uncle">Uncle</option>
-                <option value="Aunt">Aunt</option>
-                <option value="Nephew">Nephew</option>
-                <option value="Niece">Niece</option>
-                <option value="Cousin">Cousin</option>
-                <option value="Other">Other</option>
+
+                <optgroup label="Spouse">
+                  <option value="Spouse">Spouse</option>
+                  <option value="Husband">Husband</option>
+                  <option value="Wife">Wife</option>
+                </optgroup>
+
+                <optgroup label="Children">
+                  <option value="Son">Son</option>
+                  <option value="Daughter">Daughter</option>
+                  <option value="Stepson">Stepson</option>
+                  <option value="Stepdaughter">Stepdaughter</option>
+                  <option value="Adopted Son">Adopted Son</option>
+                  <option value="Adopted Daughter">Adopted Daughter</option>
+                </optgroup>
+
+                <optgroup label="Parents">
+                  <option value="Father">Father</option>
+                  <option value="Mother">Mother</option>
+                  <option value="Stepfather">Stepfather</option>
+                  <option value="Stepmother">Stepmother</option>
+                  <option value="Adoptive Father">Adoptive Father</option>
+                  <option value="Adoptive Mother">Adoptive Mother</option>
+                </optgroup>
+
+                <optgroup label="Siblings">
+                  <option value="Brother">Brother</option>
+                  <option value="Sister">Sister</option>
+                  <option value="Half Brother">Half Brother</option>
+                  <option value="Half Sister">Half Sister</option>
+                  <option value="Stepbrother">Stepbrother</option>
+                  <option value="Stepsister">Stepsister</option>
+                  <option value="Adopted Sibling">Adopted Sibling</option>
+                </optgroup>
+
+                <optgroup label="Grandparents">
+                  <option value="Paternal Grandfather">Paternal Grandfather (Father&apos;s Father)</option>
+                  <option value="Paternal Grandmother">Paternal Grandmother (Father&apos;s Mother)</option>
+                  <option value="Maternal Grandfather">Maternal Grandfather (Mother&apos;s Father)</option>
+                  <option value="Maternal Grandmother">Maternal Grandmother (Mother&apos;s Mother)</option>
+                  <option value="Step Grandfather">Step Grandfather</option>
+                  <option value="Step Grandmother">Step Grandmother</option>
+                </optgroup>
+
+                <optgroup label="Great Grandparents">
+                  <option value="Great Grandfather">Great Grandfather</option>
+                  <option value="Great Grandmother">Great Grandmother</option>
+                </optgroup>
+
+                <optgroup label="Grandchildren">
+                  <option value="Grandson">Grandson</option>
+                  <option value="Granddaughter">Granddaughter</option>
+                </optgroup>
+
+                <optgroup label="Great Grandchildren">
+                  <option value="Great Grandson">Great Grandson</option>
+                  <option value="Great Granddaughter">Great Granddaughter</option>
+                </optgroup>
+
+                <optgroup label="Father's Side (Paternal)">
+                  <option value="Paternal Uncle">Paternal Uncle (Father&apos;s Brother)</option>
+                  <option value="Paternal Aunt">Paternal Aunt (Father&apos;s Sister)</option>
+                </optgroup>
+
+                <optgroup label="Mother's Side (Maternal)">
+                  <option value="Maternal Uncle">Maternal Uncle (Mother&apos;s Brother)</option>
+                  <option value="Maternal Aunt">Maternal Aunt (Mother&apos;s Sister)</option>
+                </optgroup>
+
+                <optgroup label="Uncle / Aunt (by marriage)">
+                  <option value="Uncle">Uncle (by marriage)</option>
+                  <option value="Aunt">Aunt (by marriage)</option>
+                </optgroup>
+
+                <optgroup label="Extended Ancestors">
+                  <option value="Great Uncle">Great Uncle (Grandparent&apos;s Sibling)</option>
+                  <option value="Great Aunt">Great Aunt (Grandparent&apos;s Sibling)</option>
+                </optgroup>
+
+                <optgroup label="Nephews & Nieces">
+                  <option value="Nephew">Nephew</option>
+                  <option value="Niece">Niece</option>
+                  <option value="Great Nephew">Great Nephew</option>
+                  <option value="Great Niece">Great Niece</option>
+                </optgroup>
+
+                <optgroup label="Cousins">
+                  <option value="First Cousin">First Cousin</option>
+                  <option value="Second Cousin">Second Cousin</option>
+                  <option value="Cousin Once Removed">Cousin Once Removed</option>
+                  <option value="Step Cousin">Step Cousin</option>
+                  <option value="Cousin">Cousin (General)</option>
+                </optgroup>
+
+                <optgroup label="Parents-in-law">
+                  <option value="Father-in-law">Father-in-law</option>
+                  <option value="Mother-in-law">Mother-in-law</option>
+                </optgroup>
+
+                <optgroup label="Siblings-in-law">
+                  <option value="Brother-in-law">Brother-in-law</option>
+                  <option value="Sister-in-law">Sister-in-law</option>
+                </optgroup>
+
+                <optgroup label="Children-in-law">
+                  <option value="Son-in-law">Son-in-law</option>
+                  <option value="Daughter-in-law">Daughter-in-law</option>
+                </optgroup>
+
+                <optgroup label="Grandchildren-in-law">
+                  <option value="Grandson-in-law">Grandson-in-law</option>
+                  <option value="Granddaughter-in-law">Granddaughter-in-law</option>
+                </optgroup>
+
+                <optgroup label="Other Relations">
+                  <option value="Godparent">Godparent</option>
+                  <option value="Guardian">Guardian</option>
+                  <option value="Ward">Ward</option>
+                  <option value="Family Friend">Family Friend</option>
+                  <option value="Other">Other</option>
+                </optgroup>
               </select>
             </div>
           )}
