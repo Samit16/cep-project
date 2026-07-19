@@ -58,20 +58,7 @@ export async function PUT(
 
     const sanitizedData = sanitizeObject(updateData);
 
-    // Reset whatsapp_verified if whatsapp number has changed
-    if (changes['whatsapp'] !== undefined) {
-      const { data: currentMember } = await supabase
-        .from('members')
-        .select('whatsapp')
-        .eq('id', targetMemberId)
-        .single();
-      
-      const newWhatsapp = changes['whatsapp'] ? String(changes['whatsapp']).trim() : '';
-      const currentWhatsapp = currentMember?.whatsapp || '';
-      if (newWhatsapp !== currentWhatsapp) {
-        sanitizedData['whatsapp_verified'] = false;
-      }
-    }
+
 
     const { data: updatedMember, error } = await supabase
       .from('members')

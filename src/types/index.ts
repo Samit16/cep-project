@@ -10,8 +10,7 @@ export interface Member {
   last_name?: string;
   email: string;
   email_verified?: boolean;
-  whatsapp?: string;
-  whatsapp_verified?: boolean;
+    whatsapp?: string;
   phone?: string;
   contact_no?: string;
   contact_numbers?: string[];

@@ -12,7 +12,6 @@ import ProfileUpdateModal from './ProfileUpdateModal';
 import FamilyMemberModal from './FamilyMemberModal';
 import ChangePasswordModal from './ChangePasswordModal';
 import VerifyEmailModal from './VerifyEmailModal';
-import VerifyWhatsAppModal from './VerifyWhatsAppModal';
 import { Member } from '@/types';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
@@ -219,7 +218,6 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [isVerifyEmailModalOpen, setIsVerifyEmailModalOpen] = useState(false);
   const [emailModalMode, setEmailModalMode] = useState<'verify' | 'change'>('verify');
-  const [isVerifyWhatsAppModalOpen, setIsVerifyWhatsAppModalOpen] = useState(false);
   
   const { profile, role, logout } = useAuth();
   const { toast } = useToast();
@@ -544,12 +542,6 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
                     >
                       <CheckCircle2 size={14} /> Verify Email
                     </button>
-                    <button 
-                      onClick={() => { setIsVerifyWhatsAppModalOpen(true); setShowSettingsMenu(false); }}
-                      style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '10px 16px', textAlign: 'left', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.875rem', color: 'var(--color-text-primary)' }}
-                    >
-                      <MessageSquare size={14} /> Verify WhatsApp
-                    </button>
                   </div>
                 )}
               </div>
@@ -664,41 +656,6 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
             <div className={styles.contactLabel}>WhatsApp Number</div>
             <div className={styles.contactValue} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               {displayMember.whatsapp || 'Not available'}
-              {displayMember.whatsapp_verified ? (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: '#16a34a', backgroundColor: '#dcfce7', padding: '2px 6px', borderRadius: '12px', fontWeight: 'bold' }}>
-                  <CheckCircle2 size={12} /> Verified
-                </span>
-              ) : (
-                isMyProfile && displayMember.whatsapp && (
-                  <button
-                    onClick={() => {
-                      setIsVerifyWhatsAppModalOpen(true);
-                    }}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      fontSize: '0.75rem',
-                      color: 'var(--color-primary)',
-                      backgroundColor: 'rgba(139, 26, 26, 0.08)',
-                      border: '1px solid var(--color-primary)',
-                      padding: '2px 8px',
-                      borderRadius: '12px',
-                      fontWeight: 'bold',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = 'rgba(139, 26, 26, 0.15)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'rgba(139, 26, 26, 0.08)';
-                    }}
-                  >
-                    Verify WhatsApp
-                  </button>
-                )
-              )}
             </div>
           </div>
         </div>
@@ -823,24 +780,6 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
             }
             setFamilyMembers(prev => prev.map(m => m.id === selectedMember.id ? updated : m));
             setIsVerifyEmailModalOpen(false);
-          }}
-        />
-      )}
-
-      {isVerifyWhatsAppModalOpen && (
-        <VerifyWhatsAppModal
-          memberId={selectedMember.id || ''}
-          initialWhatsApp={selectedMember.whatsapp}
-          onClose={() => setIsVerifyWhatsAppModalOpen(false)}
-          onSuccess={(newWhatsApp) => {
-            if (!selectedMember) return;
-            const updated = { ...selectedMember, whatsapp: newWhatsApp, whatsapp_verified: true };
-            setSelectedMember(updated);
-            if (member?.id === selectedMember.id) {
-               setMember(updated);
-            }
-            setFamilyMembers(prev => prev.map(m => m.id === selectedMember.id ? updated : m));
-            setIsVerifyWhatsAppModalOpen(false);
           }}
         />
       )}
