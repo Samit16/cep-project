@@ -105,6 +105,7 @@ export default function AdminDashboard() {
   const [members, setMembers] = useState<MemberAdmin[]>([]);
   const [totalMemberCount, setTotalMemberCount] = useState<number>(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingMember, setEditingMember] = useState<MemberAdmin | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -217,22 +218,38 @@ export default function AdminDashboard() {
 
   const handleAddMember = async (newMember: { first_name: string; middle_name: string; last_name: string; email: string; profession: string; city: string; phone: string; role: string }) => {
     try {
-      await ApiClient.post('/admin/members', {
-        first_name: newMember.first_name,
-        middle_name: newMember.middle_name,
-        last_name: newMember.last_name,
-        email: newMember.email,
-        occupation: newMember.profession,
-        current_place: newMember.city,
-        contact_numbers: newMember.phone ? [newMember.phone] : [],
-        active: true,
-      });
-      toast('Member created successfully', 'success');
+      if (editingMember) {
+        await ApiClient.put(`/admin/members/${editingMember.id}`, {
+          first_name: newMember.first_name,
+          middle_name: newMember.middle_name,
+          last_name: newMember.last_name,
+          email: newMember.email,
+          occupation: newMember.profession,
+          current_place: newMember.city,
+          contact_numbers: newMember.phone ? [newMember.phone] : [],
+          role: newMember.role,
+        });
+        toast('Member updated successfully', 'success');
+      } else {
+        await ApiClient.post('/admin/members', {
+          first_name: newMember.first_name,
+          middle_name: newMember.middle_name,
+          last_name: newMember.last_name,
+          email: newMember.email,
+          occupation: newMember.profession,
+          current_place: newMember.city,
+          contact_numbers: newMember.phone ? [newMember.phone] : [],
+          active: true,
+          role: newMember.role,
+        });
+        toast('Member created successfully', 'success');
+      }
       setIsModalOpen(false);
+      setEditingMember(null);
       // Re-fetch members and count
       await loadDashboardData(true);
     } catch (err: unknown) {
-      toast((err as Error).message || 'Failed to create member', 'error');
+      toast((err as Error).message || `Failed to ${editingMember ? 'update' : 'create'} member`, 'error');
     }
   };
 
@@ -506,7 +523,7 @@ export default function AdminDashboard() {
                 </p>
               </div>
               <div className={styles.pageActions}>
-                <button className={styles.actionBtn} onClick={() => setIsModalOpen(true)}>
+                <button className={styles.actionBtn} onClick={() => { setEditingMember(null); setIsModalOpen(true); }}>
                   <UserPlus size={16} /> Add Member
                 </button>
                 <button className={styles.actionBtn} onClick={handleExportCSV}>
@@ -600,7 +617,8 @@ export default function AdminDashboard() {
                           className={styles.dropdownItem}
                           onClick={() => {
                             setOpenMenuId(null);
-                            toast('Edit member feature coming soon.', 'info');
+                            setEditingMember(member);
+                            setIsModalOpen(true);
                           }}
                         >
                           <Pencil size={14} /> Edit Member
@@ -645,8 +663,18 @@ export default function AdminDashboard() {
 
           <MemberFormModal 
             isOpen={isModalOpen} 
-            onClose={() => setIsModalOpen(false)} 
+            onClose={() => { setIsModalOpen(false); setEditingMember(null); }} 
             onSave={handleAddMember}
+            initialData={editingMember ? {
+              first_name: editingMember.first_name || '',
+              middle_name: editingMember.middle_name || '',
+              last_name: editingMember.last_name || '',
+              email: editingMember.email || '',
+              profession: editingMember.occupation || '',
+              city: editingMember.current_place || '',
+              phone: editingMember.contact_numbers?.[0] || editingMember.contact_no || '',
+              role: editingMember.role || 'member'
+            } : undefined}
           />
         </div>
         )}
