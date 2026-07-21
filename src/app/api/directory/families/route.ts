@@ -80,8 +80,8 @@ export async function GET(request: NextRequest) {
 
     const families: Array<{ family_id: string, family_name: string, members: Record<string, unknown>[] }> = [];
     familyMap.forEach((familyMembers, family_id) => {
-      // Only include "formed families" (size > 1)
-      if (familyMembers.length > 1) {
+      // Include families (size > 1). For solo members (size === 1), only include them if they have explicitly opted in (contact_visibility === 'public')
+      if (familyMembers.length > 1 || (familyMembers.length === 1 && (familyMembers[0] as any).contact_visibility === 'public')) {
         // Determine a family name. Use the families.name if it exists, otherwise fallback to primary member's name.
         let familyName = 'Unknown Family';
         const firstMember = familyMembers[0] as any;

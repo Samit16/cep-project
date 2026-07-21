@@ -100,8 +100,11 @@ export default function FamilyMemberModal({ member, isPrimary = false, onClose, 
     };
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const [matchedMembers, setMatchedMembers] = useState<Member[] | null>(null);
+  const [showNotFoundPrompt, setShowNotFoundPrompt] = useState(false);
+
+  const handleSubmit = async (e?: React.FormEvent, forceCreate = false) => {
+    if (e) e.preventDefault();
     setIsSubmitting(true);
     try {
       let savedMember: Member;
@@ -110,7 +113,6 @@ export default function FamilyMemberModal({ member, isPrimary = false, onClose, 
       if (!isPrimary && payload.relation === 'Other') {
         payload.relation = payload.custom_relation;
       }
-      // delete custom_relation so it's not sent to the API
       // @ts-expect-error custom_relation is removed before sending to API
       delete payload.custom_relation;
 
@@ -118,20 +120,60 @@ export default function FamilyMemberModal({ member, isPrimary = false, onClose, 
         // Update existing family member
         savedMember = await ApiClient.put<Member>(`/members/family/${member!.id}`, payload);
         toast('Family member updated successfully!', 'success');
+        onSaved(savedMember);
+        onClose();
       } else {
         // Add new family member
-        savedMember = await ApiClient.post<Member>('/members/family', payload);
-        if (savedMember._merged) {
-          toast('Matching member found! Both families have been merged successfully.', 'success');
+        const query = forceCreate ? '?force=true' : '';
+        savedMember = await ApiClient.post<Member>(`/members/family${query}`, payload);
+        
+        // @ts-expect-error _pendingApproval added dynamically
+        if (savedMember._pendingApproval) {
+          toast('Member submitted for committee approval.', 'success');
+        } else if (savedMember._merged) {
+          toast('Families have been merged successfully.', 'success');
         } else {
           toast('Family member added successfully!', 'success');
         }
+        onSaved(savedMember);
+        onClose();
       }
+    } catch (err: any) {
+      if (err.status === 409 && err.data) {
+        if (err.data.matches) {
+          setMatchedMembers(err.data.matches);
+        } else if (err.data.promptNew) {
+          setShowNotFoundPrompt(true);
+        }
+      } else {
+        const errorMessage = err.message || 'Failed to save family member';
+        toast(errorMessage, 'error');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleLinkMember = async (targetMemberId: string) => {
+    setIsSubmitting(true);
+    try {
+      const payload = { ...formData };
+      if (!isPrimary && payload.relation === 'Other') {
+        payload.relation = payload.custom_relation;
+      }
+      // @ts-expect-error
+      delete payload.custom_relation;
+      
+      const savedMember = await ApiClient.post<Member>('/members/family/link', {
+        ...payload,
+        member_id: targetMemberId
+      });
+      
+      toast('Member successfully linked to your family.', 'success');
       onSaved(savedMember);
       onClose();
-    } catch (err: unknown) {
-      const errorMessage = (err as Error).message || 'Failed to save family member';
-      toast(errorMessage, 'error');
+    } catch (err: any) {
+      toast(err.message || 'Failed to link member', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -141,6 +183,90 @@ export default function FamilyMemberModal({ member, isPrimary = false, onClose, 
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
+
+  if (showNotFoundPrompt) {
+    return (
+      <div className={styles.modalOverlay}>
+        <div className={styles.modalContent} style={{ maxWidth: '500px' }}>
+          <div className={styles.modalHeader}>
+            <h2 className={styles.modalTitle}>Member Not Found</h2>
+            <button className={styles.closeBtn} onClick={() => setShowNotFoundPrompt(false)}>
+              <X size={20} />
+            </button>
+          </div>
+          <div className={styles.infoAlert} style={{ background: '#eff6ff', borderColor: '#bfdbfe', color: '#1e3a8a', marginBottom: '20px' }}>
+            We couldn't find this member in the directory. Would you like to submit their details to the committee for approval to add a new member?
+          </div>
+          
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '24px' }}>
+            <button 
+              onClick={() => setShowNotFoundPrompt(false)}
+              disabled={isSubmitting}
+              style={{ background: 'transparent', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)', padding: '10px 20px', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}
+            >
+              Cancel
+            </button>
+            <button 
+              onClick={() => handleSubmit(undefined, true)}
+              disabled={isSubmitting}
+              style={{ background: 'var(--color-primary)', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}
+            >
+              {isSubmitting ? 'Submitting...' : 'Yes, Submit for Approval'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (matchedMembers) {
+    return (
+      <div className={styles.modalOverlay}>
+        <div className={styles.modalContent} style={{ maxWidth: '600px' }}>
+          <div className={styles.modalHeader}>
+            <h2 className={styles.modalTitle}>Is this what you're looking for?</h2>
+            <button className={styles.closeBtn} onClick={() => setMatchedMembers(null)}>
+              <X size={20} />
+            </button>
+          </div>
+          <div className={styles.infoAlert} style={{ background: '#fffbeb', borderColor: '#fde68a', color: '#92400e', marginBottom: '16px' }}>
+            We found {matchedMembers.length} member{matchedMembers.length > 1 ? 's' : ''} with a similar name. Do you want to link one of these existing profiles to your family, or ask the committee to add a brand new member?
+          </div>
+          
+          <div style={{ maxHeight: '60vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
+            {matchedMembers.map((m: any) => (
+              <div key={m.id} style={{ border: '1px solid var(--color-border)', borderRadius: '8px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <h3 style={{ margin: '0 0 4px 0', fontSize: '1.1rem' }}>{m.name}</h3>
+                  <p style={{ margin: '0', fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
+                    {m.gender || 'Unknown gender'} • {m.current_place || 'Unknown location'}
+                  </p>
+                  {m.occupation && <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem' }}>{m.occupation}</p>}
+                </div>
+                <button 
+                  onClick={() => handleLinkMember(m.id)}
+                  disabled={isSubmitting}
+                  style={{ background: 'var(--color-primary)', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}
+                >
+                  {isSubmitting ? 'Linking...' : 'Yes, link this member'}
+                </button>
+              </div>
+            ))}
+          </div>
+          
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--color-border)' }}>
+            <button 
+              onClick={() => handleSubmit(undefined, true)}
+              disabled={isSubmitting}
+              style={{ background: 'transparent', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)', padding: '10px 20px', borderRadius: '6px', cursor: 'pointer' }}
+            >
+              {isSubmitting ? 'Submitting...' : 'No, ask committee to add new member'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
 
   return (

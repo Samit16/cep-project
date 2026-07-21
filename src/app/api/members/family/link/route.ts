@@ -1,72 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { authenticateSupabase, createServerSupabase } from '@/lib/auth-server';
-import { sanitizeObject } from '@/lib/sanitize';
-
-// GET /api/members/family — list all members in the family (of logged-in user or specified memberId)
-export async function GET(request: NextRequest) {
-  try {
-    const authResult = await authenticateSupabase(request);
-    if (authResult.error) {
-      return NextResponse.json({ error: authResult.error }, { status: authResult.status || 401 });
-    }
-
-    const { user } = authResult;
-    const searchParams = request.nextUrl.searchParams;
-    const queryMemberId = searchParams.get('memberId');
-
-    let familyId = user.family_id;
-    const supabase = createServerSupabase();
-
-    if (queryMemberId) {
-      const { data: targetMember, error: findError } = await supabase
-        .from('members')
-        .select('family_id')
-        .eq('id', queryMemberId)
-        .single();
-      
-      if (findError || !targetMember) {
-        return NextResponse.json({ error: 'Target member not found' }, { status: 404 });
-      }
-      familyId = targetMember.family_id;
-    }
-
-    if (!familyId) {
-      return NextResponse.json({ members: [] });
-    }
-
-    const { data: members, error } = await supabase
-      .from('members')
-      .select('*')
-      .eq('family_id', familyId)
-      .order('created_at', { ascending: true });
-
-    if (error) {
-      console.error('Error fetching family members:', error);
-      return NextResponse.json({ error: 'Failed to fetch family members' }, { status: 500 });
-    }
-
-    const isOwnFamily = familyId === user.family_id;
-
-    const result = (members || []).map((m: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
-      const isPublic = m.contact_visibility === 'public' || isOwnFamily;
-      return {
-        ...m,
-        name: `${m.first_name || ''} ${m.middle_name || ''} ${m.last_name || ''}`.replace(/\s+/g, ' ').trim(),
-        // Strip dummy emails
-        email: isPublic ? (m.email?.includes('@kvonagpur.com') ? '' : (m.email || '')) : '',
-        contact_no: isPublic ? (m.contact_no || '') : '',
-        contact_numbers: isPublic ? (m.contact_numbers || []) : [],
-        whatsapp: isPublic ? (m.whatsapp || '') : '',
-      };
-    });
-
-    return NextResponse.json({ members: result });
-  } catch (error: unknown) {
-    console.error('Error in GET /api/members/family:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
-  }
-}
 
 // Canonical relation groups for easier matching
 const PARENT_RELS = ['father', 'mother', 'stepfather', 'stepmother', 'adoptive father', 'adoptive mother'];
@@ -82,11 +16,6 @@ const IN_LAW_CHILD_RELS = ['son-in-law', 'daughter-in-law', 'grandson-in-law', '
 const IN_LAW_SIBLING_RELS = ['brother-in-law', 'sister-in-law'];
 const COUSIN_RELS = ['cousin', 'first cousin', 'second cousin', 'cousin once removed', 'step cousin'];
 
-function isMale(rel: string) {
-  return ['father', 'stepfather', 'adoptive father', 'son', 'stepson', 'adopted son', 'brother', 'half brother', 'stepbrother', 'husband', 'paternal grandfather', 'maternal grandfather', 'great grandfather', 'step grandfather', 'grandson', 'great grandson', 'uncle', 'paternal uncle', 'maternal uncle', 'great uncle', 'nephew', 'great nephew', 'father-in-law', 'son-in-law', 'grandson-in-law', 'brother-in-law', 'cousin', 'first cousin'].includes(rel.toLowerCase());
-}
-
-// Gender-aware sibling result
 function sibling(gB: string) { return gB === 'female' ? 'Sister' : 'Brother'; }
 function parent(gB: string) { return gB === 'female' ? 'Mother' : 'Father'; }
 function child(gB: string) { return gB === 'female' ? 'Daughter' : 'Son'; }
@@ -237,132 +166,115 @@ function determineChainedRelation(
   return 'Family Member';
 }
 
+export const dynamic = 'force-dynamic';
 
-// POST /api/members/family — add a new member to the logged-in user's family
 export async function POST(request: NextRequest) {
   try {
     const authResult = await authenticateSupabase(request);
     if (authResult.error) {
       return NextResponse.json({ error: authResult.error }, { status: authResult.status || 401 });
     }
+    const user = authResult.user;
 
-    const { user } = authResult;
-    if (!user.family_id) {
-      return NextResponse.json({ error: 'You are not linked to a family yet.' }, { status: 400 });
+    if (!user?.member_id || !user?.family_id) {
+      return NextResponse.json({ error: 'User does not have an associated profile/family.' }, { status: 400 });
     }
 
-    const body = await request.json().catch(() => null);
-    if (!body || !body.first_name) {
-      return NextResponse.json({ error: 'first_name is required.' }, { status: 400 });
+    const body = await request.json();
+    const targetMemberId = body.member_id;
+    const inputRelation = (body.relation || '').trim().toLowerCase();
+
+    if (!targetMemberId) {
+      return NextResponse.json({ error: 'Target member_id is required.' }, { status: 400 });
     }
 
-    const allowedFields = ['first_name', 'middle_name', 'last_name', 'occupation', 'marital_status', 'current_place', 'kutch_town', 'nukh', 'birthplace', 'email', 'contact_numbers', 'contact_visibility', 'relation', 'gender'];
-    const insertData: Record<string, unknown> = {
-      family_id: user.family_id,
-      active: true,
-      contact_visibility: 'private',
-    };
-    for (const key of allowedFields) {
-      if (body[key] !== undefined) {
-        insertData[key] = body[key];
-      }
-    }
-
-    // Map contact_no (single string from UI) → contact_numbers (TEXT[] in DB)
-    if (body['contact_no'] !== undefined && body['contact_no'] !== null) {
-      const num = String(body['contact_no']).trim();
-      insertData['contact_numbers'] = num ? [num] : [];
-    }
-
-    const sanitizedData = sanitizeObject(insertData);
     const supabase = createServerSupabase();
 
-    const isCommittee = user.role === 'admin' || user.role === 'committee';
-    const forceCreate = request.nextUrl.searchParams.get('force') === 'true';
-
-    // 1. Check for duplicates if NOT forcing creation
-    if (!forceCreate) {
-      let matchedMembers: any[] = [];
-
-      // Check Name (First Name + Middle Name starts with or matches first word)
-      if (body.first_name) {
-        const fName = String(body.first_name).trim();
-        let mNameFirstWord = '';
-        if (body.middle_name) {
-          mNameFirstWord = String(body.middle_name).trim().split(/\s+/)[0];
-        }
-
-        let nameQuery = supabase.from('members').select('*').ilike('first_name', fName);
-        if (mNameFirstWord) {
-          nameQuery = nameQuery.ilike('middle_name', `${mNameFirstWord}%`);
-        } else {
-          nameQuery = nameQuery.is('middle_name', null);
-        }
-        
-        const { data } = await nameQuery;
-        if (data) matchedMembers.push(...data);
-      }
-
-      // Deduplicate matches
-      const uniqueMatches = new Map();
-      matchedMembers.forEach(m => {
-        // Exclude members already in this family!
-        if (m.family_id !== user.family_id) {
-          if (!uniqueMatches.has(m.id)) uniqueMatches.set(m.id, m);
-        }
-      });
-      matchedMembers = Array.from(uniqueMatches.values());
-
-      if (matchedMembers.length > 0) {
-        const formattedMatches = matchedMembers.map(m => ({
-          ...m,
-          name: `${m.first_name || ''} ${m.middle_name || ''} ${m.last_name || ''}`.replace(/\s+/g, ' ').trim()
-        }));
-        return NextResponse.json({ matches: formattedMatches }, { status: 409 });
-      } else {
-        // No match found - Prompt to ask committee
-        return NextResponse.json({ promptNew: true, message: 'Member does not exist in database.' }, { status: 409 });
-      }
-    }
-
-    // 2. Insert member (Active if committee, pending if regular member)
-    sanitizedData.active = isCommittee ? true : false;
-
-    const { data: newMember, error } = await supabase
+    // Fetch existing member
+    const { data: existingMember, error: exError } = await supabase
       .from('members')
-      .insert(sanitizedData)
       .select('*')
+      .eq('id', targetMemberId)
       .single();
 
-    if (error) {
-      console.error('Error adding family member:', error);
-      return NextResponse.json({ error: 'Failed to add family member.', detail: error.message }, { status: 500 });
+    if (exError || !existingMember) {
+      return NextResponse.json({ error: 'Target member not found.' }, { status: 404 });
     }
 
-    const finalMember = {
-      ...newMember,
-      name: `${newMember.first_name || ''} ${newMember.middle_name || ''} ${newMember.last_name || ''}`.replace(/\s+/g, ' ').trim(),
-      _pendingApproval: !isCommittee
-    };
+    const existingFamilyId = existingMember.family_id;
+    const userFamilyId = user.family_id;
 
-    // 3. Send notification to committee members if pending
-    if (!isCommittee) {
-      const { data: admins } = await supabase.from('profiles').select('id').in('role', ['admin', 'committee']);
-      if (admins && admins.length > 0) {
-        const notifs = admins.map((a: any) => ({
-          user_id: a.id,
-          type: 'approval',
-          title: 'New Member Approval Request',
-          message: `A new member "${finalMember.name}" has been added by someone in their family. Please review and approve.`,
-          link: '/admin'
-        }));
-        await supabase.from('notifications').insert(notifs);
+    if (existingFamilyId === userFamilyId) {
+      return NextResponse.json({
+        ...existingMember,
+        name: `${existingMember.first_name || ''} ${existingMember.middle_name || ''} ${existingMember.last_name || ''}`.replace(/\s+/g, ' ').trim(),
+      });
+    }
+
+    // Merge families (move target family into user's family)
+    const { data: familyMembersTarget, error: fetchTargetErr } = await supabase
+      .from('members')
+      .select('*')
+      .eq('family_id', existingFamilyId);
+
+    if (fetchTargetErr || !familyMembersTarget || familyMembersTarget.length === 0) {
+      return NextResponse.json({ error: 'Failed to fetch target family for merge.' }, { status: 500 });
+    }
+
+    const targetMember = existingMember;
+
+    // The user's primary member (or the logged in user)
+    const { data: familyMembersUser } = await supabase
+      .from('members')
+      .select('*')
+      .eq('family_id', userFamilyId);
+      
+    const userMember = familyMembersUser?.find((m: any) => m.id === user.member_id) || familyMembersUser?.find((m: any) => !m.relation) || familyMembersUser?.[0];
+
+    if (!userMember) {
+      return NextResponse.json({ error: 'Failed to find user member record.' }, { status: 500 });
+    }
+
+    const relTargetToUser = inputRelation; // Target is [inputRelation] of User
+
+    const updates = [
+      {
+        id: targetMember.id,
+        family_id: userFamilyId,
+        relation: relTargetToUser,
       }
+    ];
+
+    for (const m of familyMembersTarget) {
+      if (m.id === targetMember.id) continue;
+      const relMToTarget = (m.relation || '').trim().toLowerCase();
+      // Relation of M to User = relation of M to Target + relation of Target to User
+      const relMToUser = determineChainedRelation(relMToTarget, relTargetToUser, m.gender);
+      updates.push({
+        id: m.id,
+        family_id: userFamilyId,
+        relation: relMToUser,
+      });
     }
 
-    return NextResponse.json(finalMember);
+    for (const up of updates) {
+      await supabase
+        .from('members')
+        .update({ family_id: up.family_id, relation: up.relation })
+        .eq('id', up.id);
+    }
+
+    await supabase.from('families').delete().eq('id', existingFamilyId);
+
+    const { data: finalMember } = await supabase.from('members').select('*').eq('id', targetMemberId).single();
+
+    return NextResponse.json({
+      ...(finalMember || existingMember),
+      name: `${(finalMember || existingMember).first_name || ''} ${(finalMember || existingMember).middle_name || ''} ${(finalMember || existingMember).last_name || ''}`.replace(/\s+/g, ' ').trim(),
+      _merged: true,
+    });
   } catch (error: unknown) {
-    console.error('Error in POST /api/members/family:', error);
+    console.error('Error in POST /api/members/family/link:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

@@ -144,3 +144,73 @@ export async function GET(
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
+
+// DELETE /api/members/family/[id] — remove a member from the family
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const authResult = await authenticateSupabase(request);
+    if (authResult.error) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status || 401 });
+    }
+
+    const { id: targetMemberId } = await params;
+    const { user } = authResult;
+    const supabase = createServerSupabase();
+
+    // Prevent deleting yourself
+    if (user.member_id === targetMemberId) {
+      return NextResponse.json({ error: 'You cannot remove yourself from the family.' }, { status: 400 });
+    }
+
+    // Verify the target member belongs to the same family as the requester
+    const { data: targetMember, error: fetchError } = await supabase
+      .from('members')
+      .select('id, family_id, first_name, last_name')
+      .eq('id', targetMemberId)
+      .single();
+
+    if (fetchError || !targetMember) {
+      return NextResponse.json({ error: 'Member not found.' }, { status: 404 });
+    }
+
+    if (!user.family_id || targetMember.family_id !== user.family_id) {
+      return NextResponse.json({ error: 'You can only remove members from your own family.' }, { status: 403 });
+    }
+
+    // Check if the target member has an associated profile (linked account)
+    // If so, unlink it rather than deleting — the auth account remains but is detached
+    const { data: linkedProfile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('member_id', targetMemberId)
+      .maybeSingle();
+
+    if (linkedProfile) {
+      // Unlink the profile from this member — member gets detached but auth account stays
+      await supabase
+        .from('profiles')
+        .update({ member_id: null })
+        .eq('id', linkedProfile.id);
+    }
+
+    // Delete the member record from the database
+    const { error: deleteError } = await supabase
+      .from('members')
+      .delete()
+      .eq('id', targetMemberId);
+
+    if (deleteError) {
+      console.error('Error deleting family member:', deleteError);
+      return NextResponse.json({ error: 'Failed to remove member.', detail: deleteError.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, removed_id: targetMemberId });
+
+  } catch (error: unknown) {
+    console.error('Error in DELETE /api/members/family/[id]:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}

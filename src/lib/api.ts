@@ -108,7 +108,10 @@ export class ApiClient {
 
     if (!response.ok) {
       const errorMsg = data?.detail || data?.error || response.statusText || 'API Request failed';
-      throw new Error(errorMsg);
+      const error = new Error(errorMsg) as Error & { data?: any, status?: number };
+      error.data = data;
+      error.status = response.status;
+      throw error;
     }
 
     return data as T;
@@ -154,8 +157,9 @@ export class ApiClient {
       });
       clearTimeout(timeoutId);
       return await this.handleResponse<T>(response);
-    } catch (err: unknown) {
-      throw new Error((err as Error).message || 'Network error or backend unreachable.');
+    } catch (err: any) {
+      if (err.status || err.data) throw err;
+      throw new Error(err.message || 'Network error or backend unreachable.');
     }
   }
 
@@ -175,6 +179,16 @@ export class ApiClient {
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method: 'DELETE',
       headers,
+    });
+    return this.handleResponse<T>(response);
+  }
+
+  static async patch<T>(endpoint: string, body: unknown): Promise<T> {
+    const token = await this.getTokenAsync();
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      method: 'PATCH',
+      headers: this.getHeaders({}, token),
+      body: JSON.stringify(body),
     });
     return this.handleResponse<T>(response);
   }
