@@ -10,10 +10,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: authResult.error }, { status: authResult.status || 401 });
     }
 
-    const { user } = authResult;
+    const { user, profile } = authResult;
     const supabase = createServerSupabase();
 
-    let memberId = user.member_id;
+    let memberId = profile?.member_id;
 
     // Step 1: Try to auto-link by email if member_id is missing
     if (!memberId && user.email) {
