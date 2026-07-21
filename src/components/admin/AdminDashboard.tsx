@@ -219,7 +219,7 @@ export default function AdminDashboard() {
   const handleAddMember = async (newMember: { first_name: string; middle_name: string; last_name: string; email: string; profession: string; city: string; phone: string; role: string }) => {
     try {
       if (editingMember) {
-        await ApiClient.put(`/admin/members/${editingMember.id}`, {
+        const updatePayload: any = {
           first_name: newMember.first_name,
           middle_name: newMember.middle_name,
           last_name: newMember.last_name,
@@ -227,8 +227,12 @@ export default function AdminDashboard() {
           occupation: newMember.profession,
           current_place: newMember.city,
           contact_numbers: newMember.phone ? [newMember.phone] : [],
-          role: newMember.role,
-        });
+        };
+        // Only send role if it actually changed, to avoid backend errors on unlinked profiles
+        if (newMember.role && newMember.role !== (editingMember.role || 'member')) {
+          updatePayload.role = newMember.role;
+        }
+        await ApiClient.put(`/admin/members/${editingMember.id}`, updatePayload);
         toast('Member updated successfully', 'success');
       } else {
         await ApiClient.post('/admin/members', {
