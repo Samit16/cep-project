@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     // Fetch profile
     const { data: initialProfile } = await supabase
       .from('profiles')
-      .select('id, role, member_id, is_first_login, is_active')
+      .select('id, role, member_id, is_first_login, is_active, username')
       .eq('id', user.id)
       .single();
 
@@ -57,6 +57,7 @@ export async function GET(request: NextRequest) {
       member_id: profile.member_id,
       family_id: memberData?.family_id || null,
       is_first_login: profile.is_first_login,
+      username: profile.username || null,
       member: memberData || null,
     });
 

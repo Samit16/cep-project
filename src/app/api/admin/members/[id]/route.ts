@@ -94,3 +94,71 @@ export async function PUT(
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
+
+// DELETE /api/admin/members/[id] — permanently delete a member record
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const authResult = await requireRole(request, ['admin', 'committee']);
+    if (authResult.error) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status || 401 });
+    }
+
+    const { id } = await params;
+    const { user } = authResult;
+    const supabase = createServerSupabase();
+
+    // Fetch the target member's linked profile to check their role
+    const { data: targetProfile } = await supabase
+      .from('profiles')
+      .select('id, role')
+      .eq('member_id', id)
+      .maybeSingle();
+
+    // Committee members can only delete regular members (not committee/admin)
+    if (user.role === 'committee') {
+      if (targetProfile && (targetProfile.role === 'committee' || targetProfile.role === 'admin')) {
+        return NextResponse.json(
+          { error: 'Committee members can only delete regular (non-committee) members.' },
+          { status: 403 }
+        );
+      }
+    }
+
+    // Nobody can delete an admin account
+    if (targetProfile?.role === 'admin') {
+      return NextResponse.json(
+        { error: 'Administrator accounts cannot be deleted.' },
+        { status: 403 }
+      );
+    }
+
+    // Unlink the profile so the FK constraint doesn't block member deletion
+    if (targetProfile) {
+      await supabase
+        .from('profiles')
+        .update({ member_id: null })
+        .eq('id', targetProfile.id);
+    }
+
+    // Delete the member record
+    const { error: deleteError } = await supabase
+      .from('members')
+      .delete()
+      .eq('id', id);
+
+    if (deleteError) {
+      console.error('Error deleting member:', deleteError);
+      return NextResponse.json({ error: 'Failed to delete member.', detail: deleteError.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, deleted_id: id });
+
+  } catch (error: unknown) {
+    console.error(`Error in DELETE /api/admin/members/[id]:`, error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+

@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
         family_members: data.family_members || [],
         is_alive: data.is_alive ?? true,
         active: data.active ?? true,
-        contact_visibility: data.contact_visibility || 'private',
+        contact_visibility: data.contact_visibility || 'public',
       })
       .select()
       .single();

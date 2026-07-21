@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Pencil, Eye, ShieldCheck, Mail, Phone, CheckCircle2, LogOut, AlertTriangle, X, Send, KeyRound, Settings, UserPlus, Users, MessageSquare } from 'lucide-react';
+import { Pencil, Eye, ShieldCheck, Mail, Phone, CheckCircle2, LogOut, AlertTriangle, X, Send, KeyRound, Settings, UserPlus, Users, MessageSquare, AtSign, Trash2, Copy } from 'lucide-react';
 import styles from './ProfilePage.module.css';
 import { ApiClient } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
@@ -11,6 +11,7 @@ import { ProfileSkeleton } from '@/components/ui/Skeleton/Skeleton';
 import ProfileUpdateModal from './ProfileUpdateModal';
 import FamilyMemberModal from './FamilyMemberModal';
 import ChangePasswordModal from './ChangePasswordModal';
+import ChangeUsernameModal from './ChangeUsernameModal';
 import VerifyEmailModal from './VerifyEmailModal';
 import { Member } from '@/types';
 import gsap from 'gsap';
@@ -258,6 +259,14 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
   
   const [isRequestingUpdate, setIsRequestingUpdate] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [isUsernameModalOpen, setIsUsernameModalOpen] = useState(false);
+  const [currentUsername, setCurrentUsername] = useState<string | undefined>(undefined);
+  const [isRemovingMember, setIsRemovingMember] = useState<string | null>(null);
+
+  // Duplicate profile detection
+  interface DuplicateProfile { id: string; name: string; same_family: boolean; }
+  const [duplicateProfiles, setDuplicateProfiles] = useState<DuplicateProfile[]>([]);
+  const [duplicateBannerDismissed, setDuplicateBannerDismissed] = useState(false);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [pendingNotification, setPendingNotification] = useState<any>(null);
@@ -315,6 +324,34 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
   useEffect(() => {
     loadProfile();
   }, [loadProfile]);
+
+  // Fetch the current username from auth profile
+  useEffect(() => {
+    async function fetchUsername() {
+      try {
+        const data = await ApiClient.get<{ username?: string }>('/auth/me');
+        if (data?.username) setCurrentUsername(data.username);
+      } catch {
+        // Silently fail — username display is non-critical
+      }
+    }
+    if (isMyProfile) fetchUsername();
+  }, [isMyProfile]);
+
+  // Fetch duplicate profiles
+  useEffect(() => {
+    async function checkDuplicates() {
+      try {
+        const data = await ApiClient.get<{ duplicates: DuplicateProfile[] }>('/members/duplicates');
+        if (data.duplicates && data.duplicates.length > 0) {
+          setDuplicateProfiles(data.duplicates);
+        }
+      } catch {
+        // Silently fail — non-critical
+      }
+    }
+    if (isMyProfile) checkDuplicates();
+  }, [isMyProfile]);
 
   useGSAP(() => {
     if (!profileRef.current || isLoading || !selectedMember) return;
@@ -439,19 +476,92 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
   };
 
   const handleSetPrimary = async () => {
-    if (!selectedMember || !selectedMember.family_id) return;
+    if (!selectedMember) return;
     setIsSettingPrimary(true);
     try {
       const nameStr = selectedMember.name || `${selectedMember.first_name} ${selectedMember.last_name}`;
-      const familyName = `${nameStr} Family`;
-      await ApiClient.post(`/members/family/${selectedMember.family_id}/set-primary`, {
-        memberName: familyName
-      });
-      toast(`Directory will now show ${familyName}`, 'success');
+
+      if (!selectedMember.family_id) {
+        // Solo member — create a family for them and enroll in directory
+        const result = await ApiClient.post<{ success: boolean; family_id: string; family_name: string }>(
+          '/members/me/show-in-directory', {}
+        );
+        // Update local state so subsequent actions know the family_id
+        setMember(prev => prev ? { ...prev, family_id: result.family_id } : prev);
+        setSelectedMember(prev => prev ? { ...prev, family_id: result.family_id } : prev);
+        toast(`You will now appear in the directory as "${result.family_name}"`, 'success');
+      } else {
+        // Multi-member family — update the family name
+        const familyName = `${nameStr} Family`;
+        await ApiClient.post(`/members/family/${selectedMember.family_id}/set-primary`, {
+          memberName: familyName
+        });
+        toast(`Directory will now show ${familyName}`, 'success');
+      }
     } catch {
-      toast('Failed to update directory family name', 'error');
+      toast('Failed to update directory listing', 'error');
     } finally {
       setIsSettingPrimary(false);
+    }
+  };
+
+  const handleRemoveMember = async (fm: Member) => {
+    const name = fm.name || `${fm.first_name || ''} ${fm.last_name || ''}`.trim() || 'this member';
+    const confirmed = window.confirm(`Remove ${name} from your family? This cannot be undone.`);
+    if (!confirmed) return;
+
+    const memberId = fm.id || fm._id;
+    if (!memberId) return;
+
+    setIsRemovingMember(memberId);
+    try {
+      await ApiClient.delete(`/members/family/${memberId}`);
+      setFamilyMembers(prev => prev.filter(m => (m.id || m._id) !== memberId));
+      // If the removed member was selected, fall back to the main profile
+      if (selectedMember?.id === memberId || selectedMember?._id === memberId) {
+        setSelectedMember(member);
+      }
+      toast(`${name} has been removed from your family.`, 'success');
+    } catch (err: unknown) {
+      toast((err as Error).message || 'Failed to remove member.', 'error');
+    } finally {
+      setIsRemovingMember(null);
+    }
+  };
+
+  const handleDeleteOtherDuplicate = async (dupId: string, dupName: string) => {
+    const confirmed = window.confirm(
+      `Delete "${dupName}" permanently?\n\nThis will remove that duplicate record from the database. Your profile will remain. This cannot be undone.`
+    );
+    if (!confirmed) return;
+    try {
+      await ApiClient.delete(`/members/${dupId}`);
+      setDuplicateProfiles(prev => prev.filter(d => d.id !== dupId));
+      toast(`Duplicate profile "${dupName}" has been deleted.`, 'success');
+    } catch (err: unknown) {
+      toast((err as Error).message || 'Failed to delete duplicate.', 'error');
+    }
+  };
+
+  const handleDeleteSelf = async () => {
+    const usernameInput = window.prompt(
+      `This will permanently delete YOUR profile and account.\n\nType your username to confirm:`
+    );
+    if (!usernameInput) return;
+    if (usernameInput.trim().toLowerCase() !== (currentUsername || '').toLowerCase()) {
+      toast('Username did not match. Deletion cancelled.', 'error');
+      return;
+    }
+    const finalConfirm = window.confirm(
+      'Last chance — this is IRREVERSIBLE. Delete your account now?'
+    );
+    if (!finalConfirm) return;
+    try {
+      await ApiClient.delete('/members/me');
+      toast('Your profile has been deleted. Logging out…', 'success');
+      setTimeout(() => logout(), 1500);
+    } catch (err: unknown) {
+      toast((err as Error).message || 'Failed to delete your profile.', 'error');
     }
   };
 
@@ -501,6 +611,75 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
           </div>
         </div>
       )}
+
+      {/* Duplicate Profile Detection Banner */}
+      {isSelectedMyOwn && duplicateProfiles.length > 0 && !duplicateBannerDismissed && (
+        <div className={`${styles.notificationBanner} gsap-profile-anim`} style={{
+          background: 'linear-gradient(135deg, #fff7ed 0%, #fef3c7 100%)',
+          borderLeft: '4px solid #f59e0b',
+          marginBottom: '1.25rem',
+        }}>
+          <div className={styles.notificationContent}>
+            <Copy size={20} style={{ color: '#d97706', flexShrink: 0, marginTop: '2px' }} />
+            <div style={{ flex: 1 }}>
+              <strong style={{ color: '#92400e' }}>Duplicate Profile Detected</strong>
+              <p style={{ color: '#78350f', fontSize: '0.85rem', marginTop: '4px', marginBottom: '8px' }}>
+                We found {duplicateProfiles.length} other profile{duplicateProfiles.length > 1 ? 's' : ''} with the same name as yours. Only one should exist. Please choose how to resolve this:
+              </p>
+              {duplicateProfiles.map(dup => (
+                <div key={dup.id} style={{
+                  background: 'rgba(255,255,255,0.7)',
+                  border: '1px solid #fcd34d',
+                  borderRadius: '8px',
+                  padding: '10px 14px',
+                  marginBottom: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                  flexWrap: 'wrap',
+                }}>
+                  <span style={{ fontWeight: 600, color: '#92400e', fontSize: '0.875rem' }}>
+                    {dup.name}
+                    {dup.same_family && (
+                      <span style={{ marginLeft: '8px', fontSize: '0.7rem', background: '#fde68a', color: '#78350f', padding: '2px 6px', borderRadius: '10px' }}>Same Family</span>
+                    )}
+                  </span>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <button
+                      onClick={() => handleDeleteOtherDuplicate(dup.id, dup.name)}
+                      style={{
+                        padding: '6px 14px', fontSize: '0.8rem', fontWeight: 600,
+                        background: '#dc2626', color: '#fff', border: 'none',
+                        borderRadius: '6px', cursor: 'pointer',
+                      }}
+                    >
+                      Delete "{dup.name}"
+                    </button>
+                    <button
+                      onClick={handleDeleteSelf}
+                      style={{
+                        padding: '6px 14px', fontSize: '0.8rem', fontWeight: 600,
+                        background: 'transparent', color: '#dc2626',
+                        border: '1px solid #dc2626', borderRadius: '6px', cursor: 'pointer',
+                      }}
+                    >
+                      Delete My Profile
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <button
+            onClick={() => setDuplicateBannerDismissed(true)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#92400e', padding: '4px', alignSelf: 'flex-start', flexShrink: 0 }}
+            title="Dismiss (will reappear on next visit)"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
       
       <div className={`${styles.profileHero} gsap-profile-anim`}>
         <div className={styles.profilePhoto}>
@@ -526,15 +705,35 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
                 <button className={styles.editProfileBtn} onClick={() => handleEditFamilyMember(displayMember)}>
                   <Pencil size={16} /> Edit Member
                 </button>
-                <button 
-                  className={styles.editProfileBtn} 
-                  style={{ backgroundColor: 'var(--color-bg-section-alt)', border: '1px solid var(--color-border)' }}
-                  onClick={handleSetPrimary}
-                  disabled={isSettingPrimary}
-                  title="Show this member's name as the family name in the directory"
-                >
-                  <Users size={16} /> {isSettingPrimary ? 'Setting...' : 'Show in Directory'}
-                </button>
+                {/* Show in Directory */}
+                {familyMembers.length > 1 ? (
+                  <button 
+                    className={styles.editProfileBtn} 
+                    style={{ backgroundColor: 'var(--color-bg-section-alt)', border: '1px solid var(--color-border)' }}
+                    onClick={handleSetPrimary}
+                    disabled={isSettingPrimary}
+                    title="Show this member's name as the family name in the directory"
+                  >
+                    <Users size={16} /> {isSettingPrimary ? 'Setting...' : 'Show in Directory'}
+                  </button>
+                ) : (
+                  <label 
+                    style={{ 
+                      display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', 
+                      background: 'var(--color-bg-section-alt)', border: '1px solid var(--color-border)', 
+                      borderRadius: '6px', fontSize: '0.875rem', cursor: 'pointer', fontWeight: 500, color: 'var(--color-text-primary)'
+                    }}
+                    title="Show your profile in the community directory"
+                  >
+                    <input 
+                      type="checkbox" 
+                      checked={displayMember.contact_visibility === 'public'}
+                      onChange={(e) => handlePrivacyChange(e.target.checked ? 'public' : 'private')}
+                      style={{ cursor: 'pointer', width: '16px', height: '16px', accentColor: 'var(--color-primary)' }}
+                    />
+                    Show in Directory
+                  </label>
+                )}
               </>
             )}
             
@@ -576,6 +775,12 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
                     <div style={{ padding: '8px 12px', fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', background: 'var(--color-bg-section-alt)', borderTop: '1px solid var(--color-border)' }}>
                       Security
                     </div>
+                    <button 
+                      onClick={() => { setIsUsernameModalOpen(true); setShowSettingsMenu(false); }}
+                      style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '10px 16px', textAlign: 'left', background: 'transparent', border: 'none', borderBottom: '1px solid var(--color-border-light)', cursor: 'pointer', fontSize: '0.875rem', color: 'var(--color-text-primary)' }}
+                    >
+                      <AtSign size={14} /> Change Username
+                    </button>
                     <button 
                       onClick={() => { setIsPasswordModalOpen(true); setShowSettingsMenu(false); }}
                       style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '10px 16px', textAlign: 'left', background: 'transparent', border: 'none', borderBottom: '1px solid var(--color-border-light)', cursor: 'pointer', fontSize: '0.875rem', color: 'var(--color-text-primary)' }}
@@ -752,25 +957,61 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
             </div>
             
             <div className={styles.familyList}>
-              {familyMembers.map((fm) => (
-                <button 
-                  key={fm.id}
-                  className={`${styles.familyMemberItem} ${selectedMember?.id === fm.id ? styles.active : ''}`}
-                  onClick={() => setSelectedMember(fm)}
-                >
-                  <div className={styles.familyMemberAvatar} style={{ backgroundColor: getAvatarColor(fm.name || `${fm.first_name} ${fm.last_name}`) }}>
-                    {`${fm.first_name?.[0] || ''}${fm.last_name?.[0] || ''}`}
+              {familyMembers.map((fm) => {
+                const fmId = fm.id || fm._id;
+                const isOwnRecord = fmId === (member?.id || member?._id);
+                const isRemoving = isRemovingMember === fmId;
+                return (
+                  <div
+                    key={fmId}
+                    className={`${styles.familyMemberItem} ${selectedMember?.id === fmId ? styles.active : ''}`}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0', cursor: 'pointer', position: 'relative' }}
+                    onClick={() => setSelectedMember(fm)}
+                  >
+                    <div className={styles.familyMemberAvatar} style={{ backgroundColor: getAvatarColor(fm.name || `${fm.first_name} ${fm.last_name}`), flexShrink: 0 }}>
+                      {`${fm.first_name?.[0] || ''}${fm.last_name?.[0] || ''}`}
+                    </div>
+                    <div className={styles.familyMemberInfo} style={{ flex: 1, minWidth: 0 }}>
+                      <div className={styles.familyMemberName}>{fm.name || `${fm.first_name} ${fm.last_name}`}</div>
+                      {getDynamicRelation(fm, selectedMember!, familyMembers) ? (
+                        <div className={styles.familyMemberRelation}>
+                          {getDynamicRelation(fm, selectedMember!, familyMembers)}
+                        </div>
+                      ) : null}
+                      {fm.active === false && (
+                        <div style={{ fontSize: '0.7rem', color: '#b45309', background: '#fef3c7', padding: '2px 6px', borderRadius: '4px', display: 'inline-block', marginTop: '4px' }}>
+                          Pending Approval
+                        </div>
+                      )}
+                    </div>
+                    {isMyProfile && !isOwnRecord && (
+                      <button
+                        title={`Remove ${fm.first_name || 'member'} from family`}
+                        disabled={isRemoving}
+                        onClick={(e) => { e.stopPropagation(); handleRemoveMember(fm); }}
+                        style={{
+                          flexShrink: 0,
+                          marginLeft: '4px',
+                          background: 'transparent',
+                          border: 'none',
+                          cursor: isRemoving ? 'not-allowed' : 'pointer',
+                          color: isRemoving ? 'var(--color-text-muted)' : '#dc2626',
+                          padding: '4px',
+                          borderRadius: '4px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          opacity: isRemoving ? 0.5 : 0.7,
+                          transition: 'opacity 0.15s, color 0.15s',
+                        }}
+                        onMouseEnter={(e) => { if (!isRemoving) e.currentTarget.style.opacity = '1'; }}
+                        onMouseLeave={(e) => { if (!isRemoving) e.currentTarget.style.opacity = '0.7'; }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
                   </div>
-                  <div className={styles.familyMemberInfo}>
-                    <div className={styles.familyMemberName}>{fm.name || `${fm.first_name} ${fm.last_name}`}</div>
-                    {getDynamicRelation(fm, selectedMember, familyMembers) ? (
-                      <div className={styles.familyMemberRelation}>
-                        {getDynamicRelation(fm, selectedMember, familyMembers)}
-                      </div>
-                    ) : null}
-                  </div>
-                </button>
-              ))}
+                );
+              })}
             </div>
 
             {isMyProfile && (
@@ -804,6 +1045,17 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
           onClose={() => setIsUpdateModalOpen(false)}
           onUpdated={handleFamilyMemberSaved}
           mode={updateModalMode}
+        />
+      )}
+
+      {isUsernameModalOpen && (
+        <ChangeUsernameModal
+          currentUsername={currentUsername}
+          onClose={() => setIsUsernameModalOpen(false)}
+          onSuccess={(newUsername) => {
+            setCurrentUsername(newUsername);
+            setIsUsernameModalOpen(false);
+          }}
         />
       )}
 

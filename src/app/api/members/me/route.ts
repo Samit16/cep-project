@@ -258,3 +258,102 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
+
+// PATCH /api/members/me — change username for the logged-in user
+export async function PATCH(request: NextRequest) {
+  try {
+    const authResult = await authenticateSupabase(request);
+    if (authResult.error) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status || 401 });
+    }
+
+    const { user } = authResult;
+    const body = await request.json().catch(() => null);
+
+    if (!body || !body.new_username) {
+      return NextResponse.json({ error: 'new_username is required.' }, { status: 400 });
+    }
+
+    const newUsername = String(body.new_username).trim().toLowerCase();
+
+    // Validate: only allow alphanumeric, underscores, hyphens, dots (no spaces, no @)
+    if (!/^[a-z0-9._-]{3,50}$/.test(newUsername)) {
+      return NextResponse.json(
+        { error: 'Username must be 3–50 characters and can only contain letters, numbers, dots, underscores, or hyphens.' },
+        { status: 400 }
+      );
+    }
+
+    const supabase = createServerSupabase();
+
+    // Check uniqueness — make sure nobody else has this username
+    const { data: existing } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('username', newUsername)
+      .maybeSingle();
+
+    if (existing && existing.id !== user.id) {
+      return NextResponse.json({ error: 'That username is already taken. Please choose a different one.' }, { status: 409 });
+    }
+
+    // Update profiles.username for this user
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ username: newUsername })
+      .eq('id', user.id);
+
+    if (updateError) {
+      console.error('Error updating username:', updateError);
+      return NextResponse.json({ error: 'Failed to update username.', detail: updateError.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, username: newUsername });
+
+  } catch (error: unknown) {
+    console.error('Error in PATCH /api/members/me:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
+// DELETE /api/members/me — permanently delete the logged-in user's own profile and auth account
+export async function DELETE(request: NextRequest) {
+  try {
+    const authResult = await authenticateSupabase(request);
+    if (authResult.error) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status || 401 });
+    }
+
+    const { user } = authResult;
+    const supabase = createServerSupabase();
+
+    // Delete the member record if linked
+    if (user.member_id) {
+      // Unlink profile first
+      await supabase
+        .from('profiles')
+        .update({ member_id: null })
+        .eq('id', user.id);
+
+      // Delete the member row
+      await supabase
+        .from('members')
+        .delete()
+        .eq('id', user.member_id);
+    }
+
+    // Delete the auth account (this also cascades to delete the profiles row via ON DELETE CASCADE)
+    const { error: authDeleteError } = await supabase.auth.admin.deleteUser(user.id);
+    if (authDeleteError) {
+      console.error('Failed to delete auth user:', authDeleteError.message);
+      return NextResponse.json({ error: 'Failed to delete account.' }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+
+  } catch (error: unknown) {
+    console.error('Error in DELETE /api/members/me:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
