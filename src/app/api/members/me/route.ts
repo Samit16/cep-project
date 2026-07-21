@@ -34,9 +34,20 @@ export async function GET(request: NextRequest) {
 
     // Step 2: If still no member, auto-create one from the user's auth info
     if (!memberId) {
-      const emailParts = (user.email || '').replace('@kvonagpur.com', '').split('_');
-      const firstName = emailParts[0] || user.email?.split('@')[0] || 'Member';
-      const lastName = emailParts.length > 1 ? emailParts.slice(1).join(' ') : '';
+      let firstName = 'Member';
+      let lastName = '';
+      
+      if (user.user_metadata?.full_name || user.user_metadata?.name) {
+        const nameParts = (user.user_metadata.full_name || user.user_metadata.name).split(' ');
+        firstName = nameParts[0];
+        if (nameParts.length > 1) lastName = nameParts.slice(1).join(' ');
+      } else if (user.email) {
+        const baseEmail = user.email.replace('@kvonagpur.com', '');
+        const beforeAt = baseEmail.split('@')[0];
+        const emailParts = beforeAt.split(/[_.]/);
+        firstName = emailParts[0] || 'Member';
+        lastName = emailParts.length > 1 ? emailParts.slice(1).join(' ') : '';
+      }
 
       const { data: newFamily } = await supabase
         .from('families')
