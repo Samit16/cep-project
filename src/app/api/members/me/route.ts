@@ -319,6 +319,11 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to update username.', detail: updateError.message }, { status: 500 });
     }
 
+    // Sync auth.users metadata
+    await supabase.auth.admin.updateUserById(user.id, {
+      user_metadata: { username: newUsername }
+    }).catch(err => console.error('Failed to sync auth user_metadata:', err));
+
     return NextResponse.json({ success: true, username: newUsername });
 
   } catch (error: unknown) {

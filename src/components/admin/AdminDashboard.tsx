@@ -272,6 +272,21 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleDeleteMember = async (memberId: string, memberName?: string) => {
+    if (!window.confirm(`Are you sure you want to delete ${memberName || 'this member'}? This action cannot be undone.`)) {
+      return;
+    }
+    try {
+      await ApiClient.delete(`/admin/members/${memberId}`);
+      toast('Member deleted successfully', 'success');
+      setOpenMenuId(null);
+      setMembers(prev => prev.filter(m => m.id !== memberId));
+      await loadDashboardData(true);
+    } catch (err: unknown) {
+      toast((err as Error).message || 'Failed to delete member', 'error');
+    }
+  };
+
   const openCreateEvent = () => {
     setEditingEvent(null);
     setEventForm({ title: '', date: '', time: '', location: '', description: '' });
@@ -616,7 +631,10 @@ export default function AdminDashboard() {
                       <MoreVertical size={16} />
                     </button>
                     {openMenuId === member.id && (
-                      <div ref={menuRef} className={styles.dropdownMenu}>
+                      <div 
+                        ref={menuRef} 
+                        className={`${styles.dropdownMenu} ${index >= tableMembers.length - 2 && tableMembers.length > 2 ? styles.dropdownMenuUp : ''}`}
+                      >
                         <button
                           className={styles.dropdownItem}
                           onClick={() => {
@@ -640,7 +658,7 @@ export default function AdminDashboard() {
                           className={`${styles.dropdownItem} ${styles.dropdownItemDanger}`}
                           onClick={() => {
                             setOpenMenuId(null);
-                            toast('Delete member feature coming soon.', 'info');
+                            handleDeleteMember(member.id, member.name);
                           }}
                         >
                           <Trash2 size={14} /> Delete Member

@@ -23,9 +23,8 @@ export async function PUT(
     const { role, ...memberData } = data;
     const supabase = createServerSupabase();
 
-    // If role is being changed, perform extra validation
+    // If role is being changed, perform validation & update profile
     if (role) {
-      // 1. Only allow switching between 'member' and 'committee'
       if (role !== 'member' && role !== 'committee') {
         return NextResponse.json(
           { error: 'Invalid role. Only switching between member and committee is allowed.' }, 
@@ -33,45 +32,72 @@ export async function PUT(
         );
       }
 
-      // 2. Fetch target's current role and verify they aren't an admin
-      const { data: targetProfile } = await supabase
+      // 1. Try finding profile by member_id
+      let { data: targetProfile } = await supabase
         .from('profiles')
-        .select('role')
+        .select('id, role')
         .eq('member_id', id)
         .maybeSingle();
-      
+
+      // 2. If not linked yet, try matching by member email
       if (!targetProfile) {
-        return NextResponse.json(
-          { error: 'This member has not registered an account yet. Role cannot be set until they sign up.' }, 
-          { status: 404 }
-        );
+        const { data: memberObj } = await supabase
+          .from('members')
+          .select('email')
+          .eq('id', id)
+          .maybeSingle();
+
+        if (memberObj?.email) {
+          const { data: usersData } = await supabase.auth.admin.listUsers();
+          const matchedUser = usersData?.users?.find(
+            (u) => u.email?.toLowerCase() === memberObj.email?.toLowerCase()
+          );
+          if (matchedUser) {
+            const { data: prof } = await supabase
+              .from('profiles')
+              .select('id, role')
+              .eq('id', matchedUser.id)
+              .maybeSingle();
+
+            if (prof) {
+              targetProfile = prof;
+              // Link member_id to profile
+              await supabase.from('profiles').update({ member_id: id }).eq('id', prof.id);
+            }
+          }
+        }
       }
 
-      if (targetProfile.role === 'admin' && authResult.user.role !== 'admin') {
-        return NextResponse.json(
-          { error: 'Forbidden: Committee members cannot modify administrator roles.' }, 
-          { status: 403 }
-        );
-      }
+      if (targetProfile) {
+        if (targetProfile.role === 'admin' && authResult.user.role !== 'admin') {
+          return NextResponse.json(
+            { error: 'Forbidden: Committee members cannot modify administrator roles.' }, 
+            { status: 403 }
+          );
+        }
 
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({ role })
-        .eq('member_id', id);
-        
-      if (profileError) {
-        console.error('Error updating member role:', profileError);
-        return NextResponse.json({ error: 'Failed to update member role', details: profileError.message }, { status: 500 });
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ role })
+          .eq('id', targetProfile.id);
+          
+        if (profileError) {
+          console.error('Error updating member role:', profileError);
+          return NextResponse.json({ error: 'Failed to update member role', details: profileError.message }, { status: 500 });
+        }
       }
     }
 
     let member = null;
     if (Object.keys(memberData).length > 0) {
-      // Sanitize member input data
-      const sanitized = sanitizeObject(memberData, [
+      const sanitized: Record<string, any> = sanitizeObject(memberData, [
         'first_name', 'middle_name', 'last_name', 'address', 'email',
         'occupation', 'marital_status', 'current_place', 'kutch_town'
       ]);
+
+      if (Array.isArray(memberData.contact_numbers)) {
+        sanitized.contact_numbers = memberData.contact_numbers;
+      }
 
       const { data: updatedMember, error } = await supabase
         .from('members')
