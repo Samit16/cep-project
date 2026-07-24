@@ -16,12 +16,12 @@ export async function POST(request: NextRequest) {
 
     // If username is not an email, we need to resolve it
     if (!username.includes('@')) {
-      // Look up the member by username in the profiles table
+      // Look up the member by username in the profiles table (case-insensitive)
       const { data: profile } = await supabase
         .from('profiles')
         .select('id, username')
-        .eq('username', username)
-        .single();
+        .ilike('username', username.trim())
+        .maybeSingle();
 
       if (profile) {
         // If we found the profile by username, we can get their actual auth email

@@ -9,6 +9,7 @@ import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { useAuth } from '@/lib/auth-context';
 import styles from './LoginPage.module.css';
 import { useGsapHeroEntrance } from '@/hooks/useGsapAnimations';
+import ForgotPasswordModal from '@/components/auth/ForgotPasswordModal';
 
 // Inline Google SVG icon to avoid external dependency
 const GoogleIcon = () => (
@@ -96,6 +97,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -269,6 +271,16 @@ export default function LoginPage() {
                 onTogglePassword={() => setShowPassword(prev => !prev)}
               />
 
+              <div style={{ textAlign: 'right', marginTop: '-0.75rem', marginBottom: '1.25rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsForgotPasswordOpen(true)}
+                  style={{ background: 'none', border: 'none', color: 'var(--color-primary)', fontSize: '0.8125rem', fontWeight: 500, cursor: 'pointer', textDecoration: 'underline' }}
+                >
+                  Forgot password?
+                </button>
+              </div>
+
               <button
                 type="button"
                 onClick={activeTab === 'member' ? handleMemberLogin : handleAdminLogin}
@@ -325,6 +337,10 @@ export default function LoginPage() {
           <p>Over 100 years of empowering our community globally.</p>
         </div>
       </div>
+
+      {isForgotPasswordOpen && (
+        <ForgotPasswordModal onClose={() => setIsForgotPasswordOpen(false)} />
+      )}
     </div>
   );
 }
