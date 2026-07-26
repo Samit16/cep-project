@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase, SUPABASE_STORAGE_KEY } from '@/lib/supabase';
+import { supabase, SUPABASE_STORAGE_KEY, TAB_ACTIVE_KEY } from '@/lib/supabase';
 import type { Session, User } from '@supabase/supabase-js';
 
 type Role = 'admin' | 'member' | 'committee' | null;
@@ -93,9 +93,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Initialize auth state
   useEffect(() => {
-    // Check for existing Supabase session
     const initAuth = async () => {
       try {
+        // Tab isolation: only restore session if this tab was explicitly activated.
+        // New tabs and new browser sessions will have no flag → start logged out.
+        const isTabActive = sessionStorage.getItem(TAB_ACTIVE_KEY);
+        if (!isTabActive) {
+          // This is a new tab or a new browser session.
+          // Don't restore any existing localStorage session.
+          setIsLoading(false);
+          return;
+        }
+
         const { data: { session: currentSession } } = await supabase.auth.getSession();
 
         if (currentSession) {
@@ -116,9 +125,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Listen for Supabase auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
-        setSession(newSession);
+        // Only process auth changes if this tab is active
+        const isTabActive = sessionStorage.getItem(TAB_ACTIVE_KEY);
 
-        if (newSession?.user) {
+        if (newSession?.user && isTabActive) {
+          setSession(newSession);
           // Set session cookie for middleware (no max-age = deleted on browser close)
           document.cookie = `${SUPABASE_STORAGE_KEY}=${newSession.access_token}; path=/; samesite=lax`;
           
@@ -138,12 +149,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             }
             setIsLoading(false);
           });
-        } else {
+        } else if (event === 'SIGNED_OUT') {
+          setSession(null);
           setProfile(null);
-          if (event === 'SIGNED_OUT') {
-            // Clear cookie for middleware only on explicit sign out
-            document.cookie = `${SUPABASE_STORAGE_KEY}=; path=/; max-age=0;`;
-          }
+          // Clear cookie and tab flag on explicit sign out
+          document.cookie = `${SUPABASE_STORAGE_KEY}=; path=/; max-age=0;`;
+          sessionStorage.removeItem(TAB_ACTIVE_KEY);
+          setIsLoading(false);
+        } else if (!newSession) {
+          // No session and no explicit sign out — just clear React state
+          // but don't touch the cookie (another tab may still be active)
           setIsLoading(false);
         }
       }
@@ -188,12 +203,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         throw new Error(data.error || 'Invalid credentials');
       }
 
-      // Set cookie immediately for middleware before hydration/navigation
+      // 2. Set cookie immediately for middleware before hydration/navigation
       if (data.session?.access_token) {
         document.cookie = `${SUPABASE_STORAGE_KEY}=${data.session.access_token}; path=/; samesite=lax`;
       }
 
-      // 2. Hydrate the client-side session using the session returned by the server
+      // 3. Hydrate the client-side session using the session returned by the server
       const { error: sessionError } = await supabase.auth.setSession({
         access_token: data.session.access_token,
         refresh_token: data.session.refresh_token,
@@ -201,28 +216,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (sessionError) throw sessionError;
 
-      // 3. Immediately update React session state (don't wait for onAuthStateChange)
+      // 4. Mark THIS tab as active so initAuth restores the session on next render
+      sessionStorage.setItem(TAB_ACTIVE_KEY, '1');
+
+      // 5. Immediately update React session state
       setSession(data.session);
 
-      // 4. The onAuthStateChange listener will now trigger and fetch the profile.
-      // We manually fetch the profile here to ensure we have it immediately for role checking.
+      // 6. Fetch profile immediately for role checking
       const { data: profile } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', data.session.user.id)
         .single();
         
-        if (profile) {
-          const userRole = profile.role;
-          if (expectedTab === 'committee' && userRole !== 'admin' && userRole !== 'committee') {
-            document.cookie = `${SUPABASE_STORAGE_KEY}=; path=/; max-age=0;`;
-            await supabase.auth.signOut();
-            throw new Error("You are a member. Please log in via Member Login.");
-          }
-          if (expectedTab === 'member' && (userRole === 'admin' || userRole === 'committee')) {
-            document.cookie = `${SUPABASE_STORAGE_KEY}=; path=/; max-age=0;`;
-            await supabase.auth.signOut();
-            throw new Error("You are a committee member. Please log in via Committee Login.");
+      if (profile) {
+        const userRole = profile.role;
+        if (expectedTab === 'committee' && userRole !== 'admin' && userRole !== 'committee') {
+          document.cookie = `${SUPABASE_STORAGE_KEY}=; path=/; max-age=0;`;
+          sessionStorage.removeItem(TAB_ACTIVE_KEY);
+          await supabase.auth.signOut();
+          throw new Error("You are a member. Please log in via Member Login.");
+        }
+        if (expectedTab === 'member' && (userRole === 'admin' || userRole === 'committee')) {
+          document.cookie = `${SUPABASE_STORAGE_KEY}=; path=/; max-age=0;`;
+          sessionStorage.removeItem(TAB_ACTIVE_KEY);
+          await supabase.auth.signOut();
+          throw new Error("You are a committee member. Please log in via Committee Login.");
         }
       }
     } catch (err: unknown) {
@@ -250,7 +269,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setSession(null);
     setProfile(null);
 
-    // Clear all Supabase keys from both localStorage and sessionStorage synchronously
+    // Clear tab isolation flag
+    sessionStorage.removeItem(TAB_ACTIVE_KEY);
+
+    // Clear all Supabase keys from localStorage and sessionStorage
     if (typeof window !== 'undefined') {
       Object.keys(localStorage)
         .filter(k => k.startsWith('sb-'))
@@ -313,4 +335,3 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 };
 
 export const useAuth = () => useContext(AuthContext);
-

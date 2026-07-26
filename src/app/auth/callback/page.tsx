@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase, SUPABASE_STORAGE_KEY } from '@/lib/supabase';
+import { supabase, SUPABASE_STORAGE_KEY, TAB_ACTIVE_KEY } from '@/lib/supabase';
 
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -20,6 +20,8 @@ export default function AuthCallbackPage() {
         }
 
         if (session) {
+          // Mark this tab as active for tab isolation
+          sessionStorage.setItem(TAB_ACTIVE_KEY, '1');
           // Explicitly set cookie as a session cookie (no max-age) so it clears on browser close
           document.cookie = `${SUPABASE_STORAGE_KEY}=${session.access_token}; path=/; samesite=lax`;
 
