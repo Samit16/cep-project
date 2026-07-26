@@ -132,7 +132,7 @@ export default function LoginPage() {
       } else if (role === 'admin' || role === 'committee') {
         router.replace('/dashboard');
       } else {
-        router.replace('/home');
+        router.replace('/directory');
       }
     }
   }, [authLoading, token, router, role, toast, searchParams, activeTab]);
@@ -167,7 +167,12 @@ export default function LoginPage() {
     try {
       await signInWithEmail(username, password, 'member');
       toast('Login Successful!', 'success');
-      router.replace('/home');
+      const nextUrl = searchParams.get('next');
+      if (nextUrl && nextUrl.startsWith('/')) {
+        router.replace(nextUrl);
+      } else {
+        router.replace('/directory');
+      }
     } catch (err: unknown) {
       const msg = (err as Error).message || 'Invalid credentials';
       setLoginError(msg);
@@ -189,7 +194,12 @@ export default function LoginPage() {
     try {
       await signInWithEmail(username, password, 'committee');
       toast('Login Successful: Welcome back', 'success');
-      router.replace('/home');
+      const nextUrl = searchParams.get('next');
+      if (nextUrl && nextUrl.startsWith('/')) {
+        router.replace(nextUrl);
+      } else {
+        router.replace('/dashboard');
+      }
     } catch (err: unknown) {
       const msg = (err as Error).message || 'Invalid credentials';
       setLoginError(msg);
