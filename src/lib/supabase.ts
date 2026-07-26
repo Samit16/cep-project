@@ -12,6 +12,10 @@ const projectId = supabaseUrl.match(/https:\/\/(.*?)\.supabase\.co/)?.[1] || 'mi
 export const SUPABASE_PROJECT_ID = projectId;
 export const SUPABASE_STORAGE_KEY = `sb-${projectId}-auth-token`;
 
+// Tab isolation flag: this key in sessionStorage marks that THIS tab has an active login.
+// New tabs and new browser sessions start without it, so they appear logged out.
+export const TAB_ACTIVE_KEY = 'kjo_tab_active';
+
 const validUrl = supabaseUrl.startsWith('http') ? supabaseUrl : 'https://missing.supabase.co';
 const validKey = supabaseAnonKey || 'missing-key';
 
@@ -20,7 +24,9 @@ export const supabase = createClient(
   validKey,
   {
     auth: {
-      storage: typeof window !== 'undefined' ? window.sessionStorage : undefined,
+      // Keep localStorage so the session token survives client-side navigation
+      // and works reliably with Next.js middleware cookie checks.
+      storage: typeof window !== 'undefined' ? window.localStorage : undefined,
       storageKey: SUPABASE_STORAGE_KEY,
       autoRefreshToken: true,
       persistSession: true,

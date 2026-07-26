@@ -19,9 +19,9 @@ export class ApiClient {
 
     let token: string | null = null;
 
-    // 1. Check sessionStorage for the Supabase session (primary storage — tab-isolated)
+    // 1. Check localStorage for the Supabase session (primary storage)
     try {
-      const sessionData = sessionStorage.getItem(SUPABASE_STORAGE_KEY);
+      const sessionData = localStorage.getItem(SUPABASE_STORAGE_KEY);
       if (sessionData) {
         const parsed = JSON.parse(sessionData);
         token = parsed?.access_token
@@ -31,7 +31,24 @@ export class ApiClient {
       }
     } catch { /* ignore parse errors */ }
 
-    // 2. Fallback: check cookie (set synchronously on login for middleware)
+    // 2. Scan all localStorage keys starting with sb- (fallback)
+    if (!token) {
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
+            const raw = localStorage.getItem(key);
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              token = parsed?.access_token || parsed?.session?.access_token || null;
+              if (token) break;
+            }
+          }
+        }
+      } catch { /* ignore */ }
+    }
+
+    // 3. Fallback: check cookie
     if (!token) {
       try {
         const match = document.cookie.match(new RegExp(`(^| )${SUPABASE_STORAGE_KEY}=([^;]+)`));

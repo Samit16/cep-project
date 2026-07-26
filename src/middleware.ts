@@ -52,26 +52,6 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  // Authenticated — redirect away from login page
-  if (isAuthenticated && isLoginPath) {
-    let role = null;
-    if (supabaseToken) {
-      try {
-        const base64Url = supabaseToken.split('.')[1];
-        if (base64Url) {
-          let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-          const pad = base64.length % 4;
-          if (pad && pad !== 1) base64 += new Array(5 - pad).join('=');
-          const payload = JSON.parse(atob(base64));
-          if (!payload.exp || payload.exp * 1000 > Date.now()) {
-            role = payload.role || payload.user_role || null;
-          }
-        }
-      } catch { /* ignore decode errors */ }
-    }
-    const dest = (role === 'admin' || role === 'committee') ? '/dashboard' : '/directory';
-    return NextResponse.redirect(new URL(dest, request.url));
-  }
   const response = NextResponse.next();
   if (isMemberPath || isAdminPath) {
     response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
