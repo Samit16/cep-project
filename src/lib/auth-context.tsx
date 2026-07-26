@@ -201,7 +201,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (sessionError) throw sessionError;
 
-      // 3. The onAuthStateChange listener will now trigger and fetch the profile.
+      // 3. Immediately update React session state (don't wait for onAuthStateChange)
+      setSession(data.session);
+
+      // 4. The onAuthStateChange listener will now trigger and fetch the profile.
       // We manually fetch the profile here to ensure we have it immediately for role checking.
       const { data: profile } = await supabase
         .from('profiles')
@@ -212,10 +215,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (profile) {
           const userRole = profile.role;
           if (expectedTab === 'committee' && userRole !== 'admin' && userRole !== 'committee') {
+            document.cookie = `${SUPABASE_STORAGE_KEY}=; path=/; max-age=0;`;
             await supabase.auth.signOut();
             throw new Error("You are a member. Please log in via Member Login.");
           }
           if (expectedTab === 'member' && (userRole === 'admin' || userRole === 'committee')) {
+            document.cookie = `${SUPABASE_STORAGE_KEY}=; path=/; max-age=0;`;
             await supabase.auth.signOut();
             throw new Error("You are a committee member. Please log in via Committee Login.");
         }
