@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { 
   Users, Calendar, 
   Search, Download, UserPlus, TrendingUp, ClipboardList, 
-  ShieldCheck, Pencil, MoreVertical, Plus, Trash2, X, MapPin, Activity, CheckCircle2, Home
+  ShieldCheck, Pencil, MoreVertical, Plus, Trash2, X, MapPin, Activity, CheckCircle2, Home, Filter
 } from 'lucide-react';
 import styles from './AdminDashboard.module.css';
 import Footer from '@/components/layout/Footer/Footer';
@@ -108,6 +108,7 @@ export default function AdminDashboard() {
   const [editingMember, setEditingMember] = useState<MemberAdmin | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [filterOption, setFilterOption] = useState<'all' | 'updated' | 'not_updated' | 'member' | 'committee'>('all');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   
@@ -343,23 +344,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // Client-side filter (moved before early return to satisfy rules-of-hooks)
-  const tableMembers = useMemo(() => {
-    if (!debouncedSearch) return members;
-    const q = debouncedSearch.toLowerCase();
-    return members.filter(m => m.name?.toLowerCase().includes(q) || m.email?.toLowerCase().includes(q));
-  }, [members, debouncedSearch]);
-
-  const formedFamiliesCount = useMemo(() => {
-    const counts = members.reduce((acc, m) => {
-      if (m.family_id) {
-        acc[m.family_id] = (acc[m.family_id] || 0) + 1;
-      }
-      return acc;
-    }, {} as Record<string, number>);
-    return Object.values(counts).filter(count => count > 1).length;
-  }, [members]);
-
   const checkIsProfileUpdated = useCallback((m: MemberAdmin) => {
     if (m.profile_complete) return true;
     if (m.email_verified) return true;
@@ -372,6 +356,36 @@ export default function AdminDashboard() {
     }
     return false;
   }, []);
+
+  // Client-side filter (moved before early return to satisfy rules-of-hooks)
+  const tableMembers = useMemo(() => {
+    let result = members;
+
+    if (filterOption === 'updated') {
+      result = result.filter(m => checkIsProfileUpdated(m));
+    } else if (filterOption === 'not_updated') {
+      result = result.filter(m => !checkIsProfileUpdated(m));
+    } else if (filterOption === 'member') {
+      result = result.filter(m => m.role === 'member' || !m.role);
+    } else if (filterOption === 'committee') {
+      result = result.filter(m => m.role === 'committee' || m.role === 'admin');
+    }
+
+    if (debouncedSearch) {
+      const q = debouncedSearch.toLowerCase();
+      result = result.filter(m => m.name?.toLowerCase().includes(q) || m.email?.toLowerCase().includes(q));
+    }
+    return result;
+  }, [members, debouncedSearch, filterOption, checkIsProfileUpdated]);
+  const formedFamiliesCount = useMemo(() => {
+    const counts = members.reduce((acc, m) => {
+      if (m.family_id) {
+        acc[m.family_id] = (acc[m.family_id] || 0) + 1;
+      }
+      return acc;
+    }, {} as Record<string, number>);
+    return Object.values(counts).filter(count => count > 1).length;
+  }, [members]);
 
   const completedCount = useMemo(() => {
     return members.filter(checkIsProfileUpdated).length;
@@ -551,8 +565,8 @@ export default function AdminDashboard() {
               </div>
             </div>
           
-          <div className={styles.searchContainer}>
-            <div className={styles.searchInputWrapper}>
+          <div className={styles.searchContainer} style={{ display: 'flex', gap: '1rem', maxWidth: 'none', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div className={styles.searchInputWrapper} style={{ flex: 1, minWidth: '280px', maxWidth: '400px' }}>
               <Search size={18} className={styles.searchIcon} />
               <input
                 type="text"
@@ -560,6 +574,31 @@ export default function AdminDashboard() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Filter size={18} style={{ color: 'var(--color-text-muted)' }} />
+              <select
+                value={filterOption}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                onChange={(e) => setFilterOption(e.target.value as any)}
+                style={{
+                  padding: '10px 14px',
+                  borderRadius: 'var(--radius-lg)',
+                  border: '1px solid var(--color-border)',
+                  backgroundColor: 'var(--color-bg-card)',
+                  color: 'var(--color-text-primary)',
+                  fontSize: '0.875rem',
+                  outline: 'none',
+                  cursor: 'pointer',
+                  boxShadow: 'var(--shadow-sm)'
+                }}
+              >
+                <option value="all">All Profiles</option>
+                <option value="updated">Updated Profiles</option>
+                <option value="not_updated">Not Updated Profiles</option>
+                <option value="member">Regular Members</option>
+                <option value="committee">Committee / Admins</option>
+              </select>
             </div>
           </div>
         </div>

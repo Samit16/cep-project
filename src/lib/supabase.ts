@@ -12,16 +12,6 @@ const projectId = supabaseUrl.match(/https:\/\/(.*?)\.supabase\.co/)?.[1] || 'mi
 export const SUPABASE_PROJECT_ID = projectId;
 export const SUPABASE_STORAGE_KEY = `sb-${projectId}-auth-token`;
 
-// Migration: Copy session from sessionStorage to localStorage
-if (typeof window !== 'undefined') {
-  const oldKey = `sb-${projectId}-auth-token`;
-  const session = window.sessionStorage.getItem(oldKey);
-  if (session && !window.localStorage.getItem(SUPABASE_STORAGE_KEY)) {
-    window.localStorage.setItem(SUPABASE_STORAGE_KEY, session);
-    window.sessionStorage.removeItem(oldKey);
-  }
-}
-
 const validUrl = supabaseUrl.startsWith('http') ? supabaseUrl : 'https://missing.supabase.co';
 const validKey = supabaseAnonKey || 'missing-key';
 
@@ -30,7 +20,7 @@ export const supabase = createClient(
   validKey,
   {
     auth: {
-      storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+      storage: typeof window !== 'undefined' ? window.sessionStorage : undefined,
       storageKey: SUPABASE_STORAGE_KEY,
       autoRefreshToken: true,
       persistSession: true,

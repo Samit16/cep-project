@@ -100,8 +100,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         if (currentSession) {
           setSession(currentSession);
-          // SET COOKIE HERE ALSO for when users return after cookie expires
-          document.cookie = `${SUPABASE_STORAGE_KEY}=${currentSession.access_token}; path=/; max-age=${currentSession.expires_in || 3600}; samesite=lax`;
+          // Set session cookie for middleware (no max-age = deleted on browser close)
+          document.cookie = `${SUPABASE_STORAGE_KEY}=${currentSession.access_token}; path=/; samesite=lax`;
           await fetchProfile(currentSession.user.id, currentSession.user.email);
         }
       } catch (err) {
@@ -119,8 +119,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(newSession);
 
         if (newSession?.user) {
-          // Set cookie for middleware
-          document.cookie = `${SUPABASE_STORAGE_KEY}=${newSession.access_token}; path=/; max-age=${newSession.expires_in || 3600}; samesite=lax`;
+          // Set session cookie for middleware (no max-age = deleted on browser close)
+          document.cookie = `${SUPABASE_STORAGE_KEY}=${newSession.access_token}; path=/; samesite=lax`;
           
           fetchProfile(newSession.user.id, newSession.user.email).then(fetchedProfile => {
             if (fetchedProfile) {
@@ -140,8 +140,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           });
         } else {
           setProfile(null);
-          // Clear cookie for middleware
-          document.cookie = `${SUPABASE_STORAGE_KEY}=; path=/; max-age=0;`;
+          if (event === 'SIGNED_OUT') {
+            // Clear cookie for middleware only on explicit sign out
+            document.cookie = `${SUPABASE_STORAGE_KEY}=; path=/; max-age=0;`;
+          }
           setIsLoading(false);
         }
       }
