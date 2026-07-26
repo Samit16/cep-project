@@ -188,6 +188,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         throw new Error(data.error || 'Invalid credentials');
       }
 
+      // Set cookie immediately for middleware before hydration/navigation
+      if (data.session?.access_token) {
+        document.cookie = `${SUPABASE_STORAGE_KEY}=${data.session.access_token}; path=/; samesite=lax`;
+      }
+
       // 2. Hydrate the client-side session using the session returned by the server
       const { error: sessionError } = await supabase.auth.setSession({
         access_token: data.session.access_token,
