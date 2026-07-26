@@ -125,40 +125,47 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Listen for Supabase auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
-        // Only process auth changes if this tab is active
-        const isTabActive = sessionStorage.getItem(TAB_ACTIVE_KEY);
+        if (newSession?.user) {
+          // SIGNED_IN: user just authenticated (email login or OAuth callback) — always process
+          // INITIAL_SESSION / TOKEN_REFRESHED: session from storage — only process if this tab is active
+          const isTabActive = sessionStorage.getItem(TAB_ACTIVE_KEY);
+          const shouldProcess = event === 'SIGNED_IN' || event === 'USER_UPDATED' || !!isTabActive;
 
-        if (newSession?.user && isTabActive) {
-          setSession(newSession);
-          // Set session cookie for middleware (no max-age = deleted on browser close)
-          document.cookie = `${SUPABASE_STORAGE_KEY}=${newSession.access_token}; path=/; samesite=lax`;
-          
-          fetchProfile(newSession.user.id, newSession.user.email).then(fetchedProfile => {
-            if (fetchedProfile) {
-              const provider = newSession.user.app_metadata?.provider || 'email';
-              if (provider === 'google' && fetchedProfile.is_first_login) {
-                // Reject direct OAuth login if it is their first login
-                alert('Please login with your Member Username and Password first to verify your account. You can link Google afterwards.');
-                supabase.auth.signOut().then(() => {
-                  setSession(null);
-                  setProfile(null);
-                  setIsLoading(false);
-                });
-                return;
-              }
+          if (shouldProcess) {
+            if (event === 'SIGNED_IN') {
+              // Mark this tab as active for tab isolation
+              sessionStorage.setItem(TAB_ACTIVE_KEY, '1');
             }
+            setSession(newSession);
+            document.cookie = `${SUPABASE_STORAGE_KEY}=${newSession.access_token}; path=/; samesite=lax`;
+
+            fetchProfile(newSession.user.id, newSession.user.email).then(fetchedProfile => {
+              if (fetchedProfile) {
+                const provider = newSession.user.app_metadata?.provider || 'email';
+                if (provider === 'google' && fetchedProfile.is_first_login) {
+                  // Reject direct OAuth login if it is their first login
+                  alert('Please login with your Member Username and Password first to verify your account. You can link Google afterwards.');
+                  supabase.auth.signOut().then(() => {
+                    setSession(null);
+                    setProfile(null);
+                    setIsLoading(false);
+                  });
+                  return;
+                }
+              }
+              setIsLoading(false);
+            });
+          } else {
+            // New tab — don't restore session, just finish loading
             setIsLoading(false);
-          });
+          }
         } else if (event === 'SIGNED_OUT') {
           setSession(null);
           setProfile(null);
-          // Clear cookie and tab flag on explicit sign out
           document.cookie = `${SUPABASE_STORAGE_KEY}=; path=/; max-age=0;`;
           sessionStorage.removeItem(TAB_ACTIVE_KEY);
           setIsLoading(false);
-        } else if (!newSession) {
-          // No session and no explicit sign out — just clear React state
-          // but don't touch the cookie (another tab may still be active)
+        } else {
           setIsLoading(false);
         }
       }
