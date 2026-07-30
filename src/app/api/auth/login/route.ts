@@ -24,19 +24,17 @@ export async function POST(request: NextRequest) {
         .maybeSingle();
 
       if (profile) {
-        // If we found the profile by username, we can get their actual auth email
-        // We use the admin API to get the user's email securely without exposing it to the client
+        // If we found the profile by username, get their actual auth email via admin API
         const { data: userData, error: userError } = await supabase.auth.admin.getUserById(profile.id);
         
         if (userData?.user?.email && !userError) {
           loginEmail = userData.user.email;
         } else {
-          // Fallback if somehow there's an error getting the user
+          // Fallback: derive the internal email format
           loginEmail = `${username}@kvonagpur.com`;
         }
       } else {
-        // Legacy fallback: if they haven't run the migration yet, the profile won't have a username
-        // So we just assume it's the old dummy email format
+        // Legacy fallback for accounts created before username tracking
         loginEmail = `${username}@kvonagpur.com`;
       }
     }

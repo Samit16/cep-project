@@ -90,7 +90,7 @@ export async function PUT(
       updatedMember.profile_complete = true;
     }
 
-    // Strip dummy email
+    // Strip internal placeholder email
     if (updatedMember.email?.includes('@kvonagpur.com')) {
       updatedMember.email = '';
     }

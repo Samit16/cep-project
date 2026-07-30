@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
       return {
         ...m,
         name: `${m.first_name || ''} ${m.middle_name || ''} ${m.last_name || ''}`.replace(/\s+/g, ' ').trim(),
-        // Strip dummy emails
+        // Strip internal placeholder emails
         email: isPublic ? (m.email?.includes('@kvonagpur.com') ? '' : (m.email || '')) : '',
         contact_no: isPublic ? (m.contact_no || '') : '',
         contact_numbers: isPublic ? (m.contact_numbers || []) : [],

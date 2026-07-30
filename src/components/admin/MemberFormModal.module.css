@@ -144,3 +144,69 @@
 .saveBtn:hover {
   background-color: var(--color-primary-dark);
 }
+
+/* Credentials preview box */
+.credentialsBox {
+  display: flex;
+  gap: var(--space-3);
+  background: linear-gradient(135deg, #fef3c7 0%, #fef9ec 100%);
+  border: 1.5px solid #f59e0b;
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  margin-bottom: var(--space-5);
+  animation: fadeIn 0.25s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.credentialsIcon {
+  color: #b45309;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.credentialsContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.credentialsTitle {
+  font-weight: 700;
+  font-size: var(--text-sm);
+  color: #92400e;
+  margin: 0 0 var(--space-2) 0;
+}
+
+.credentialsRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-1) 0;
+}
+
+.credentialsLabel {
+  font-size: var(--text-sm);
+  color: #92400e;
+  font-weight: 600;
+  min-width: 80px;
+}
+
+.credentialsValue {
+  background: rgba(180, 83, 9, 0.12);
+  color: #7c2d12;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.8125rem;
+  font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace;
+  word-break: break-all;
+}
+
+.credentialsNote {
+  font-size: 0.75rem;
+  color: #92400e;
+  margin: var(--space-2) 0 0 0;
+  font-style: italic;
+}

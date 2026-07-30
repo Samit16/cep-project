@@ -122,7 +122,7 @@ export async function GET(request: NextRequest) {
       await supabase.from('members').update({ email_verified: true }).eq('id', memberId);
     }
 
-    // Remove default email before returning
+    // Remove internal placeholder email before returning to client
     if (member.email && member.email.includes('@kvonagpur.com')) {
       member.email = '';
     }
@@ -254,7 +254,7 @@ export async function PUT(request: NextRequest) {
     const middleName = updatedMember.middle_name || '';
     const lastName = updatedMember.last_name || '';
 
-    // Strip dummy email before returning to client
+    // Strip internal placeholder email before returning to client
     if (updatedMember.email && updatedMember.email.includes('@kvonagpur.com')) {
       updatedMember.email = '';
     }

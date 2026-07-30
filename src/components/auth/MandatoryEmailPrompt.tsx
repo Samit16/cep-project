@@ -32,7 +32,7 @@ export default function MandatoryEmailPrompt() {
     return () => clearTimeout(timer);
   }, [resendCooldown]);
 
-  // Only show if the user's Supabase Auth email is still a dummy address.
+  // Only show if the user's Supabase Auth email is still an internal placeholder address.
   if (!mounted || !user || !user.email?.includes('@kvonagpur.com')) return null;
   if (typeof document === 'undefined') return null;
 
