@@ -1,0 +1,314 @@
+.feedSection {
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  padding: var(--space-10) var(--space-6);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: var(--space-8);
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--space-4);
+}
+
+.title {
+  font-family: var(--font-serif);
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.subtitle {
+  color: var(--color-text-secondary);
+  font-size: var(--text-base);
+}
+
+.createBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 10px 20px;
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.createBtn:hover {
+  background-color: var(--color-primary-dark);
+}
+
+.emptyState {
+  text-align: center;
+  padding: var(--space-12);
+  color: var(--color-text-muted);
+  background: var(--glass-bg);
+  border-radius: var(--radius-xl);
+  border: 1px dashed var(--color-border);
+}
+
+.postGrid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.postCard {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-sm);
+}
+
+.postHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--space-4);
+}
+
+.authorInfo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.authorAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: var(--color-bg-section-alt);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: var(--weight-bold);
+  font-size: var(--text-lg);
+}
+
+.authorName {
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.postDate {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.postActions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.iconBtn {
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.iconBtn:hover {
+  background: var(--color-bg-section-alt);
+  color: var(--color-primary);
+}
+
+.dangerBtn:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.postContent {
+  color: var(--color-text-primary);
+  line-height: var(--leading-relaxed);
+  margin-bottom: var(--space-4);
+  white-space: pre-wrap;
+}
+
+.imageGrid {
+  display: grid;
+  gap: var(--space-2);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.imageGrid[data-count="1"] { grid-template-columns: 1fr; }
+.imageGrid[data-count="2"] { grid-template-columns: 1fr 1fr; }
+.imageGrid[data-count="3"] { grid-template-columns: 1fr 1fr; }
+.imageGrid[data-count="4"], 
+.imageGrid[data-count="5"] { grid-template-columns: 1fr 1fr; }
+
+.imageWrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: var(--color-bg-section-alt);
+}
+
+.imageGrid[data-count="1"] .imageWrapper { aspect-ratio: auto; max-height: 500px; }
+
+.imageWrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Modal */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modalContent {
+  background: var(--color-bg-page);
+  border-radius: var(--radius-xl);
+  width: 100%;
+  max-width: 600px;
+  padding: var(--space-6);
+  box-shadow: var(--shadow-xl);
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-4);
+}
+
+.modalHeader h3 {
+  font-size: var(--text-xl);
+  color: var(--color-text-primary);
+}
+
+.closeBtn {
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.textarea {
+  width: 100%;
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  color: var(--color-text-primary);
+  font-family: inherit;
+  resize: vertical;
+}
+
+.uploadSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.uploadBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 8px 16px;
+  background: transparent;
+  border: 1px dashed var(--color-primary);
+  color: var(--color-primary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.previewGrid {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.previewItem {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.previewItem img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.removeFileBtn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.cancelBtn {
+  padding: 10px 20px;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.submitBtn {
+  padding: 10px 20px;
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.submitBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.loading {
+  text-align: center;
+  padding: var(--space-10);
+  color: var(--color-text-muted);
+}

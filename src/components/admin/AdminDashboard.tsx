@@ -217,37 +217,26 @@ export default function AdminDashboard() {
   };
 
 
-  const handleAddMember = async (newMember: { first_name: string; middle_name: string; last_name: string; email: string; profession: string; city: string; phone: string; role: string }) => {
+  const handleAddMember = async (newMember: { first_name: string; middle_name: string; last_name: string }) => {
     try {
       if (editingMember) {
-        const updatePayload: any = {
+        // Edit path: send name fields only (admin can update other fields separately)
+        await ApiClient.put(`/admin/members/${editingMember.id}`, {
           first_name: newMember.first_name,
           middle_name: newMember.middle_name,
           last_name: newMember.last_name,
-          email: newMember.email,
-          occupation: newMember.profession,
-          current_place: newMember.city,
-          contact_numbers: newMember.phone ? [newMember.phone] : [],
-        };
-        // Only send role if it actually changed, to avoid backend errors on unlinked profiles
-        if (newMember.role && newMember.role !== (editingMember.role || 'member')) {
-          updatePayload.role = newMember.role;
-        }
-        await ApiClient.put(`/admin/members/${editingMember.id}`, updatePayload);
+        });
         toast('Member updated successfully', 'success');
       } else {
-        await ApiClient.post('/admin/members', {
+        // Create path: only name fields required — backend auto-generates credentials
+        const created = await ApiClient.post<{ _username?: string }>('/admin/members', {
           first_name: newMember.first_name,
           middle_name: newMember.middle_name,
           last_name: newMember.last_name,
-          email: newMember.email,
-          occupation: newMember.profession,
-          current_place: newMember.city,
-          contact_numbers: newMember.phone ? [newMember.phone] : [],
           active: true,
-          role: newMember.role,
         });
-        toast('Member created successfully', 'success');
+        const username = created._username || `${newMember.first_name}${newMember.middle_name}_${newMember.last_name}`.toLowerCase().replace(/[^a-z0-9_]/g, '');
+        toast(`Member added! Login: ${username} / Password: ${username}`, 'success');
       }
       setIsModalOpen(false);
       setEditingMember(null);
@@ -730,11 +719,6 @@ export default function AdminDashboard() {
               first_name: editingMember.first_name || '',
               middle_name: editingMember.middle_name || '',
               last_name: editingMember.last_name || '',
-              email: editingMember.email || '',
-              profession: editingMember.occupation || '',
-              city: editingMember.current_place || '',
-              phone: editingMember.contact_numbers?.[0] || editingMember.contact_no || '',
-              role: editingMember.role || 'member'
             } : undefined}
           />
         </div>

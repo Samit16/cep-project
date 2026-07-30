@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check that target email is not a dummy email
+    // Check that target email is not an internal placeholder address
     if (targetEmail.endsWith('@kvonagpur.com')) {
       return NextResponse.json(
         { error: 'No verified personal email address is connected to this account. Please contact an administrator.' },

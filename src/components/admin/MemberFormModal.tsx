@@ -1,18 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, User, Briefcase, Mail, Phone, MapPin } from 'lucide-react';
+import { X, User, Info } from 'lucide-react';
 import styles from './MemberFormModal.module.css';
 
 interface MemberFormData {
   first_name: string;
   middle_name: string;
   last_name: string;
-  email: string;
-  profession: string;
-  city: string;
-  phone: string;
-  role: string;
 }
 
 interface MemberFormModalProps {
@@ -26,12 +21,12 @@ const defaultValues: MemberFormData = {
   first_name: '',
   middle_name: '',
   last_name: '',
-  email: '',
-  profession: '',
-  city: '',
-  phone: '',
-  role: 'member',
 };
+
+/** Generates the username from name parts — mirrors the backend logic */
+function buildUsername(first: string, middle: string, last: string): string {
+  return `${first}${middle}_${last}`.toLowerCase().replace(/[^a-z0-9_]/g, '');
+}
 
 export default function MemberFormModal({ isOpen, onClose, onSave, initialData }: MemberFormModalProps) {
   const [formData, setFormData] = useState<MemberFormData>({
@@ -52,10 +47,15 @@ export default function MemberFormModal({ isOpen, onClose, onSave, initialData }
 
   if (!isOpen) return null;
 
+  const firstName = formData.first_name.trim();
+  const middleName = formData.middle_name.trim();
+  const lastName = formData.last_name.trim();
+  const allFilled = firstName && middleName && lastName;
+  const previewUsername = allFilled ? buildUsername(firstName, middleName, lastName) : '';
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave(formData);
-    onClose();
   };
 
   return (
@@ -71,7 +71,7 @@ export default function MemberFormModal({ isOpen, onClose, onSave, initialData }
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.row}>
             <div className={styles.formGroup}>
-              <label><User size={14} /> First Name</label>
+              <label><User size={14} /> First Name *</label>
               <input
                 type="text"
                 required
@@ -81,16 +81,17 @@ export default function MemberFormModal({ isOpen, onClose, onSave, initialData }
               />
             </div>
             <div className={styles.formGroup}>
-              <label><User size={14} /> Middle Name</label>
+              <label><User size={14} /> Middle Name *</label>
               <input
                 type="text"
+                required
                 value={formData.middle_name}
                 onChange={(e) => setFormData({ ...formData, middle_name: e.target.value })}
                 placeholder="e.g. Kumar"
               />
             </div>
             <div className={styles.formGroup}>
-              <label><User size={14} /> Last Name</label>
+              <label><User size={14} /> Surname *</label>
               <input
                 type="text"
                 required
@@ -101,59 +102,26 @@ export default function MemberFormModal({ isOpen, onClose, onSave, initialData }
             </div>
           </div>
 
-          <div className={styles.row}>
-            <div className={styles.formGroup}>
-              <label><Mail size={14} /> Email Address</label>
-              <input
-                type="email"
-                required
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="rajesh@example.com"
-              />
+          {/* Credentials preview — shown once all 3 fields are filled */}
+          {allFilled && (
+            <div className={styles.credentialsBox}>
+              <div className={styles.credentialsIcon}><Info size={16} /></div>
+              <div className={styles.credentialsContent}>
+                <p className={styles.credentialsTitle}>Login Credentials (auto-generated)</p>
+                <p className={styles.credentialsRow}>
+                  <span className={styles.credentialsLabel}>Username:</span>
+                  <code className={styles.credentialsValue}>{previewUsername}</code>
+                </p>
+                <p className={styles.credentialsRow}>
+                  <span className={styles.credentialsLabel}>Password:</span>
+                  <code className={styles.credentialsValue}>{previewUsername}</code>
+                </p>
+                <p className={styles.credentialsNote}>
+                  The member can log in with the above credentials and update their profile.
+                </p>
+              </div>
             </div>
-            <div className={styles.formGroup}>
-              <label><Phone size={14} /> Phone Number</label>
-              <input
-                type="text"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="+91 98XXX XXXXX"
-              />
-            </div>
-          </div>
-
-          <div className={styles.row}>
-            <div className={styles.formGroup}>
-              <label><Briefcase size={14} /> Profession</label>
-              <input
-                type="text"
-                value={formData.profession}
-                onChange={(e) => setFormData({ ...formData, profession: e.target.value })}
-                placeholder="e.g. Software Engineer"
-              />
-            </div>
-            <div className={styles.formGroup}>
-              <label><MapPin size={14} /> City</label>
-              <input
-                type="text"
-                value={formData.city}
-                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                placeholder="e.g. Mumbai"
-              />
-            </div>
-          </div>
-
-          <div className={styles.formGroup}>
-            <label>Member Role</label>
-            <select
-              value={formData.role}
-              onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-            >
-              <option value="member">Regular Member</option>
-              <option value="committee">Committee Member</option>
-            </select>
-          </div>
+          )}
 
           <div className={styles.footer}>
             <button type="button" onClick={onClose} className={styles.cancelBtn}>
