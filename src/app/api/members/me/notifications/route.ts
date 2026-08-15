@@ -11,14 +11,22 @@ export async function GET(request: NextRequest) {
     }
 
     const { user } = authResult;
+    const isCommitteeOrAdmin = user.role === 'admin' || user.role === 'committee';
 
     const supabase = createServerSupabase();
 
-    const { data: notifications, error } = await supabase
+    let query = supabase
       .from('notifications')
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
+
+    // Regular members must never see approval-type notifications
+    if (!isCommitteeOrAdmin) {
+      query = query.neq('type', 'approval');
+    }
+
+    const { data: notifications, error } = await query;
 
     if (error) {
       console.error('Error fetching notifications:', error);

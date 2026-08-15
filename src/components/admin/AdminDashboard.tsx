@@ -1,10 +1,10 @@
 'use client';
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   Users, Calendar, 
   Search, Download, UserPlus, TrendingUp, ClipboardList, 
-  ShieldCheck, Pencil, MoreVertical, Plus, Trash2, X, MapPin, Activity, CheckCircle2, Home, Filter
+  ShieldCheck, Pencil, MoreVertical, Plus, Trash2, X, MapPin, Activity, CheckCircle2, Home, Filter, UserCheck, UserX, Clock
 } from 'lucide-react';
 import styles from './AdminDashboard.module.css';
 import Footer from '@/components/layout/Footer/Footer';
@@ -39,6 +39,22 @@ interface MemberAdmin {
   contact_numbers?: string[];
   role?: string;
   family_id?: string;
+  relation?: string;
+}
+
+interface PendingMember {
+  id: string;
+  name: string;
+  first_name?: string;
+  middle_name?: string;
+  last_name?: string;
+  email?: string;
+  occupation?: string;
+  current_place?: string;
+  contact_numbers?: string[];
+  family_id?: string;
+  relation?: string;
+  created_at?: string;
 }
 
 interface EventItem {
@@ -104,6 +120,8 @@ const FloatingLabelInput = ({ label, type = 'text', value, onChange, placeholder
 export default function AdminDashboard() {
   const [members, setMembers] = useState<MemberAdmin[]>([]);
   const [totalMemberCount, setTotalMemberCount] = useState<number>(0);
+  const [pendingMembers, setPendingMembers] = useState<PendingMember[]>([]);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<MemberAdmin | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -116,12 +134,21 @@ export default function AdminDashboard() {
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<EventItem | null>(null);
   const [eventForm, setEventForm] = useState({ title: '', date: '', time: '', location: '', description: '' });
-  const [activeTab, setActiveTab] = useState<'members' | 'events'>('members');
+  const [activeTab, setActiveTab] = useState<'members' | 'events' | 'approvals'>('members');
+  const searchParams = useSearchParams();
   
   const router = useRouter();
   const { toast } = useToast();
   const { role, logout, isLoading } = useAuth();
   const isLoggingOut = useRef(false);
+
+  // Read ?tab=approvals from URL on mount
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'approvals' || tab === 'events' || tab === 'members') {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
 
   // Protect Admin Route — skip during active logout
   useEffect(() => {
@@ -164,11 +191,13 @@ export default function AdminDashboard() {
         totalMemberCount: number;
         members: MemberAdmin[];
         events: EventItem[];
+        pendingMembers: PendingMember[];
       }>('/admin/dashboard', { search: debouncedSearch });
 
       setTotalMemberCount(data.totalMemberCount);
       setMembers(data.members || []);
       setEvents(data.events || []);
+      setPendingMembers(data.pendingMembers || []);
     } catch (err: unknown) {
       toast((err as Error).message || 'Failed to load dashboard data', 'error');
     }
@@ -241,6 +270,7 @@ export default function AdminDashboard() {
       setIsModalOpen(false);
       setEditingMember(null);
       // Re-fetch members and count
+
       await loadDashboardData(true);
     } catch (err: unknown) {
       toast((err as Error).message || `Failed to ${editingMember ? 'update' : 'create'} member`, 'error');
@@ -320,6 +350,34 @@ export default function AdminDashboard() {
       await loadDashboardData(true);
     } catch (err: unknown) {
       toast((err as Error).message || 'Failed to save event.', 'error');
+    }
+  };
+
+  const handleApproveMember = async (memberId: string, memberName: string) => {
+    setApprovingId(memberId);
+    try {
+      await ApiClient.put(`/admin/members/${memberId}`, { active: true });
+      toast(`${memberName} has been approved and added to the directory.`, 'success');
+      setPendingMembers(prev => prev.filter(m => m.id !== memberId));
+      await loadDashboardData(true);
+    } catch (err: unknown) {
+      toast((err as Error).message || 'Failed to approve member', 'error');
+    } finally {
+      setApprovingId(null);
+    }
+  };
+
+  const handleRejectMember = async (memberId: string, memberName: string) => {
+    if (!window.confirm(`Reject and delete "${memberName}"? This cannot be undone.`)) return;
+    setApprovingId(memberId);
+    try {
+      await ApiClient.delete(`/admin/members/${memberId}`);
+      toast(`${memberName} has been rejected and removed.`, 'success');
+      setPendingMembers(prev => prev.filter(m => m.id !== memberId));
+    } catch (err: unknown) {
+      toast((err as Error).message || 'Failed to reject member', 'error');
+    } finally {
+      setApprovingId(null);
     }
   };
 
@@ -444,6 +502,20 @@ export default function AdminDashboard() {
             <Calendar size={16} className={styles.tabIcon} />
             <span>Events Management</span>
             <span className={styles.tabCount}>{events.length}</span>
+          </button>
+          <button 
+            className={`${styles.tabButton} ${activeTab === 'approvals' ? styles.tabButtonActive : ''}`}
+            onClick={() => setActiveTab('approvals')}
+            style={{ position: 'relative' }}
+          >
+            <Clock size={16} className={styles.tabIcon} />
+            <span>New Member Approvals</span>
+            <span 
+              className={styles.tabCount}
+              style={pendingMembers.length > 0 ? { backgroundColor: '#dc2626', color: '#fff' } : {}}
+            >
+              {pendingMembers.length}
+            </span>
           </button>
         </div>
 
@@ -799,6 +871,151 @@ export default function AdminDashboard() {
                 )}
               </div>
             </div>
+          </div>
+        )}
+
+        {/* ========== APPROVALS TAB ========== */}
+        {activeTab === 'approvals' && (
+          <div className={styles.dashboardContent}>
+            <div className={styles.pageHeader}>
+              <div className={styles.pageHeaderTop}>
+                <div>
+                  <p className={styles.pageLabel}>
+                    <Clock size={14} className={styles.pageLabelIcon} />
+                    Pending Review
+                  </p>
+                  <h1 className={styles.pageTitle}>New Member Approvals</h1>
+                  <p className={styles.pageDescription}>
+                    Review and approve new members submitted by existing family members. Approving will make the member visible in the directory.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {pendingMembers.length === 0 ? (
+              <div style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                padding: '5rem 2rem', textAlign: 'center',
+                background: 'var(--color-bg-card)', borderRadius: 'var(--radius-xl)',
+                border: '1px dashed var(--color-border)', marginTop: '1.5rem'
+              }}>
+                <div style={{
+                  width: '64px', height: '64px', borderRadius: '50%',
+                  background: 'var(--color-status-verified-bg)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem'
+                }}>
+                  <UserCheck size={28} color="#16a34a" />
+                </div>
+                <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '0.5rem' }}>
+                  All caught up!
+                </h3>
+                <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9375rem' }}>
+                  No new members are pending approval at this time.
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1.5rem' }}>
+                {pendingMembers.map((member) => (
+                  <div
+                    key={member.id}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '1.25rem',
+                      padding: '1.25rem 1.5rem',
+                      background: 'var(--color-bg-card)',
+                      border: '1px solid var(--color-border)',
+                      borderLeft: '4px solid #f59e0b',
+                      borderRadius: 'var(--radius-xl)',
+                      boxShadow: 'var(--shadow-sm)',
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    {/* Avatar */}
+                    <div style={{
+                      width: '48px', height: '48px', borderRadius: '50%', flexShrink: 0,
+                      background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '1.125rem', fontWeight: 700, color: '#92400e'
+                    }}>
+                      {member.first_name?.[0] || '?'}{member.last_name?.[0] || ''}
+                    </div>
+
+                    {/* Info */}
+                    <div style={{ flex: 1, minWidth: '200px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <span style={{ fontWeight: 600, fontSize: '1rem', color: 'var(--color-text-primary)' }}>
+                          {member.name}
+                        </span>
+                        <span style={{
+                          fontSize: '0.75rem', fontWeight: 600, padding: '2px 8px',
+                          borderRadius: '999px', background: '#fef3c7', color: '#92400e',
+                          border: '1px solid #fcd34d'
+                        }}>
+                          Pending Approval
+                        </span>
+                      </div>
+                      <div style={{ marginTop: '4px', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                        {member.email && (
+                          <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)' }}>
+                            {member.email}
+                          </span>
+                        )}
+                        {member.relation && (
+                          <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)' }}>
+                            Relation: <strong>{member.relation}</strong>
+                          </span>
+                        )}
+                        {member.occupation && (
+                          <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)' }}>
+                            {member.occupation}
+                          </span>
+                        )}
+                        {member.current_place && (
+                          <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                            <MapPin size={11} /> {member.current_place}
+                          </span>
+                        )}
+                      </div>
+                      {member.created_at && (
+                        <div style={{ marginTop: '4px', fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                          Submitted: {new Date(member.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Actions */}
+                    <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                      <button
+                        disabled={approvingId === member.id}
+                        onClick={() => handleApproveMember(member.id, member.name)}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: '6px',
+                          padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer',
+                          background: '#16a34a', color: '#fff', fontWeight: 600, fontSize: '0.875rem',
+                          opacity: approvingId === member.id ? 0.7 : 1,
+                          transition: 'all 0.2s', boxShadow: '0 2px 8px rgba(22,163,74,0.3)'
+                        }}
+                      >
+                        <UserCheck size={15} />
+                        {approvingId === member.id ? 'Processing…' : 'Approve'}
+                      </button>
+                      <button
+                        disabled={approvingId === member.id}
+                        onClick={() => handleRejectMember(member.id, member.name)}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: '6px',
+                          padding: '8px 16px', borderRadius: '8px', border: '1.5px solid #dc2626',
+                          cursor: 'pointer', background: 'transparent', color: '#dc2626',
+                          fontWeight: 600, fontSize: '0.875rem',
+                          opacity: approvingId === member.id ? 0.7 : 1, transition: 'all 0.2s'
+                        }}
+                      >
+                        <UserX size={15} />
+                        Reject
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

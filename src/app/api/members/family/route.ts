@@ -345,16 +345,20 @@ export async function POST(request: NextRequest) {
       _pendingApproval: !isCommittee
     };
 
-    // 3. Send notification to committee members if pending
+    // 3. Send notification ONLY to active committee/admin members if pending
     if (!isCommittee) {
-      const { data: admins } = await supabase.from('profiles').select('id').in('role', ['admin', 'committee']);
-      if (admins && admins.length > 0) {
-        const notifs = admins.map((a: any) => ({
+      const { data: committeeProfiles } = await supabase
+        .from('profiles')
+        .select('id')
+        .in('role', ['admin', 'committee'])
+        .eq('is_active', true);
+      if (committeeProfiles && committeeProfiles.length > 0) {
+        const notifs = committeeProfiles.map((a: any) => ({
           user_id: a.id,
           type: 'approval',
           title: 'New Member Approval Request',
           message: `A new member "${finalMember.name}" has been added by someone in their family. Please review and approve.`,
-          link: '/admin'
+          link: '/dashboard?tab=approvals'
         }));
         await supabase.from('notifications').insert(notifs);
       }

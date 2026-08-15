@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
     let membersQuery = supabase
       .from('members')
       .select('id, first_name, middle_name, last_name, email, occupation, current_place, active, profile_complete, created_at, updated_at, contact_numbers, family_id, profiles(role)')
+      .eq('active', true)
       .order('first_name', { ascending: true })
       .order('last_name', { ascending: true })
       .limit(5000);
@@ -38,11 +39,16 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Execute queries in parallel
-    const [countRes, membersRes, eventsRes] = await Promise.all([
-      supabase.from('members').select('*', { count: 'exact', head: true }),
+    // Execute queries in parallel — also fetch inactive (pending approval) members
+    const [countRes, membersRes, eventsRes, pendingRes] = await Promise.all([
+      supabase.from('members').select('*', { count: 'exact', head: true }).eq('active', true),
       membersQuery,
       supabase.from('events').select('*').order('date', { ascending: false }).limit(200),
+      supabase
+        .from('members')
+        .select('id, first_name, middle_name, last_name, email, occupation, current_place, active, created_at, contact_numbers, family_id, relation')
+        .eq('active', false)
+        .order('created_at', { ascending: false }),
     ]);
 
     if (membersRes.error) {
@@ -50,23 +56,28 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch members' }, { status: 500 });
     }
 
-    const members = (membersRes.data || []).map((m: any) => {
+    const mapMember = (m: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
       const firstName = m.first_name || '';
       const middleName = m.middle_name || '';
       const lastName = m.last_name || '';
       const fullName = `${firstName} ${middleName} ${lastName}`.replace(/\s+/g, ' ').trim();
       const role = m.profiles && m.profiles.length > 0 ? m.profiles[0].role : 'member';
-
       const memberData = { ...m };
       delete memberData.profiles;
-      return {
-        ...memberData,
-        name: fullName || 'Unknown Member',
-        role,
-      };
+      return { ...memberData, name: fullName || 'Unknown Member', role };
+    };
+
+    const members = (membersRes.data || []).map(mapMember);
+
+    const pendingMembers = (pendingRes.data || []).map((m: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+      const firstName = m.first_name || '';
+      const middleName = m.middle_name || '';
+      const lastName = m.last_name || '';
+      const fullName = `${firstName} ${middleName} ${lastName}`.replace(/\s+/g, ' ').trim();
+      return { ...m, name: fullName || 'Unknown Member' };
     });
 
-    const events = (eventsRes.data || []).map((event: any) => {
+    const events = (eventsRes.data || []).map((event: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
       const parts = (event.location || '').split('|');
       return {
         ...event,
@@ -79,6 +90,7 @@ export async function GET(request: NextRequest) {
       totalMemberCount: countRes.count || 0,
       members,
       events,
+      pendingMembers,
     });
   } catch (error: unknown) {
     console.error('Error in GET /api/admin/dashboard:', error);
