@@ -56,159 +56,219 @@ function gInlawSibling(g: string) { return g === 'female' ? 'Sister-in-law' : 'B
 function gSpouse(g: string) { return g === 'female' ? 'Wife' : 'Husband'; }
 
 /**
- * Compute what `target` is to `viewer`, given that all relations are stored 
+ * Compute what `target` is to `viewer`, given that all relations are stored
  * from the primary account's perspective.
- * - viewerRel: target's stored relation (relative to primary)  
- * - targetRel: viewer's stored relation (relative to primary)
- * - targetGender: target's gender
+ *  viewerRel : viewer's stored relation relative to primary  ('' if viewer IS primary)
+ *  targetRel : target's stored relation relative to primary  ('' if target IS primary)
+ *  targetGender : target's gender ('male' | 'female' | '')
+ *
+ * Relations are stored as the PRIMARY HOLDER's relation TO each member.
+ * e.g. if primary has a brother, that member is stored with relation='brother'.
+ * If the brother is viewing the family, we must INVERT/CHAIN to get the correct
+ * relation from his perspective.
  */
 function computeRelFromPerspective(viewerRel: string, targetRel: string, targetGender: string): string {
   const vr = viewerRel.trim().toLowerCase();   // viewer's relation to primary
   const tr = targetRel.trim().toLowerCase();   // target's relation to primary
-  const g = targetGender.trim().toLowerCase(); // target's gender
+  const g  = targetGender.trim().toLowerCase(); // target's gender
 
-  // Target IS the viewer
-  if (vr === tr) return 'Self';
+  // Same stored relation & non-empty = same person (handled upstream by ID, but guard here too)
+  if (vr === tr && vr !== '') return 'Self';
 
-  // Viewer is Primary
+  // ── VIEWER IS PRIMARY ─────────────────────────────────────────────
+  // The stored relation (tr) is primary → target, so we INVERT it.
   if (PRIMARY_RELS.includes(vr)) {
-    if (PRIMARY_RELS.includes(tr)) return 'Primary Account';
+    if (PRIMARY_RELS.includes(tr))         return 'Primary Account';
+    if (PARENT_RELS.includes(tr))          return gChild(g);           // primary's parent → primary is their Child
+    if (CHILD_RELS.includes(tr))           return gParent(g);          // primary's child  → primary is their Parent
+    if (SIBLING_RELS.includes(tr))         return gSibling(g);
+    if (SPOUSE_RELS.includes(tr))          return gSpouse(g);
+    if (GRANDPARENT_RELS.includes(tr))     return gGrandchild(g);
+    if (GRANDCHILD_RELS.includes(tr))      return gGrandparent(g);
+    if (UNCLE_AUNT_RELS.includes(tr))      return gNephNiece(g);
+    if (NEPHEW_NIECE_RELS.includes(tr))    return gUnclAunt(g);
+    if (IN_LAW_PARENT_RELS.includes(tr))   return gInlawChild(g);
+    if (IN_LAW_CHILD_RELS.includes(tr))    return gInlawParent(g);
+    if (IN_LAW_SIBLING_RELS.includes(tr))  return gInlawSibling(g);
+    if (COUSIN_RELS.includes(tr))          return 'Cousin';
     return targetRel || 'Family Member';
   }
 
-  // Target is Primary Account
+  // ── TARGET IS PRIMARY ─────────────────────────────────────────────
+  // The stored relation (vr) is primary → viewer, so we INVERT it.
   if (PRIMARY_RELS.includes(tr)) {
-    // Invert viewer's relation
-    if (PARENT_RELS.includes(vr)) return gChild(g);
-    if (CHILD_RELS.includes(vr)) return gParent(g);
-    if (SIBLING_RELS.includes(vr)) return gSibling(g);
-    if (SPOUSE_RELS.includes(vr)) return gSpouse(g);
-    if (GRANDPARENT_RELS.includes(vr)) return gGrandchild(g);
-    if (GRANDCHILD_RELS.includes(vr)) return gGrandparent(g);
-    if (UNCLE_AUNT_RELS.includes(vr)) return gNephNiece(g);
-    if (NEPHEW_NIECE_RELS.includes(vr)) return gUnclAunt(g);
-    if (IN_LAW_PARENT_RELS.includes(vr)) return gInlawChild(g);
-    if (IN_LAW_CHILD_RELS.includes(vr)) return gInlawParent(g);
-    if (IN_LAW_SIBLING_RELS.includes(vr)) return gInlawSibling(g);
-    if (COUSIN_RELS.includes(vr)) return 'Cousin';
+    if (PARENT_RELS.includes(vr))          return gChild(g);
+    if (CHILD_RELS.includes(vr))           return gParent(g);
+    if (SIBLING_RELS.includes(vr))         return gSibling(g);
+    if (SPOUSE_RELS.includes(vr))          return gSpouse(g);
+    if (GRANDPARENT_RELS.includes(vr))     return gGrandchild(g);
+    if (GRANDCHILD_RELS.includes(vr))      return gGrandparent(g);
+    if (UNCLE_AUNT_RELS.includes(vr))      return gNephNiece(g);
+    if (NEPHEW_NIECE_RELS.includes(vr))    return gUnclAunt(g);
+    if (IN_LAW_PARENT_RELS.includes(vr))   return gInlawChild(g);
+    if (IN_LAW_CHILD_RELS.includes(vr))    return gInlawParent(g);
+    if (IN_LAW_SIBLING_RELS.includes(vr))  return gInlawSibling(g);
+    if (COUSIN_RELS.includes(vr))          return 'Cousin';
     return targetRel || 'Family Member';
   }
 
-  // Both are non-primary — chain through primary
-  // viewer → primary (inverse of vr), then primary → target (tr)
+  // ── BOTH NON-PRIMARY — chain Viewer→Primary→Target ───────────────
 
-  // VIEWER is Parent of Primary
+  // VIEWER is Parent of Primary (grandfather/mother viewing the family)
   if (PARENT_RELS.includes(vr)) {
-    if (PARENT_RELS.includes(tr)) return g === 'female' ? 'Wife' : 'Husband';
-    if (CHILD_RELS.includes(tr)) return g === 'female' ? 'Granddaughter' : 'Grandson';
-    if (SIBLING_RELS.includes(tr)) return gChild(g);
-    if (SPOUSE_RELS.includes(tr)) return gInlawChild(g);
-    if (GRANDPARENT_RELS.includes(tr)) return gParent(g);
-    if (UNCLE_AUNT_RELS.includes(tr)) return gSibling(g);
-    if (IN_LAW_PARENT_RELS.includes(tr)) return gInlawParent(g);
-    if (NEPHEW_NIECE_RELS.includes(tr)) return 'Cousin';
-    if (COUSIN_RELS.includes(tr)) return 'Cousin';
+    if (PARENT_RELS.includes(tr))          return gSpouse(g);                                             // other parent = spouse
+    if (CHILD_RELS.includes(tr))           return g === 'female' ? 'Granddaughter' : 'Grandson';         // child of primary = grandchild
+    if (SIBLING_RELS.includes(tr))         return gChild(g);                                              // sibling of primary = child of viewer
+    if (SPOUSE_RELS.includes(tr))          return gInlawChild(g);                                         // spouse of primary = son/daughter-in-law
+    if (GRANDPARENT_RELS.includes(tr))     return gParent(g);                                             // grandparent of primary = parent of viewer
+    if (GRANDCHILD_RELS.includes(tr))      return g === 'female' ? 'Great-Granddaughter' : 'Great-Grandson';
+    if (UNCLE_AUNT_RELS.includes(tr))      return gSibling(g);                                            // uncle/aunt of primary = sibling of viewer
+    if (NEPHEW_NIECE_RELS.includes(tr))    return gNephNiece(g);                                          // nephew/niece of primary = grandnephew/niece
+    if (IN_LAW_PARENT_RELS.includes(tr))   return gInlawParent(g);
+    if (IN_LAW_CHILD_RELS.includes(tr))    return gInlawChild(g);
+    if (IN_LAW_SIBLING_RELS.includes(tr))  return gInlawChild(g);
+    if (COUSIN_RELS.includes(tr))          return 'Cousin';
   }
 
   // VIEWER is Child of Primary
   if (CHILD_RELS.includes(vr)) {
-    if (PARENT_RELS.includes(tr)) return gGrandparent(g);
-    if (CHILD_RELS.includes(tr)) return gSibling(g);
-    if (SIBLING_RELS.includes(tr)) return gUnclAunt(g);
-    if (SPOUSE_RELS.includes(tr)) return gParent(g);
-    if (GRANDPARENT_RELS.includes(tr)) return g === 'female' ? 'Great-Grandmother' : 'Great-Grandfather';
-    if (GRANDCHILD_RELS.includes(tr)) return gChild(g);
-    if (IN_LAW_CHILD_RELS.includes(tr)) return gInlawSibling(g);
-    if (NEPHEW_NIECE_RELS.includes(tr)) return 'First Cousin';
+    if (PARENT_RELS.includes(tr))          return gGrandparent(g);
+    if (CHILD_RELS.includes(tr))           return gSibling(g);
+    if (SIBLING_RELS.includes(tr))         return gUnclAunt(g);
+    if (SPOUSE_RELS.includes(tr))          return gParent(g);                                             // spouse of primary = parent of viewer
+    if (GRANDPARENT_RELS.includes(tr))     return g === 'female' ? 'Great-Grandmother' : 'Great-Grandfather';
+    if (GRANDCHILD_RELS.includes(tr))      return gChild(g);                                              // grandchild of primary = child of viewer
+    if (IN_LAW_PARENT_RELS.includes(tr))   return gInlawParent(g);
+    if (IN_LAW_CHILD_RELS.includes(tr))    return gInlawSibling(g);
+    if (IN_LAW_SIBLING_RELS.includes(tr))  return gInlawSibling(g);
+    if (NEPHEW_NIECE_RELS.includes(tr))    return 'First Cousin';
+    if (COUSIN_RELS.includes(tr))          return 'Cousin';
   }
 
   // VIEWER is Sibling of Primary
   if (SIBLING_RELS.includes(vr)) {
-    if (PARENT_RELS.includes(tr)) return gParent(g);
-    if (CHILD_RELS.includes(tr)) return gNephNiece(g);
-    if (SIBLING_RELS.includes(tr)) return gSibling(g);
-    if (SPOUSE_RELS.includes(tr)) return gInlawSibling(g);
-    if (UNCLE_AUNT_RELS.includes(tr)) return gUnclAunt(g);
-    if (NEPHEW_NIECE_RELS.includes(tr)) return 'First Cousin';
-    if (COUSIN_RELS.includes(tr)) return 'Cousin';
+    if (PARENT_RELS.includes(tr))          return gParent(g);
+    if (CHILD_RELS.includes(tr))           return gNephNiece(g);                                          // child of primary = nephew/niece
+    if (SIBLING_RELS.includes(tr))         return gSibling(g);
+    if (SPOUSE_RELS.includes(tr))          return gInlawSibling(g);
+    if (GRANDPARENT_RELS.includes(tr))     return gGrandparent(g);
+    if (GRANDCHILD_RELS.includes(tr))      return gNephNiece(g);                                          // grandchild of primary = grand-nephew/niece
+    if (UNCLE_AUNT_RELS.includes(tr))      return gUnclAunt(g);
+    if (NEPHEW_NIECE_RELS.includes(tr))    return 'First Cousin';
+    if (IN_LAW_CHILD_RELS.includes(tr))    return gNephNiece(g);
+    if (IN_LAW_SIBLING_RELS.includes(tr))  return gInlawSibling(g);
+    if (COUSIN_RELS.includes(tr))          return 'Cousin';
   }
 
   // VIEWER is Spouse of Primary
   if (SPOUSE_RELS.includes(vr)) {
-    if (PARENT_RELS.includes(tr)) return gInlawParent(g);
-    if (CHILD_RELS.includes(tr)) return gChild(g);
-    if (SIBLING_RELS.includes(tr)) return gInlawSibling(g);
-    if (UNCLE_AUNT_RELS.includes(tr)) return gUnclAunt(g);
-    if (IN_LAW_PARENT_RELS.includes(tr)) return gParent(g);
-    if (NEPHEW_NIECE_RELS.includes(tr)) return gNephNiece(g);
+    if (PARENT_RELS.includes(tr))          return gInlawParent(g);
+    if (CHILD_RELS.includes(tr))           return gChild(g);                                              // child of primary = child of viewer
+    if (SIBLING_RELS.includes(tr))         return gInlawSibling(g);
+    if (GRANDPARENT_RELS.includes(tr))     return gGrandparent(g);                                        // grandparent of primary = grandparent-in-law
+    if (GRANDCHILD_RELS.includes(tr))      return g === 'female' ? 'Granddaughter' : 'Grandson';         // grandchild of primary = grandchild
+    if (UNCLE_AUNT_RELS.includes(tr))      return gUnclAunt(g);
+    if (IN_LAW_PARENT_RELS.includes(tr))   return gParent(g);                                             // in-law parent of primary = parent of viewer
+    if (IN_LAW_SIBLING_RELS.includes(tr))  return gSibling(g);                                            // in-law sibling = sibling of viewer
+    if (NEPHEW_NIECE_RELS.includes(tr))    return gNephNiece(g);
+    if (IN_LAW_CHILD_RELS.includes(tr))    return gInlawSibling(g);
+    if (COUSIN_RELS.includes(tr))          return 'Cousin';
   }
 
   // VIEWER is Grandparent of Primary
   if (GRANDPARENT_RELS.includes(vr)) {
-    if (PARENT_RELS.includes(tr)) return gChild(g);
-    if (GRANDPARENT_RELS.includes(tr)) return gSpouse(g);
-    if (CHILD_RELS.includes(tr)) return g === 'female' ? 'Great-Granddaughter' : 'Great-Grandson';
-    if (SIBLING_RELS.includes(tr)) return gNephNiece(g);
-    if (UNCLE_AUNT_RELS.includes(tr)) return gSibling(g);
+    if (PARENT_RELS.includes(tr))          return gChild(g);                                              // parent of primary = child of grandparent
+    if (GRANDPARENT_RELS.includes(tr))     return gSpouse(g);
+    if (CHILD_RELS.includes(tr))           return g === 'female' ? 'Great-Granddaughter' : 'Great-Grandson';
+    if (GRANDCHILD_RELS.includes(tr))      return g === 'female' ? 'Great-Granddaughter' : 'Great-Grandson';
+    if (SIBLING_RELS.includes(tr))         return gNephNiece(g);                                          // sibling of primary = grand-nephew/niece
+    if (UNCLE_AUNT_RELS.includes(tr))      return gSibling(g);
+    if (NEPHEW_NIECE_RELS.includes(tr))    return gNephNiece(g);
+    if (SPOUSE_RELS.includes(tr))          return gInlawChild(g);                                         // spouse of primary = grandchild-in-law
+    if (COUSIN_RELS.includes(tr))          return 'Cousin';
   }
 
   // VIEWER is Grandchild of Primary
   if (GRANDCHILD_RELS.includes(vr)) {
-    if (PARENT_RELS.includes(tr)) return gParent(g);
-    if (CHILD_RELS.includes(tr)) return gSibling(g);
-    if (GRANDPARENT_RELS.includes(tr)) return gGrandparent(g);
-    if (SIBLING_RELS.includes(tr)) return gUnclAunt(g);
-    if (GRANDCHILD_RELS.includes(tr)) return gSibling(g);
+    if (PARENT_RELS.includes(tr))          return gGrandparent(g);                                        // parent of primary = great-grandparent of viewer
+    if (CHILD_RELS.includes(tr))           return gParent(g);                                             // child of primary = parent of viewer
+    if (GRANDPARENT_RELS.includes(tr))     return g === 'female' ? 'Great-Grandmother' : 'Great-Grandfather';
+    if (SIBLING_RELS.includes(tr))         return gUnclAunt(g);                                           // sibling of primary = uncle/aunt of viewer
+    if (GRANDCHILD_RELS.includes(tr))      return gSibling(g);                                            // other grandchild = sibling
+    if (SPOUSE_RELS.includes(tr))          return gGrandparent(g);
+    if (NEPHEW_NIECE_RELS.includes(tr))    return 'First Cousin';
   }
 
   // VIEWER is Uncle/Aunt of Primary
   if (UNCLE_AUNT_RELS.includes(vr)) {
-    if (PARENT_RELS.includes(tr)) return gSibling(g);
-    if (GRANDPARENT_RELS.includes(tr)) return gParent(g);
-    if (SIBLING_RELS.includes(tr)) return gSibling(g);
-    if (UNCLE_AUNT_RELS.includes(tr)) return gSpouse(g);
-    if (CHILD_RELS.includes(tr)) return 'First Cousin';
-    if (NEPHEW_NIECE_RELS.includes(tr)) return 'Nephew/Niece';
+    if (PARENT_RELS.includes(tr))          return gSibling(g);                                            // parent of primary = sibling of uncle/aunt
+    if (GRANDPARENT_RELS.includes(tr))     return gParent(g);
+    if (SIBLING_RELS.includes(tr))         return gNephNiece(g);                                          // sibling of primary = nephew/niece of uncle/aunt
+    if (UNCLE_AUNT_RELS.includes(tr))      return gSpouse(g);
+    if (CHILD_RELS.includes(tr))           return 'First Cousin';
+    if (NEPHEW_NIECE_RELS.includes(tr))    return gNephNiece(g);
+    if (GRANDCHILD_RELS.includes(tr))      return 'Grand-Nephew/Niece';
+    if (COUSIN_RELS.includes(tr))          return 'Cousin';
+    if (SPOUSE_RELS.includes(tr))          return gNephNiece(g);
   }
 
   // VIEWER is Nephew/Niece of Primary
   if (NEPHEW_NIECE_RELS.includes(vr)) {
-    if (PARENT_RELS.includes(tr)) return gUnclAunt(g);
-    if (SIBLING_RELS.includes(tr)) return gParent(g);
-    if (NEPHEW_NIECE_RELS.includes(tr)) return gSibling(g);
-    if (CHILD_RELS.includes(tr)) return 'First Cousin';
+    if (PARENT_RELS.includes(tr))          return gUnclAunt(g);
+    if (SIBLING_RELS.includes(tr))         return gParent(g);                                             // sibling of primary = parent of viewer (nephew)
+    if (NEPHEW_NIECE_RELS.includes(tr))    return gSibling(g);
+    if (CHILD_RELS.includes(tr))           return 'First Cousin';
+    if (GRANDPARENT_RELS.includes(tr))     return gGrandparent(g);
+    if (UNCLE_AUNT_RELS.includes(tr))      return gUnclAunt(g);
+    if (COUSIN_RELS.includes(tr))          return 'Cousin';
   }
 
   // VIEWER is Cousin of Primary
   if (COUSIN_RELS.includes(vr)) {
-    if (SIBLING_RELS.includes(tr)) return 'Cousin';
-    if (PARENT_RELS.includes(tr)) return gUnclAunt(g);
-    if (CHILD_RELS.includes(tr)) return 'Cousin Once Removed';
-    if (COUSIN_RELS.includes(tr)) return gSpouse(g);
+    if (SIBLING_RELS.includes(tr))         return 'Cousin';
+    if (PARENT_RELS.includes(tr))          return gUnclAunt(g);
+    if (CHILD_RELS.includes(tr))           return 'Cousin Once Removed';
+    if (COUSIN_RELS.includes(tr))          return gSpouse(g);
+    if (GRANDPARENT_RELS.includes(tr))     return gGrandparent(g);
+    if (UNCLE_AUNT_RELS.includes(tr))      return gParent(g);
   }
 
-  // VIEWER is Father-in-law / Mother-in-law of Primary
+  // VIEWER is Father/Mother-in-law of Primary
   if (IN_LAW_PARENT_RELS.includes(vr)) {
-    if (SPOUSE_RELS.includes(tr)) return gChild(g);
-    if (CHILD_RELS.includes(tr)) return g === 'female' ? 'Granddaughter' : 'Grandson';
-    if (IN_LAW_PARENT_RELS.includes(tr)) return gSpouse(g);
-    if (SIBLING_RELS.includes(tr)) return gInlawChild(g);
+    if (SPOUSE_RELS.includes(tr))          return gChild(g);                                              // spouse of primary = son/daughter of viewer
+    if (CHILD_RELS.includes(tr))           return g === 'female' ? 'Granddaughter' : 'Grandson';
+    if (GRANDCHILD_RELS.includes(tr))      return g === 'female' ? 'Great-Granddaughter' : 'Great-Grandson';
+    if (IN_LAW_PARENT_RELS.includes(tr))   return gSpouse(g);
+    if (SIBLING_RELS.includes(tr))         return gInlawChild(g);
+    if (PARENT_RELS.includes(tr))          return gInlawParent(g);
+    if (IN_LAW_CHILD_RELS.includes(tr))    return gChild(g);
   }
 
-  // VIEWER is Son-in-law / Daughter-in-law of Primary
+  // VIEWER is Son/Daughter-in-law of Primary
   if (IN_LAW_CHILD_RELS.includes(vr)) {
-    if (PARENT_RELS.includes(tr)) return gInlawParent(g);
-    if (CHILD_RELS.includes(tr)) return gInlawSibling(g);
-    if (IN_LAW_CHILD_RELS.includes(tr)) return gSpouse(g);
-    if (SIBLING_RELS.includes(tr)) return gInlawSibling(g);
+    if (PARENT_RELS.includes(tr))          return gInlawParent(g);
+    if (CHILD_RELS.includes(tr))           return gInlawSibling(g);
+    if (IN_LAW_CHILD_RELS.includes(tr))    return gSpouse(g);
+    if (SIBLING_RELS.includes(tr))         return gInlawSibling(g);
+    if (SPOUSE_RELS.includes(tr))          return gSpouse(g);
+    if (GRANDPARENT_RELS.includes(tr))     return gGrandparent(g);
+    if (IN_LAW_PARENT_RELS.includes(tr))   return gParent(g);                                             // in-law parent of primary = parent of viewer
+    if (GRANDCHILD_RELS.includes(tr))      return gChild(g);
+    if (NEPHEW_NIECE_RELS.includes(tr))    return gNephNiece(g);
+    if (UNCLE_AUNT_RELS.includes(tr))      return gUnclAunt(g);
   }
 
-  // VIEWER is Brother-in-law / Sister-in-law of Primary
+  // VIEWER is Brother/Sister-in-law of Primary
   if (IN_LAW_SIBLING_RELS.includes(vr)) {
-    if (SPOUSE_RELS.includes(tr)) return gSibling(g);
-    if (SIBLING_RELS.includes(tr)) return gInlawSibling(g);
-    if (PARENT_RELS.includes(tr)) return gInlawParent(g);
-    if (CHILD_RELS.includes(tr)) return gNephNiece(g);
+    if (SPOUSE_RELS.includes(tr))          return gSibling(g);                                            // spouse of primary = sibling of viewer
+    if (SIBLING_RELS.includes(tr))         return gInlawSibling(g);
+    if (PARENT_RELS.includes(tr))          return gInlawParent(g);
+    if (CHILD_RELS.includes(tr))           return gNephNiece(g);
+    if (GRANDCHILD_RELS.includes(tr))      return gNephNiece(g);
+    if (IN_LAW_SIBLING_RELS.includes(tr))  return gSibling(g);
+    if (IN_LAW_PARENT_RELS.includes(tr))   return gParent(g);
+    if (UNCLE_AUNT_RELS.includes(tr))      return gUnclAunt(g);
+    if (NEPHEW_NIECE_RELS.includes(tr))    return 'First Cousin';
   }
 
   return targetRel || 'Family Member';
