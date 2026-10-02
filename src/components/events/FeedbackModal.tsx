@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { ApiClient } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { X, Star } from 'lucide-react';
@@ -31,6 +31,7 @@ export function FeedbackModal({ eventId, eventTitle, onClose }: { eventId: strin
       });
       toast('Feedback submitted successfully!', 'success');
       onClose();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       toast(err.message || 'Failed to submit feedback', 'error');
     }

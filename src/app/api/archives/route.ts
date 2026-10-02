@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { authenticateSupabase, requireRole, createServerSupabase } from '@/lib/auth-server';
 import { sanitizeObject } from '@/lib/sanitize';
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
 
     // Fetch view counts for all posts in one query (non-fatal if table doesn't exist)
     const postIds = (posts || []).map((p) => p.id);
-    let viewCounts: Record<string, number> = {};
+    const viewCounts: Record<string, number> = {};
     if (postIds.length > 0) {
       try {
         const { data: views } = await supabase
@@ -53,7 +53,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch authors info separately to bypass the foreign key mapping issue
-    let profilesMap: Record<string, any> = {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const profilesMap: Record<string, any> = {};
     if (postIds.length > 0) {
       const authorIds = [...new Set((posts || []).map(p => p.author_id))];
       const { data: profiles } = await supabase

@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
-import { useToast } from '@/components/ui/Toast/ToastProvider';
 import {
   useGsapHeroEntrance,
   useGsapStagger,
@@ -165,7 +164,6 @@ export function AchievementsSection() {
     duration: 0.9,
     distance: 40,
   });
-  const bannerRef = useGsapParallax<HTMLDivElement>(0.12, 'y');
 
   if (!user) return null;
 
@@ -191,7 +189,6 @@ export function AchievementsSection() {
 // ============================================
 
 export function EventsSection() {
-  const { toast } = useToast();
   const { user } = useAuth();
   const sectionRef = useGsapSectionFlow<HTMLElement>();
   const headerRef = useGsapStagger<HTMLDivElement>('.gsap-events-header', {

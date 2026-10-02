@@ -19,15 +19,16 @@ function getFeedback() {
   return JSON.parse(data);
 }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function saveFeedback(feedback: any) {
   fs.writeFileSync(DB_PATH, JSON.stringify(feedback, null, 2));
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const feedback = getFeedback();
     return NextResponse.json(feedback);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Failed to fetch feedback' }, { status: 500 });
   }
 }
@@ -49,6 +50,7 @@ export async function POST(request: NextRequest) {
     const feedbackList = getFeedback();
 
     // Check if user already submitted feedback for this event
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const existingIndex = feedbackList.findIndex((f: any) => f.event_id === event_id && f.user_id === authResult.user?.id);
     
     if (existingIndex > -1) {

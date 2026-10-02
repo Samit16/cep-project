@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function MemberGrowthChart({ members }: { members: any[] }) {
   const data = useMemo(() => {
     if (!members || members.length === 0) return [];
@@ -109,6 +110,7 @@ export function OverviewRingChart({ active, pending }: { active: number, pending
   );
 }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function EventParticipationChart({ events }: { events: any[] }) {
   const data = useMemo(() => {
     if (!events || events.length === 0) return [];

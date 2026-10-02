@@ -81,9 +81,11 @@ export async function GET(request: NextRequest) {
     const families: Array<{ family_id: string, family_name: string, members: Record<string, unknown>[] }> = [];
     familyMap.forEach((familyMembers, family_id) => {
       // Include families (size > 1). For solo members (size === 1), only include them if they have explicitly opted in (contact_visibility === 'public')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if (familyMembers.length > 1 || (familyMembers.length === 1 && (familyMembers[0] as any).contact_visibility === 'public')) {
         // Determine a family name. Use the families.name if it exists, otherwise fallback to primary member's name.
         let familyName = 'Unknown Family';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const firstMember = familyMembers[0] as any;
         if (firstMember?.families?.name) {
           familyName = firstMember.families.name;

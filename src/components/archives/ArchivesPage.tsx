@@ -75,7 +75,7 @@ function PostCard({
   // Fire view tracking once on mount (idempotent on server side)
   useEffect(() => {
     ApiClient.post(`/archives/${post.id}/view`, {}).catch(() => {/* non-fatal */});
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [post.id]);
 
   return (
@@ -175,7 +175,6 @@ function PostModal({
   onClose: () => void;
   onSaved: (post: ArchivePost) => void;
 }) {
-  const { token } = useAuth();
   const isEdit = !!initial;
   const [content, setContent] = useState(initial?.content ?? '');
   const [existingUrls, setExistingUrls] = useState<string[]>(initial?.image_urls ?? []);
@@ -349,8 +348,8 @@ function PostModal({
 // ============================================================
 // Delete Confirmation Dialog
 // ============================================================
-function DeleteDialog({ post, onConfirm, onCancel, loading }: {
-  post: ArchivePost;
+function DeleteDialog({ onConfirm, onCancel, loading }: {
+  post?: ArchivePost;
   onConfirm: () => void;
   onCancel: () => void;
   loading: boolean;

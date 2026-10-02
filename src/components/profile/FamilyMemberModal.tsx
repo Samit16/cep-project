@@ -46,8 +46,12 @@ export default function FamilyMemberModal({ member, isPrimary = false, onClose, 
         'First Cousin', 'Second Cousin', 'Cousin Once Removed', 'Step Cousin', 'Cousin',
         'Father-in-law', 'Mother-in-law',
         'Brother-in-law', 'Sister-in-law',
+        'Co-Brother-in-law', 'Co-Sister-in-law',
         'Son-in-law', 'Daughter-in-law',
         'Grandson-in-law', 'Granddaughter-in-law',
+        'Uncle-in-law', 'Aunt-in-law',
+        'Nephew-in-law', 'Niece-in-law',
+        'Cousin-in-law',
         'Great Uncle', 'Great Aunt',
         'Stepfather', 'Stepmother', 'Stepbrother', 'Stepsister', 'Stepson', 'Stepdaughter',
         'Step Grandfather', 'Step Grandmother',
@@ -76,8 +80,12 @@ export default function FamilyMemberModal({ member, isPrimary = false, onClose, 
         'First Cousin', 'Second Cousin', 'Cousin Once Removed', 'Step Cousin', 'Cousin',
         'Father-in-law', 'Mother-in-law',
         'Brother-in-law', 'Sister-in-law',
+        'Co-Brother-in-law', 'Co-Sister-in-law',
         'Son-in-law', 'Daughter-in-law',
         'Grandson-in-law', 'Granddaughter-in-law',
+        'Uncle-in-law', 'Aunt-in-law',
+        'Nephew-in-law', 'Niece-in-law',
+        'Cousin-in-law',
         'Great Uncle', 'Great Aunt',
         'Stepfather', 'Stepmother', 'Stepbrother', 'Stepsister', 'Stepson', 'Stepdaughter',
         'Step Grandfather', 'Step Grandmother',
@@ -138,15 +146,16 @@ export default function FamilyMemberModal({ member, isPrimary = false, onClose, 
         onSaved(savedMember);
         onClose();
       }
-    } catch (err: any) {
-      if (err.status === 409 && err.data) {
-        if (err.data.matches) {
-          setMatchedMembers(err.data.matches);
-        } else if (err.data.promptNew) {
+    } catch (err: unknown) {
+      const apiErr = err as { status?: number; data?: { matches?: Member[]; promptNew?: boolean }; message?: string };
+      if (apiErr.status === 409 && apiErr.data) {
+        if (apiErr.data.matches) {
+          setMatchedMembers(apiErr.data.matches);
+        } else if (apiErr.data.promptNew) {
           setShowNotFoundPrompt(true);
         }
       } else {
-        const errorMessage = err.message || 'Failed to save family member';
+        const errorMessage = (err as Error).message || 'Failed to save family member';
         toast(errorMessage, 'error');
       }
     } finally {
@@ -161,7 +170,7 @@ export default function FamilyMemberModal({ member, isPrimary = false, onClose, 
       if (!isPrimary && payload.relation === 'Other') {
         payload.relation = payload.custom_relation;
       }
-      // @ts-expect-error
+      // @ts-expect-error -- custom_relation is a form-only field, removed before sending to API
       delete payload.custom_relation;
       
       const savedMember = await ApiClient.post<Member>('/members/family/link', {
@@ -172,8 +181,8 @@ export default function FamilyMemberModal({ member, isPrimary = false, onClose, 
       toast('Member successfully linked to your family.', 'success');
       onSaved(savedMember);
       onClose();
-    } catch (err: any) {
-      toast(err.message || 'Failed to link member', 'error');
+    } catch (err: unknown) {
+      toast((err as Error).message || 'Failed to link member', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -195,7 +204,7 @@ export default function FamilyMemberModal({ member, isPrimary = false, onClose, 
             </button>
           </div>
           <div className={styles.infoAlert} style={{ background: '#eff6ff', borderColor: '#bfdbfe', color: '#1e3a8a', marginBottom: '20px' }}>
-            We couldn't find this member in the directory. Would you like to submit their details to the committee for approval to add a new member?
+            We couldn&apos;t find this member in the directory. Would you like to submit their details to the committee for approval to add a new member?
           </div>
           
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '24px' }}>
@@ -224,7 +233,7 @@ export default function FamilyMemberModal({ member, isPrimary = false, onClose, 
       <div className={styles.modalOverlay}>
         <div className={styles.modalContent} style={{ maxWidth: '600px' }}>
           <div className={styles.modalHeader}>
-            <h2 className={styles.modalTitle}>Is this what you're looking for?</h2>
+            <h2 className={styles.modalTitle}>Is this what you&apos;re looking for?</h2>
             <button className={styles.closeBtn} onClick={() => setMatchedMembers(null)}>
               <X size={20} />
             </button>
@@ -234,8 +243,8 @@ export default function FamilyMemberModal({ member, isPrimary = false, onClose, 
           </div>
           
           <div style={{ maxHeight: '60vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
-            {matchedMembers.map((m: any) => (
-              <div key={m.id} style={{ border: '1px solid var(--color-border)', borderRadius: '8px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            {matchedMembers.map((m: Member, index: number) => (
+              <div key={m.id || index} style={{ border: '1px solid var(--color-border)', borderRadius: '8px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <h3 style={{ margin: '0 0 4px 0', fontSize: '1.1rem' }}>{m.name}</h3>
                   <p style={{ margin: '0', fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
@@ -244,8 +253,8 @@ export default function FamilyMemberModal({ member, isPrimary = false, onClose, 
                   {m.occupation && <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem' }}>{m.occupation}</p>}
                 </div>
                 <button 
-                  onClick={() => handleLinkMember(m.id)}
-                  disabled={isSubmitting}
+                  onClick={() => m.id && handleLinkMember(m.id)}
+                  disabled={isSubmitting || !m.id}
                   style={{ background: 'var(--color-primary)', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}
                 >
                   {isSubmitting ? 'Linking...' : 'Yes, link this member'}
@@ -570,16 +579,26 @@ export default function FamilyMemberModal({ member, isPrimary = false, onClose, 
                 <optgroup label="Siblings-in-law">
                   <option value="Brother-in-law">Brother-in-law</option>
                   <option value="Sister-in-law">Sister-in-law</option>
+                  <option value="Co-Brother-in-law">Co-Brother-in-law (Spouse&apos;s Brother&apos;s Wife&apos;s Brother)</option>
+                  <option value="Co-Sister-in-law">Co-Sister-in-law (Spouse&apos;s Sister&apos;s Husband&apos;s Sister)</option>
                 </optgroup>
 
                 <optgroup label="Children-in-law">
                   <option value="Son-in-law">Son-in-law</option>
                   <option value="Daughter-in-law">Daughter-in-law</option>
+                  <option value="Nephew-in-law">Nephew-in-law (Sibling&apos;s Son)</option>
+                  <option value="Niece-in-law">Niece-in-law (Sibling&apos;s Daughter)</option>
                 </optgroup>
 
                 <optgroup label="Grandchildren-in-law">
                   <option value="Grandson-in-law">Grandson-in-law</option>
                   <option value="Granddaughter-in-law">Granddaughter-in-law</option>
+                </optgroup>
+
+                <optgroup label="Extended In-laws">
+                  <option value="Uncle-in-law">Uncle-in-law (Spouse&apos;s Uncle)</option>
+                  <option value="Aunt-in-law">Aunt-in-law (Spouse&apos;s Aunt)</option>
+                  <option value="Cousin-in-law">Cousin-in-law (Spouse&apos;s Cousin)</option>
                 </optgroup>
 
                 <optgroup label="Other Relations">

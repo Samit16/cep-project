@@ -32,6 +32,7 @@ function inlawSibling(gB: string) { return gB === 'female' ? 'Sister-in-law' : '
 function spouseStr(gB: string) { return gB === 'female' ? 'Wife' : 'Husband'; }
 
 // Helper to determine the inverse of a relation relative to self
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function determineInverseRelation(relation: string, genderSelf?: string): string {
   const rel = (relation || '').trim().toLowerCase();
   const selfG = (genderSelf || '').trim().toLowerCase();
@@ -229,6 +230,7 @@ export async function POST(request: NextRequest) {
       .select('*')
       .eq('family_id', userFamilyId);
       
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userMember = familyMembersUser?.find((m: any) => m.id === user.member_id) || familyMembersUser?.find((m: any) => !m.relation) || familyMembersUser?.[0];
 
     if (!userMember) {
