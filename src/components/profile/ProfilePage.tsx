@@ -2,13 +2,12 @@
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Pencil, Eye, ShieldCheck, Mail, Phone, CheckCircle2, LogOut, AlertTriangle, X, Send, KeyRound, Settings, UserPlus, Users, MessageSquare, AtSign, Trash2, Copy } from 'lucide-react';
+import { Pencil, Eye, ShieldCheck, Mail, Phone, CheckCircle2, LogOut, AlertTriangle, X, Send, KeyRound, Settings, Users, MessageSquare, AtSign, Copy, Trash2, UserPlus } from 'lucide-react';
 import styles from './ProfilePage.module.css';
 import { ApiClient } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { ProfileSkeleton } from '@/components/ui/Skeleton/Skeleton';
-import ProfileUpdateModal from './ProfileUpdateModal';
 import FamilyMemberModal from './FamilyMemberModal';
 import ChangePasswordModal from './ChangePasswordModal';
 import ChangeUsernameModal from './ChangeUsernameModal';
@@ -35,12 +34,12 @@ const SIBLING_RELS = ['brother', 'sister', 'half brother', 'half sister', 'stepb
 const SPOUSE_RELS = ['spouse', 'husband', 'wife'];
 const GRANDPARENT_RELS = ['paternal grandfather', 'paternal grandmother', 'maternal grandfather', 'maternal grandmother', 'great grandfather', 'great grandmother', 'step grandfather', 'step grandmother'];
 const GRANDCHILD_RELS = ['grandson', 'granddaughter', 'great grandson', 'great granddaughter'];
-const UNCLE_AUNT_RELS = ['uncle', 'aunt', 'paternal uncle', 'paternal aunt', 'maternal uncle', 'maternal aunt', 'great uncle', 'great aunt'];
-const NEPHEW_NIECE_RELS = ['nephew', 'niece', 'great nephew', 'great niece'];
+const UNCLE_AUNT_RELS = ['uncle', 'aunt', 'paternal uncle', 'paternal aunt', 'maternal uncle', 'maternal aunt', 'great uncle', 'great aunt', 'uncle-in-law', 'aunt-in-law'];
+const NEPHEW_NIECE_RELS = ['nephew', 'niece', 'great nephew', 'great niece', 'nephew-in-law', 'niece-in-law'];
 const IN_LAW_PARENT_RELS = ['father-in-law', 'mother-in-law'];
 const IN_LAW_CHILD_RELS = ['son-in-law', 'daughter-in-law', 'grandson-in-law', 'granddaughter-in-law'];
-const IN_LAW_SIBLING_RELS = ['brother-in-law', 'sister-in-law'];
-const COUSIN_RELS = ['cousin', 'first cousin', 'second cousin', 'cousin once removed', 'step cousin'];
+const IN_LAW_SIBLING_RELS = ['brother-in-law', 'sister-in-law', 'co-brother-in-law', 'co-sister-in-law'];
+const COUSIN_RELS = ['cousin', 'first cousin', 'second cousin', 'cousin once removed', 'step cousin', 'cousin-in-law'];
 const PRIMARY_RELS = ['', 'primary', 'primary account', 'self', 'head'];
 
 function gSibling(g: string) { return g === 'female' ? 'Sister' : 'Brother'; }
@@ -54,48 +53,55 @@ function gInlawParent(g: string) { return g === 'female' ? 'Mother-in-law' : 'Fa
 function gInlawChild(g: string) { return g === 'female' ? 'Daughter-in-law' : 'Son-in-law'; }
 function gInlawSibling(g: string) { return g === 'female' ? 'Sister-in-law' : 'Brother-in-law'; }
 function gSpouse(g: string) { return g === 'female' ? 'Wife' : 'Husband'; }
+function gUnclAuntInlaw(g: string) { return g === 'female' ? 'Aunt-in-law' : 'Uncle-in-law'; }
+function gNephNieceInlaw(g: string) { return g === 'female' ? 'Niece-in-law' : 'Nephew-in-law'; }
+function gCoSiblingInlaw(g: string) { return g === 'female' ? 'Co-Sister-in-law' : 'Co-Brother-in-law'; }
+
+function formatRel(rel: string, g?: string): string {
+  const r = (rel || '').trim().toLowerCase();
+  const gender = (g || '').trim().toLowerCase();
+  if (!r) return 'Family Member';
+  if (r === 'child') return gChild(gender);
+  if (r === 'parent') return gParent(gender);
+  if (r === 'spouse') return gSpouse(gender);
+  if (r === 'sibling') return gSibling(gender);
+  if (r === 'grandparent') return gGrandparent(gender);
+  if (r === 'grandchild') return gGrandchild(gender);
+
+  return rel
+    .trim()
+    .split(/\s+/)
+    .map(w => {
+      if (w.includes('-')) {
+        return w.split('-').map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()).join('-');
+      }
+      return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+    })
+    .join(' ');
+}
 
 /**
- * Compute what `target` is to `viewer`, given that all relations are stored
- * from the primary account's perspective.
+ * Compute what `target` is to `viewer`, given that relations are stored
+ * as each member's relation relative to the primary account.
  *  viewerRel : viewer's stored relation relative to primary  ('' if viewer IS primary)
  *  targetRel : target's stored relation relative to primary  ('' if target IS primary)
  *  targetGender : target's gender ('male' | 'female' | '')
- *
- * Relations are stored as the PRIMARY HOLDER's relation TO each member.
- * e.g. if primary has a brother, that member is stored with relation='brother'.
- * If the brother is viewing the family, we must INVERT/CHAIN to get the correct
- * relation from his perspective.
  */
 function computeRelFromPerspective(viewerRel: string, targetRel: string, targetGender: string): string {
   const vr = viewerRel.trim().toLowerCase();   // viewer's relation to primary
   const tr = targetRel.trim().toLowerCase();   // target's relation to primary
   const g  = targetGender.trim().toLowerCase(); // target's gender
 
-  // Same stored relation & non-empty = same person (handled upstream by ID, but guard here too)
-  if (vr === tr && vr !== '') return 'Self';
-
   // ── VIEWER IS PRIMARY ─────────────────────────────────────────────
-  // The stored relation (tr) is primary → target, so we INVERT it.
+  // Relations in the database are stored as each member's relation to the primary account holder.
+  // When the primary holder is viewing, target's relation is directly their stored relation.
   if (PRIMARY_RELS.includes(vr)) {
     if (PRIMARY_RELS.includes(tr))         return 'Primary Account';
-    if (PARENT_RELS.includes(tr))          return gChild(g);           // primary's parent → primary is their Child
-    if (CHILD_RELS.includes(tr))           return gParent(g);          // primary's child  → primary is their Parent
-    if (SIBLING_RELS.includes(tr))         return gSibling(g);
-    if (SPOUSE_RELS.includes(tr))          return gSpouse(g);
-    if (GRANDPARENT_RELS.includes(tr))     return gGrandchild(g);
-    if (GRANDCHILD_RELS.includes(tr))      return gGrandparent(g);
-    if (UNCLE_AUNT_RELS.includes(tr))      return gNephNiece(g);
-    if (NEPHEW_NIECE_RELS.includes(tr))    return gUnclAunt(g);
-    if (IN_LAW_PARENT_RELS.includes(tr))   return gInlawChild(g);
-    if (IN_LAW_CHILD_RELS.includes(tr))    return gInlawParent(g);
-    if (IN_LAW_SIBLING_RELS.includes(tr))  return gInlawSibling(g);
-    if (COUSIN_RELS.includes(tr))          return 'Cousin';
-    return targetRel || 'Family Member';
+    return formatRel(targetRel, g);
   }
 
   // ── TARGET IS PRIMARY ─────────────────────────────────────────────
-  // The stored relation (vr) is primary → viewer, so we INVERT it.
+  // When target is primary, what target is to viewer is the inverse of viewer's relation to primary.
   if (PRIMARY_RELS.includes(tr)) {
     if (PARENT_RELS.includes(vr))          return gChild(g);
     if (CHILD_RELS.includes(vr))           return gParent(g);
@@ -109,7 +115,7 @@ function computeRelFromPerspective(viewerRel: string, targetRel: string, targetG
     if (IN_LAW_CHILD_RELS.includes(vr))    return gInlawParent(g);
     if (IN_LAW_SIBLING_RELS.includes(vr))  return gInlawSibling(g);
     if (COUSIN_RELS.includes(vr))          return 'Cousin';
-    return targetRel || 'Family Member';
+    return 'Primary Account';
   }
 
   // ── BOTH NON-PRIMARY — chain Viewer→Primary→Target ───────────────
@@ -147,16 +153,17 @@ function computeRelFromPerspective(viewerRel: string, targetRel: string, targetG
 
   // VIEWER is Sibling of Primary
   if (SIBLING_RELS.includes(vr)) {
-    if (PARENT_RELS.includes(tr))          return gParent(g);
+    if (PARENT_RELS.includes(tr))          return gParent(g);                                             // parent of primary = parent of viewer's sibling = viewer's parent
     if (CHILD_RELS.includes(tr))           return gNephNiece(g);                                          // child of primary = nephew/niece
     if (SIBLING_RELS.includes(tr))         return gSibling(g);
-    if (SPOUSE_RELS.includes(tr))          return gInlawSibling(g);
+    if (SPOUSE_RELS.includes(tr))          return gInlawSibling(g);                                       // spouse of primary = sibling-in-law of viewer
     if (GRANDPARENT_RELS.includes(tr))     return gGrandparent(g);
     if (GRANDCHILD_RELS.includes(tr))      return gNephNiece(g);                                          // grandchild of primary = grand-nephew/niece
     if (UNCLE_AUNT_RELS.includes(tr))      return gUnclAunt(g);
     if (NEPHEW_NIECE_RELS.includes(tr))    return 'First Cousin';
-    if (IN_LAW_CHILD_RELS.includes(tr))    return gNephNiece(g);
+    if (IN_LAW_CHILD_RELS.includes(tr))    return gNephNiece(g);                                          // child-in-law of primary = nephew/niece-in-law
     if (IN_LAW_SIBLING_RELS.includes(tr))  return gInlawSibling(g);
+    if (IN_LAW_PARENT_RELS.includes(tr))   return gInlawParent(g);                                        // in-law parent of primary = viewer's sibling's in-law parent
     if (COUSIN_RELS.includes(tr))          return 'Cousin';
   }
 
@@ -181,22 +188,29 @@ function computeRelFromPerspective(viewerRel: string, targetRel: string, targetG
     if (GRANDPARENT_RELS.includes(tr))     return gSpouse(g);
     if (CHILD_RELS.includes(tr))           return g === 'female' ? 'Great-Granddaughter' : 'Great-Grandson';
     if (GRANDCHILD_RELS.includes(tr))      return g === 'female' ? 'Great-Granddaughter' : 'Great-Grandson';
-    if (SIBLING_RELS.includes(tr))         return gNephNiece(g);                                          // sibling of primary = grand-nephew/niece
-    if (UNCLE_AUNT_RELS.includes(tr))      return gSibling(g);
+    if (SIBLING_RELS.includes(tr))         return gGrandchild(g);                                         // sibling of primary = grandchild of grandparent
+    if (UNCLE_AUNT_RELS.includes(tr))      return gChild(g);                                              // uncle/aunt of primary = grandparent's own child (Son/Daughter)
     if (NEPHEW_NIECE_RELS.includes(tr))    return gNephNiece(g);
     if (SPOUSE_RELS.includes(tr))          return gInlawChild(g);                                         // spouse of primary = grandchild-in-law
+    if (IN_LAW_CHILD_RELS.includes(tr))    return g === 'female' ? 'Great-Granddaughter-in-law' : 'Great-Grandson-in-law';
+    if (IN_LAW_SIBLING_RELS.includes(tr))  return gInlawChild(g);                                         // in-law sibling of primary = grandchild-in-law of grandparent
+    if (IN_LAW_PARENT_RELS.includes(tr))   return gInlawChild(g);
     if (COUSIN_RELS.includes(tr))          return 'Cousin';
   }
 
   // VIEWER is Grandchild of Primary
   if (GRANDCHILD_RELS.includes(vr)) {
-    if (PARENT_RELS.includes(tr))          return gGrandparent(g);                                        // parent of primary = great-grandparent of viewer
+    if (PARENT_RELS.includes(tr))          return g === 'female' ? 'Great-Grandmother' : 'Great-Grandfather'; // parent of primary = great-grandparent of viewer
     if (CHILD_RELS.includes(tr))           return gParent(g);                                             // child of primary = parent of viewer
     if (GRANDPARENT_RELS.includes(tr))     return g === 'female' ? 'Great-Grandmother' : 'Great-Grandfather';
-    if (SIBLING_RELS.includes(tr))         return gUnclAunt(g);                                           // sibling of primary = uncle/aunt of viewer
+    if (SIBLING_RELS.includes(tr))         return g === 'female' ? 'Great-Aunt' : 'Great-Uncle';          // sibling of primary = great uncle/aunt of viewer
+    if (UNCLE_AUNT_RELS.includes(tr))      return g === 'female' ? 'Great-Aunt' : 'Great-Uncle';          // uncle/aunt of primary = great uncle/aunt of viewer
     if (GRANDCHILD_RELS.includes(tr))      return gSibling(g);                                            // other grandchild = sibling
     if (SPOUSE_RELS.includes(tr))          return gGrandparent(g);
+    if (IN_LAW_PARENT_RELS.includes(tr))   return g === 'female' ? 'Great-Grandmother-in-law' : 'Great-Grandfather-in-law';
+    if (IN_LAW_CHILD_RELS.includes(tr))    return gParent(g);
     if (NEPHEW_NIECE_RELS.includes(tr))    return 'First Cousin';
+    if (COUSIN_RELS.includes(tr))          return 'First Cousin Once Removed';
   }
 
   // VIEWER is Uncle/Aunt of Primary
@@ -210,6 +224,9 @@ function computeRelFromPerspective(viewerRel: string, targetRel: string, targetG
     if (GRANDCHILD_RELS.includes(tr))      return 'Grand-Nephew/Niece';
     if (COUSIN_RELS.includes(tr))          return 'Cousin';
     if (SPOUSE_RELS.includes(tr))          return gNephNiece(g);
+    if (IN_LAW_CHILD_RELS.includes(tr))    return 'First Cousin';
+    if (IN_LAW_SIBLING_RELS.includes(tr))  return gNephNiece(g);
+    if (IN_LAW_PARENT_RELS.includes(tr))   return gInlawParent(g);
   }
 
   // VIEWER is Nephew/Niece of Primary
@@ -220,6 +237,10 @@ function computeRelFromPerspective(viewerRel: string, targetRel: string, targetG
     if (CHILD_RELS.includes(tr))           return 'First Cousin';
     if (GRANDPARENT_RELS.includes(tr))     return gGrandparent(g);
     if (UNCLE_AUNT_RELS.includes(tr))      return gUnclAunt(g);
+    if (SPOUSE_RELS.includes(tr))          return gUnclAuntInlaw(g);
+    if (IN_LAW_CHILD_RELS.includes(tr))    return gNephNieceInlaw(g);
+    if (IN_LAW_SIBLING_RELS.includes(tr))  return gParent(g);
+    if (IN_LAW_PARENT_RELS.includes(tr))   return gGrandparent(g);
     if (COUSIN_RELS.includes(tr))          return 'Cousin';
   }
 
@@ -248,7 +269,7 @@ function computeRelFromPerspective(viewerRel: string, targetRel: string, targetG
   if (IN_LAW_CHILD_RELS.includes(vr)) {
     if (PARENT_RELS.includes(tr))          return gInlawParent(g);
     if (CHILD_RELS.includes(tr))           return gInlawSibling(g);
-    if (IN_LAW_CHILD_RELS.includes(tr))    return gSpouse(g);
+    if (IN_LAW_CHILD_RELS.includes(tr))    return gCoSiblingInlaw(g);                                     // other child-in-law = co-sibling-in-law
     if (SIBLING_RELS.includes(tr))         return gInlawSibling(g);
     if (SPOUSE_RELS.includes(tr))          return gSpouse(g);
     if (GRANDPARENT_RELS.includes(tr))     return gGrandparent(g);
@@ -256,6 +277,7 @@ function computeRelFromPerspective(viewerRel: string, targetRel: string, targetG
     if (GRANDCHILD_RELS.includes(tr))      return gChild(g);
     if (NEPHEW_NIECE_RELS.includes(tr))    return gNephNiece(g);
     if (UNCLE_AUNT_RELS.includes(tr))      return gUnclAunt(g);
+    if (IN_LAW_SIBLING_RELS.includes(tr))  return gInlawSibling(g);
   }
 
   // VIEWER is Brother/Sister-in-law of Primary
@@ -265,10 +287,13 @@ function computeRelFromPerspective(viewerRel: string, targetRel: string, targetG
     if (PARENT_RELS.includes(tr))          return gInlawParent(g);
     if (CHILD_RELS.includes(tr))           return gNephNiece(g);
     if (GRANDCHILD_RELS.includes(tr))      return gNephNiece(g);
-    if (IN_LAW_SIBLING_RELS.includes(tr))  return gSibling(g);
+    if (IN_LAW_SIBLING_RELS.includes(tr))  return gCoSiblingInlaw(g);                                     // another in-law sibling = co-sibling-in-law
     if (IN_LAW_PARENT_RELS.includes(tr))   return gParent(g);
-    if (UNCLE_AUNT_RELS.includes(tr))      return gUnclAunt(g);
+    if (UNCLE_AUNT_RELS.includes(tr))      return gUnclAuntInlaw(g);
     if (NEPHEW_NIECE_RELS.includes(tr))    return 'First Cousin';
+    if (GRANDPARENT_RELS.includes(tr))     return gGrandparent(g);
+    if (IN_LAW_CHILD_RELS.includes(tr))    return gNephNieceInlaw(g);
+    if (COUSIN_RELS.includes(tr))          return 'Cousin-in-law';
   }
 
   return targetRel || 'Family Member';
@@ -280,13 +305,23 @@ function getDynamicRelation(targetMember: Member, selectedMember: Member, family
     PRIMARY_RELS.includes((m.relation || '').trim().toLowerCase())
   ) || familyMembers[0];
 
-  if (!primaryMember) return targetMember.relation || 'Family Member';
+  if (!primaryMember) return formatRel(targetMember.relation || '', targetMember.gender);
 
-  const viewerRel = selectedMember.id === primaryMember.id
+  const targetId = targetMember.id || targetMember._id;
+  const viewerId = selectedMember.id || selectedMember._id;
+  const primaryId = primaryMember.id || primaryMember._id;
+
+  // Same person
+  if ((targetId && viewerId && targetId === viewerId) || targetMember === selectedMember) {
+    const isPrimary = (primaryId && targetId === primaryId) || PRIMARY_RELS.includes((targetMember.relation || '').trim().toLowerCase());
+    return isPrimary ? 'Primary Account' : 'Self';
+  }
+
+  const viewerRel = (primaryId && viewerId === primaryId) || PRIMARY_RELS.includes((selectedMember.relation || '').trim().toLowerCase())
     ? '' // viewer is primary
     : (selectedMember.relation || '');
 
-  const targetRel = targetMember.id === primaryMember.id
+  const targetRel = (primaryId && targetId === primaryId) || PRIMARY_RELS.includes((targetMember.relation || '').trim().toLowerCase())
     ? '' // target is primary
     : (targetMember.relation || '');
 
@@ -312,10 +347,6 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
   const [isSettingPrimary, setIsSettingPrimary] = useState(false);
 
   const [isLoading, setIsLoading] = useState(true);
-  
-  // Legacy modal state for non-family updates or requests
-  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
-  const [updateModalMode] = useState<'self-update' | 'request-update'>('self-update');
   
   const [isRequestingUpdate, setIsRequestingUpdate] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
@@ -714,7 +745,7 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
                         borderRadius: '6px', cursor: 'pointer',
                       }}
                     >
-                      Delete "{dup.name}"
+                      Delete &quot;{dup.name}&quot;
                     </button>
                     <button
                       onClick={handleDeleteSelf}
@@ -1098,15 +1129,6 @@ export default function ProfilePage({ memberId }: ProfilePageProps) {
         />
       )}
 
-      {/* Legacy self-update modal (if needed elsewhere) */}
-      {isUpdateModalOpen && !isMyProfile && (
-        <ProfileUpdateModal 
-          member={selectedMember} 
-          onClose={() => setIsUpdateModalOpen(false)}
-          onUpdated={handleFamilyMemberSaved}
-          mode={updateModalMode}
-        />
-      )}
 
       {isUsernameModalOpen && (
         <ChangeUsernameModal

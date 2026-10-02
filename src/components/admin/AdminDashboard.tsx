@@ -14,7 +14,7 @@ import EmptyState from '@/components/ui/EmptyState/EmptyState';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { ApiClient } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
-import { MemberGrowthChart, OverviewRingChart, EventParticipationChart } from './AdminCharts';
+import { MemberGrowthChart, OverviewRingChart } from './AdminCharts';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 

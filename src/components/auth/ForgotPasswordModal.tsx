@@ -242,7 +242,7 @@ export default function ForgotPasswordModal({ onClose }: ForgotPasswordModalProp
                 onClick={handleRequestOtp}
                 disabled={isLoading}
               >
-                Didn't receive code? Resend OTP
+                Didn&apos;t receive code? Resend OTP
               </button>
             </form>
           )}

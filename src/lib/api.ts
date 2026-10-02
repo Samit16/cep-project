@@ -108,7 +108,7 @@ export class ApiClient {
 
     if (!response.ok) {
       const errorMsg = data?.detail || data?.error || response.statusText || 'API Request failed';
-      const error = new Error(errorMsg) as Error & { data?: any, status?: number };
+      const error = new Error(errorMsg) as Error & { data?: Record<string, unknown>, status?: number };
       error.data = data;
       error.status = response.status;
       throw error;
@@ -157,9 +157,10 @@ export class ApiClient {
       });
       clearTimeout(timeoutId);
       return await this.handleResponse<T>(response);
-    } catch (err: any) {
-      if (err.status || err.data) throw err;
-      throw new Error(err.message || 'Network error or backend unreachable.');
+    } catch (err: unknown) {
+      const apiErr = err as { status?: number; data?: unknown; message?: string };
+      if (apiErr.status || apiErr.data) throw err;
+      throw new Error(apiErr.message || 'Network error or backend unreachable.');
     }
   }
 

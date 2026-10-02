@@ -82,6 +82,7 @@ const IN_LAW_CHILD_RELS = ['son-in-law', 'daughter-in-law', 'grandson-in-law', '
 const IN_LAW_SIBLING_RELS = ['brother-in-law', 'sister-in-law'];
 const COUSIN_RELS = ['cousin', 'first cousin', 'second cousin', 'cousin once removed', 'step cousin'];
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function isMale(rel: string) {
   return ['father', 'stepfather', 'adoptive father', 'son', 'stepson', 'adopted son', 'brother', 'half brother', 'stepbrother', 'husband', 'paternal grandfather', 'maternal grandfather', 'great grandfather', 'step grandfather', 'grandson', 'great grandson', 'uncle', 'paternal uncle', 'maternal uncle', 'great uncle', 'nephew', 'great nephew', 'father-in-law', 'son-in-law', 'grandson-in-law', 'brother-in-law', 'cousin', 'first cousin'].includes(rel.toLowerCase());
 }
@@ -103,6 +104,7 @@ function inlawSibling(gB: string) { return gB === 'female' ? 'Sister-in-law' : '
 function spouseStr(gB: string) { return gB === 'female' ? 'Wife' : 'Husband'; }
 
 // Helper to determine the inverse of a relation relative to self
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function determineInverseRelation(relation: string, genderSelf?: string): string {
   const rel = (relation || '').trim().toLowerCase();
   const selfG = (genderSelf || '').trim().toLowerCase();
@@ -124,6 +126,7 @@ function determineInverseRelation(relation: string, genderSelf?: string): string
 }
 
 // Helper to determine the chained relationship (B to X, then X is A's what, what is B to A?)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function determineChainedRelation(
   relBtoX: string,
   relXtoA: string,
@@ -282,6 +285,7 @@ export async function POST(request: NextRequest) {
 
     // 1. Check for duplicates if NOT forcing creation
     if (!forceCreate) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let matchedMembers: any[] = [];
 
       // Check Name (First Name + Middle Name starts with or matches first word)
@@ -353,6 +357,7 @@ export async function POST(request: NextRequest) {
         .in('role', ['admin', 'committee'])
         .eq('is_active', true);
       if (committeeProfiles && committeeProfiles.length > 0) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const notifs = committeeProfiles.map((a: any) => ({
           user_id: a.id,
           type: 'approval',

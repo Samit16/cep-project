@@ -43,7 +43,7 @@ export function middleware(request: NextRequest) {
 
   const isMemberPath = path.startsWith('/directory') || path.startsWith('/profile') || path.startsWith('/archives');
   const isAdminPath = path.startsWith('/dashboard');
-  const isLoginPath = path === '/login';
+
 
   // Not authenticated — block access to protected routes
   if (!isAuthenticated && (isMemberPath || isAdminPath)) {

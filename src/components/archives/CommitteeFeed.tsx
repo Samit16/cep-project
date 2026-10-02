@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ApiClient } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
-import { Trash2, Edit2, Image as ImageIcon, Plus, X, Upload } from 'lucide-react';
+import { Trash2, Edit2, Image as ImageIcon, Plus, X } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import styles from './CommitteeFeed.module.css';
 

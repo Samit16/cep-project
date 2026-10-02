@@ -90,6 +90,7 @@ export async function PUT(
 
     let member = null;
     if (Object.keys(memberData).length > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const sanitized: Record<string, any> = sanitizeObject(memberData, [
         'first_name', 'middle_name', 'last_name', 'address', 'email',
         'occupation', 'marital_status', 'current_place', 'kutch_town'
